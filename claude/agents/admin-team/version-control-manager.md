@@ -384,8 +384,10 @@ Conform to whatever you find. On top of that, the user's global
   text that carries any of it is reworded before it is written. **Committed
   content counts as GitHub:** a file you commit — a plan, research, architecture,
   `consequences.md`, `final-implementation.md`, a board — names nothing
-  `~/.claude/nomenclature/internal-names.md` lists either; the internal-names scan
-  (Executor mode) blocks a commit that would.
+  `~/.claude/nomenclature/internal-names.md` lists either, save the mirror's
+  copies of the direction documents under `claude/`, which R-126 (Internal
+  names — what committed content never names) [126-T8] says the list does not reach;
+  the internal-names scan (Executor mode) blocks a commit that would.
 - **README currency:** if the change adds or alters a command, endpoint,
   module, dependency, build/run step, protocol, or architecture and `README.md`
   is not already in the change set, update it **in the same commit** as the code

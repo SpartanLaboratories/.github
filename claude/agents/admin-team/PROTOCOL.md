@@ -254,7 +254,9 @@ Same shape: one line, then a ```json block.
   `needs-rework`, each find carrying the list's wording to say instead or `null`. The same
   scan runs before a `mirror-sync` commits anything (`version-control-manager.md`, Executor
   mode, **Internal-names scan**); of the files a `mirror-sync` carries it reads none under
-  `claude/`, as R-10049 (Documents and boards) [10049-T2] says. A scan that could not run commits nothing
+  `claude/`, as R-10049 (Documents and boards) [10049-T2] says: those are the mirror's copies of the
+  direction documents, which R-126 (Internal names — what committed content never names) [126-T7] says the
+  list does not reach. A scan that could not run commits nothing
   either: the team holds the request, sending `progress`, until the scan is corrected, then runs it
   again. A resend that asks for an exception says so in `notes`, naming each `file:line` it asks
   for and the reason to keep it; it comes back `needs-user` while the team puts the case to the user (the

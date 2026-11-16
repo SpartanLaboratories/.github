@@ -249,7 +249,10 @@ plans, research, architecture, `consequences.md`, `final-implementation.md`, the
 and the board-event fact texts that land on them) never names the pipeline's
 agents, sessions or roles, never refers to the approval flow, and never states
 a grade, as `~/.claude/nomenclature/internal-names.md` lists them with
-what is fine and what to say instead, and `~/.claude/nomenclature/finding.md` says how each is found. Before a `commit`, a `prepare-landing` or a `land` commits
+what is fine and what to say instead, and `~/.claude/nomenclature/finding.md` says how each is found.
+The list does not reach the mirror's copies of the direction documents, under
+`claude/` in `.github`, as R-126 (Internal names — what committed content never
+names) [126-T6] says. Before a `commit`, a `prepare-landing` or a `land` commits
 anything, and before a `mirror-sync` that carries the files the scan reads, the executor
 runs the finding tool's command over what it is about to commit, which reads it as R-1122
 (What the commit scan reads) [1122-T2] says (`version-control-manager.md`, Executor mode,

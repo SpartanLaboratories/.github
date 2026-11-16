@@ -1,10 +1,13 @@
 # Internal names — what committed content never names
 {"name":"Internal names — what committed content never names","code":"G-N-IN","id":126}
 
-The names, phrases and words that committed content never contains: every committed document and
-board (plans, research, architecture, `consequences.md`, `final-implementation.md`, every board,
-and the board-event fact texts that land on one) and the comments in source code, and what a board
-hands out of its repository (a board's published copy, a Whiteboard's generated part). The rule that
+The names, phrases and words that committed content never contains: what the commit scan reads, as
+R-1122 (What the commit scan reads) [1122-T6] says, every committed document and board (plans, research,
+architecture, `consequences.md`, `final-implementation.md`, every board, and the board-event fact
+texts that land on one) and the comments in source code among it, and what a board hands out of
+its repository (a board's published copy, a Whiteboard's generated part). The list does not reach
+the mirror's copies of the direction documents, the files under `claude/` in
+`SpartanLaboratories/.github`: the briefs, skills and rules there name the pipeline by design. The rule that
 applies the list and what a find blocks is in [`CLAUDE.md`](../CLAUDE.md), "No internal names in
 committed content". Committed content describes the work in the project's own terms; the process
 lives in the briefs and in the reports.

@@ -280,7 +280,9 @@ land on them) never name the pipeline's agents, sessions or roles (qa only as an
 never refer to the approval flow, and never state a grade. The list, with what only
 resembles an entry and is fine and what to say instead, is
 `~/.claude/nomenclature/internal-names.md`, and how a scan finds its words is
-`~/.claude/nomenclature/finding.md`. The admin team scans what R-1122 (What the commit scan
+`~/.claude/nomenclature/finding.md`. The list does not reach the mirror's copies of the direction
+documents, under `claude/` in `.github`, as R-126 (Internal names — what committed content never
+names) [126-T5] says. The admin team scans what R-1122 (What the commit scan
 reads) [1122-T1] lists, with the CCO's finding tool. A find blocks the `commit`, `prepare-landing` or `land` that carries it: the admin team commits nothing, names each
 `file:line` with the list's wording to say instead, or that it has none, and the requester rewords
 (by hand where there is no wording) and resends, or resends asking for an exception, which the

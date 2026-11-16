@@ -36,7 +36,9 @@ characters within one name and `**` for any number of folders.
 Everything under `docs/` is read, the generated board files among it; every Markdown file, a
 `README.md` at any depth, a `CHANGELOG.md` and the community health files among them; and the
 issue templates. In `SpartanLaboratories/.github` no file under `claude/` is read, whatever its
-kind: neither a document nor a code file's comments. Every file of its Policy and Design folders
+kind: neither a document nor a code file's comments. Those files are the mirror's copies of the
+direction documents, which the internal-names list does not reach, as R-126 (Internal names — what
+committed content never names) [126-T4] says. Every file of its Policy and Design folders
 is read, and every Markdown file outside `claude/`: `Structure.md`, `POLICY.md`, `DESIGN.md`,
 `scripts/INDEX.md`, `rule-index.md` and `profile/README.md` among them.
 
