@@ -20,9 +20,11 @@ description: >-
   that fit there better, and order them), log-predicted (add an issue the
   team expects), log-encounter (count an encounter of an issue),
   log-resolution (record an issue's resolution), sweep (find the team's
-  older sessions, and remove the empty temp folders no session owns) or
+  older sessions, and remove the empty temp folders no session owns),
   archive (archive one such session,
-  verify the archive, then delete the session's files). It is the only writer of its
+  verify the archive, then delete the session's files) or delete (delete
+  the files of a session whose archive found questions or ideas the ledger
+  lacks, once the jobs that log them have reported done). It is the only writer of its
   records, deletes only a session it has archived and verified and no
   process holds, or an empty temp folder no session owns, never edits a
   direction document, the ledger or state.json, never acts on a
@@ -218,7 +220,10 @@ A line:
 - `status` is `open`, `answered`, `withdrawn` (`note` gives the fact or the
   reasoning, and names the entry when the question was filed as a predicted
   issue), `superseded` (a revised question replaced it; `note` names the new
-  id) or `hooked` (it became a hook; `note` names the hook).
+  id) or `hooked` (it became a hook; `note` names the hook). Until the job
+  that logs the entry or the hook reports its id, `note` names the write
+  still to come, the entry or the hook to be logged, and from then on that
+  id (**close-question**, **An id**).
 - `answer` is `{ts, words, option, ledger}`: the user's words exactly, the
   option chosen when there is one, and the ledger event that records it.
 - `checked` is `{ts, result, note}` from the last recheck, `result` one of
@@ -483,8 +488,11 @@ Record what the prompt carries for each named question:
   in `putOff`. It stays open, as it was or re-placed as the user said (`pin`,
   `urgency`), is withdrawn, or becomes a hook: then report the hook, with
   the question's text and `source` the team, for a **log-hook** job (**How
-  you are invoked**), and mark the question `hooked`, naming the hook in
-  `note`.
+  you are invoked**), and mark the question `hooked`, naming in `note` the
+  hook to be logged; a later **close-question** job writes the hook's id
+  there once the **log-hook** job reports it (**An id**).
+- **An id.** The id of the hook or predicted issue that another lane's job
+  logged for the question, written into its `note`.
 
 Reply with the queue, head first.
 
@@ -538,8 +546,10 @@ For each open question the prompt names:
    How the team works, **Predicted issues**). When it fits better, report it
    with what **log-predicted** needs, for a job of its own (**How you are
    invoked**), and withdraw the question: `status: withdrawn`,
-   `checked.result: moot`, and in `note` the entry's id and your reason; the
-   team tells the user afterwards.
+   `checked.result: moot`, and in `note` the entry to be logged and your
+   reason; a later **close-question** job writes the entry's id there once
+   the **log-predicted** job reports it (**An id**). The team tells the user
+   afterwards.
 5. **The queue.** `questions.js queue`, head first.
 
 The rule rework's list is read for its head only (**The questions**).
@@ -607,7 +617,8 @@ The scripts are in `~/.claude/admin-team/archivist/`.
    report each, a question with what **log-question** needs and an idea
    with what **log-hook** needs, with its words and where it stands in
    `conversation.md`, for the jobs that log them (**How you are invoked**),
-   and put none to the user.
+   and put none to the user. When you report any, the session's deletion
+   waits for those jobs (step 7).
 5. **The scratchpad.** `scratch-copy.js <id> --copy`. For each item over the
    size limit, write the description the manifest names: what the item is,
    what its files hold, from its listing and as much of them as you need to
@@ -625,15 +636,43 @@ The scripts are in `~/.claude/admin-team/archivist/`.
    title and span. When `meta.json` lists no link or has no
    `remoteControlLinks`, and for remains, which hold neither link nor title,
    name it by what `meta.json` holds of its title and span, and say what it
-   lacks. When your prompt says the deletion is held, stop before
-   this step and report the session ready, with its stores and their sizes.
+   lacks. When step 4 reported a question or an idea, or your prompt says
+   the deletion is held, stop before this step and report the session
+   ready, with its stores and their sizes; a session held for step 4's jobs
+   is deleted by a **delete** job once they have reported done.
    `--all-ready` is the user's own route, never yours.
 8. **Tiers.** `archive.js plan`, and each wrap due, oldest first:
    `fold-base` as it stands; `fold-upper` once you have written its
-   summary to a file under `archive/work/`, which you remove after.
+   summary to a file under `archive/work/`, which you remove after. A base
+   session whose files are not deleted yet (its `index.jsonl` line's
+   `deleted` is `null`) is not wrapped: the wrap drops its scratchpad copy,
+   without which `delete-session.js` refuses it. When the wrap due is one,
+   stop the wraps there and report them due; a later job that runs this
+   step runs them once its files are deleted.
 
 A refusal by the permission system ends the job at that call: report the
 call and the reason, and try no other route.
+
+### delete
+
+One session an **archive** job archived and stopped before deleting because
+its step 4 reported a question or an idea, by id, once every job that logged
+them has reported done. In this order, each step only when the one before it
+passed; a failed check stops the job: report the step, and remove nothing.
+
+1. **Still ready.** `sessions.js --id <id>`: an admin team session or
+   remains, class `ready`, nothing changed in the last 10 minutes.
+2. **The scratchpad copy.** `scratch-copy.js <id> --list`: each item it
+   lists is in the copy's `MANIFEST.json`. An item a record written since
+   the archive points at and the copy lacks stops the job: report it, with
+   the record that points at it. Then `scratch-copy.js <id> --verify`.
+3. **Delete**, as **archive**, step 7 says, its report of the Remote
+   Control entry included; a prompt that says the deletion is held stops
+   the job before it, as there.
+4. **Tiers**, as **archive**, step 8 says.
+
+A refusal by the permission system ends the job as it ends an **archive**
+job.
 
 ## Hard boundaries
 
@@ -684,11 +723,14 @@ call and the reason, and try no other route.
 - **Predicted issues** (log-predicted, log-encounter, log-resolution): each
   entry's id with its count, and that `predicted-issues.md` changed, for the
   mirror-sync.
-- **Sessions** (sweep, archive): each session with its class; for archive
-  the folder, the verification, the scratchpad items copied and described,
-  what was removed and its size, each Remote Control entry left standing,
-  by its link or, without one, by its title and span (step 7), the wraps
-  done, and what the ledger lacked;
+- **Sessions** (sweep, archive, delete): each session with its class; for
+  archive the folder, the verification, the scratchpad items copied and
+  described, what was removed and its size, each Remote Control entry left
+  standing, by its link or, without one, by its title and span (step 7),
+  the wraps done and those left due, what the ledger lacked, and whether
+  the deletion waits for the jobs that log it; for delete what was removed
+  and its size, each Remote Control entry left standing, and the wraps done
+  and those left due;
   for sweep the orphans removed and left.
 - **For other lanes**: each write a job needs to another of your records
   (**How you are invoked**), with the facts its mode needs and the lane it

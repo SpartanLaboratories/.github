@@ -1150,8 +1150,8 @@ asks for an action no group names (Request groups).
   `archive-questions` the question jobs (**log-question**,
   **close-question**, **recheck**), `archive-predicted` the predicted-issue
   jobs (**log-predicted**, **log-encounter**, **log-resolution**) and
-  `archive-sessions` the session jobs (**sweep**, **archive**), each one at
-  a time, so no two writes touch
+  `archive-sessions` the session jobs (**sweep**, **archive**, **delete**),
+  each one at a time, so no two writes touch
   one record. A job holds only its own record's lane. A write it needs to
   another of these records it reports, with the facts that record's mode
   needs, and goes on with its own work (the Archivist's brief, How you are
@@ -1160,6 +1160,11 @@ asks for an action no group names (Request groups).
   **recheck** files as a predicted issue, in `archive-predicted` (Predicted
   issues); the questions and ideas an **archive** job finds no ledger event
   or hook holds, in `archive-questions` and `archive-hooks` (Sessions).
+  When the job that logs the hook a **close-question** makes, or the entry
+  a **recheck** files, reports its id, queue a **close-question** job in
+  `archive-questions` to write that id into the question's `note`; an
+  **archive** job's findings are followed by a **delete** job, queued as
+  Sessions, **What the ledger lacks**, says.
   None of them holds a repository's lane, and a repository's lane never
   waits on them.
 - **Running a job.** Spawn `archivist` (`subagent_type: "archivist"`,
@@ -1334,19 +1339,23 @@ asks for an action no group names (Request groups).
 ### Sessions
 
 - **At every start** queue a **sweep** in `archive-sessions`, then an
-  **archive** job for each session it reports older, oldest first. They run
+  **archive** job for each session it reports older, oldest first, and a
+  **delete** job for each session it reports ready whose deletion waits on
+  jobs that have all reported done (**What the ledger lacks**). They run
   in the background: startup and the `up` file never wait on them. Give each
   job the running session's id, read from the live record in
   `~/.claude/sessions/` whose `agent` is `admin-team`, never from
   `state.json` or a note.
 - **The Archivist deletes.** Every deletion of a session's files or of an
   orphan temp folder is the Archivist's, and none waits for the user's
-  word: an archive job deletes its session's files once every step of its
+  word: an archive job, or the delete job that follows it (**What the
+  ledger lacks**), deletes its session's files once every step of its
   order has passed and `delete-session.js`'s own checks pass (the
-  Archivist's brief, **archive**), and every sweep removes the orphan temp
-  folders that are empty and quiet (the Archivist's brief, The session
-  archive, **An orphan**), with nothing added to any settings file. When the
-  permission system refuses the Archivist's deletion, record the refusal
+  Archivist's brief, **archive** and **delete**), and every sweep removes
+  the orphan temp folders that are empty and quiet (the Archivist's brief,
+  The session archive, **An orphan**), with nothing added to any settings
+  file. When the permission system refuses the Archivist's deletion, record
+  the refusal
   (Predicted issues) and have the `direction-manager` place a
   `permissions.allow` rule for `delete-session.js` in
   `~/.claude/admin-team/settings.json`, as its brief says for a settings edit
@@ -1354,16 +1363,21 @@ asks for an action no group names (Request groups).
   the same way; after a third, give the user the command to run, for one
   session or, with `--all-ready`, for every session ready, and with
   `--orphans` for the empty orphans, and sweep and archive jobs keep their
-  deletion held.
+  deletion held and no delete job is queued.
 - **What the ledger lacks.** An archive job reports each question or idea
   of its session that no ledger event or hook holds (the Archivist's brief,
   **archive**, step 4) and holds only `archive-sessions`: queue at once a
   **log-question** job in `archive-questions` for its questions and a
   **log-hook** job in `archive-hooks` for its ideas, none put to the user
   first. Append `idea-hook` for each hook the log-hook job reports, and send
-  the viability questions it gives you (Hooks).
+  the viability questions it gives you (Hooks). The session's files wait for
+  those jobs: the archive job stops before its deletion (the Archivist's
+  brief, **archive**, step 7), and once every one of them has reported done,
+  queue a **delete** job in `archive-sessions` for the session, with the
+  facts an archive job is given.
 - **Ledger.** Append `session-archived` (the session, its base folder, its
-  scratchpad copy), `session-deleted` (the session, the stores removed, the
+  scratchpad copy, and the jobs its deletion waits on, when it waits),
+  `session-deleted` (the session, the stores removed, the
   bytes freed, who ran it) and `session-wrapped` (the sessions, the tier and
   the document they went into).
 
