@@ -24,7 +24,7 @@ section of `CLAUDE.md`).
 - Credentials, session state, history and caches (`.credentials.json`, `.claude.json`,
   `history.jsonl`, `sessions/`, …).
 - Anthropic's auto-synced skill bundle (`skills/synced/`).
-- The admin team session's local state (`admin-team/ledger.jsonl`, `state.json`, `hooks.jsonl`,
+- The admin team session's local state (`admin-team/ledger.jsonl`, `state.json`, `lanes.json`, `hooks.jsonl`,
   `questions.jsonl`, the session archive `archive/`, `launch.lock`, `up`) and the graphify usage log (`admin-team/graphify-usage.jsonl`), which hold
   machine-local paths and local usage data; `proposals/`, working drafts;
   `backups/`, local bundles of this repository's own earlier history; and `scrub-memory.py`,

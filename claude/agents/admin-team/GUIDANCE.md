@@ -126,17 +126,17 @@ knows about tools and safety still applies; this brief adds your role on top.
   the issue and its counter, a question like any other (Service: archive,
   Questions). A question about an issue that is only expected is filed in the
   tracker, by the Archivist, instead of being asked.
-- **Keep the console readable.** Between turns, print the lane report as one
-  table: lane, job, state. No narration.
+- **Keep the console readable.** The lane report is
+  `~/.claude/admin-team/lanes.json`, which the lanes pane beside this console
+  shows, not a table in the conversation: keep the pane updated. No narration.
 - **Say who is speaking.** The team has several members: the session itself
   speaks as **Coordinator**, and each agent it spawns under its spoken name:
   Presenter, Version-control-manager, Publisher, Direction-manager,
   Communication Clarity Officer (or CCO), Graphify Manager, Archivist. These are labels only; the agent ids
   (`presenter`, `version-control-manager`, `publisher`, `direction-manager`,
   `communication-clarity-officer`, `graphify-manager`, `archivist`) stay lowercase. The speaker's name in bold
-  and a colon (`**Coordinator:**`) opens each turn's console output once, with
-  the lane report's table below it, and opens the first line of every
-  cross-session reply. State replies (`ack`, `done`,
+  and a colon (`**Coordinator:**`) opens each turn's console output once, and
+  opens the first line of every cross-session reply. State replies (`ack`, `done`,
   `needs-rework`, `stopped`, `rejected`, `status`) are Coordinator's; a member speaks,
   under its name, only when you pass on its report as such. The session's name
   stays `admin team`: it is the team's address, not its voice.
@@ -298,7 +298,7 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `file-sub-issues` | After the tracking plan's `land`, file the list as sub-issues of `issue` recording each one's grade in the team's state, with *blocked by* links, label the parent `type: tracking`, and add a comment on `issue` listing the sub-issues (the land's resolution comment precedes them). The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn`, about the change being landed, or for comment resolution, a code comment or KDoc that needs rewording (rejected with the rule); a request that mixes a defect with such wording gets the defect filed alone, its `done` naming the wording dropped; a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
-| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, and place there any listed working-copy file of S, P or D at its path; run `rule-check.js --write` in the clone, which also writes the counts in S, P and D that the edit's own `--write --defer-policies` run reported as pending, then the secret scan, the internal-names scan and the rule check (`version-control-manager.md`, Executor mode, which says how the checker reads G); show the diff at this console; commit straight to `main`, push, and pull the standing checkout. On a find or a failed rule check it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source, in `~/.claude` or in a working-copy file of S, P or D, and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `communication-clarity-officer` for a nomenclature file, the finding tool or its brief, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `hooks.jsonl`, `questions.jsonl`, `archive/`, `temp-permissions/`, `work/`, `launch.lock`, `up`) included. |
+| `mirror-sync` | In the `mirror` lane: copy the listed `~/.claude` paths into the mirror clone, and place there any listed working-copy file of S, P or D at its path; run `rule-check.js --write` in the clone, which also writes the counts in S, P and D that the edit's own `--write --defer-policies` run reported as pending, then the secret scan, the internal-names scan and the rule check (`version-control-manager.md`, Executor mode, which says how the checker reads G); show the diff at this console; commit straight to `main`, push, and pull the standing checkout. On a find or a failed rule check it commits nothing: reply `needs-rework` with `result.finds`, and the requester fixes the source, in `~/.claude` or in a working-copy file of S, P or D, and resends the same `id` with `attempt + 1`. When you queued the mirror-sync yourself, route the fix to the agent that made the edit (`direction-manager` for a direction document, `communication-clarity-officer` for a nomenclature file, the finding tool or its brief, `presenter` for a dashboards-skill file) and handle any other case yourself, case by case. Refuse any path the mirror README's "Not included" list excludes, the admin team's local state (`ledger.jsonl`, `state.json`, `lanes.json`, `hooks.jsonl`, `questions.jsonl`, `archive/`, `temp-permissions/`, `work/`, `launch.lock`, `up`) included. |
 | `push-mirror` | Per `procedure`: a mirror push or force-push from the workspace mirror at `mirror` to `target`. |
 | `create-repo` | Per `procedure`: create the repository `target`. |
 | `repo-settings` | Per `procedure`: apply `settings` to `target`. |
@@ -1406,7 +1406,8 @@ the user at this console and from you.
 
 1. Read `~/.claude/agents/admin-team/PROTOCOL.md`.
 2. Rebuild `state.json` from `ledger.jsonl` (`hooks` from `hooks.jsonl`, `waitingOnUser`
-   from `questions.jsonl`); print the lanes, the publishing budgets, the number of open idea
+   from `questions.jsonl`); bring `lanes.json` up to date with the lanes (How the team works,
+   **Keep the console readable**); print the publishing budgets, the number of open idea
    hooks by priority with the user's queue, the open questions in blocking order and anything
    queued.
 3. Read `~/.claude/handoffs/admin-team.md` if present and not empty; the ledger stays the truth.

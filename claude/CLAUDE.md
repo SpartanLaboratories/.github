@@ -155,9 +155,9 @@ comments or files itself, and never spawns `version-control-manager` directly.
   with `/desktop`. After a restart, the same session is reopened in the app; it is started fresh
   (`launch.cmd`, or a new app session in `~/.claude/admin-team/` that I name `admin team`) only
   when it cannot be reopened or a clean context is wanted.
-- Its ledger, state, hooks log, questions log and session archive
-  (`~/.claude/admin-team/ledger.jsonl`, `state.json`, `hooks.jsonl`, `questions.jsonl`,
-  `archive/`) are local only and never mirrored.
+- Its ledger, state, lane report, hooks log, questions log and session archive
+  (`~/.claude/admin-team/ledger.jsonl`, `state.json`, `lanes.json`, `hooks.jsonl`,
+  `questions.jsonl`, `archive/`) are local only and never mirrored.
 
 ## Session handoffs
 
