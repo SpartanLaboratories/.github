@@ -948,12 +948,15 @@ wherever it fits.
 dashboards convention changes, the existing boards it affects may
 be brought up to it. That update needs no request or PR of its own: record
 the affected repositories in the ledger as pending, and have `presenter`
-re-render the affected files ahead of time, in the repository's presenter lane
-(Presenter lanes), in the worktree of the next in-flight branch in that
+re-render the affected work boards ahead of time, in the repository's presenter
+lane (Presenter lanes), in the worktree of the next in-flight branch in that
 repository as that branch's next commit comes up; with none in flight, it waits
 for the next run's branch. What it wrote rides that branch's next commit in the
 repository's lane (a `docs:` commit in the same push) and lands with its merge.
-A default branch still changes only at a landing.
+The affected state boards are not re-rendered ahead of time: they wait for that
+run's `state-boards` step, whose `presenter` job brings them up to the
+convention, and ride its document-landing commit. A default branch still
+changes only at a landing.
 
 **Skill fixes.** When `presenter` reports **Skill fixes** (edits to its own
 rules: the `dashboards` skill under `~/.claude/skills/dashboards/` and its
