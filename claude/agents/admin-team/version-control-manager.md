@@ -267,8 +267,10 @@ pipeline's agents, sessions and roles, the approval flow and the grades as
 `~/.claude/nomenclature/finding.md` says each is found, and prints each find
 with its `file`, `line`, `text` and `sayInstead`, the list's wording for what
 it found, or `null` where the list has none. A find the team passes, by its
-`file:line` and text, in the prompt it spawns you with for this request, goes
-to the command as a `--pass` and is not a find (`admin-team/GUIDANCE.md`,
+`file:line` and text, in the prompt it spawns you with for this request (a
+pass granted on an earlier request of the same branch included, at the line
+where its text now stands), goes to the command as a `--pass` and is not a
+find (`admin-team/GUIDANCE.md`,
 "Internal names block a commit"). Exit 0: no find. Exit 1: commit nothing,
 and report each find as the command printed it under **Stopped — internal
 names**; the team replies `needs-rework` or has its `presenter` reword a board

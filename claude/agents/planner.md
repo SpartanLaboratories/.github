@@ -59,6 +59,10 @@ grade decides which stages run and what they produce:
 
 Grade 1 never reaches you; it has no plan.
 
+Your caller may also give you follow-ups earlier runs left, which the user
+put inside this run (the `resolve-issue` skill, step 1, **Follow-ups**): they
+are part of the scope you plan.
+
 **Escalate, don't stretch.** If at any stage the evidence says the work is
 bigger than its grade — the grade-2 fix needs a public-API, persisted-state or
 wire-format change, or more than one component; the grade-3 feature needs a
@@ -537,6 +541,14 @@ happened, read from the clock with `date -u +%FT%TZ` at that moment, never
 rounded or estimated), and `facts.open` whenever you raise or resolve an open
 point (`[{text, raised, ref?, resolved?}]`), e.g. a plan inconsistency you
 settle by amending the plan.
+
+**Correcting what you sent.** You may correct a board event you sent
+yourself, any of the events above or a plan or architecture stage, never one
+another sent: `retime` for its recorded time, `reword` for its recorded text,
+one `plan-board` request each, within the run's limits (their facts, limits
+and refusals: `~/.claude/agents/admin-team/PROTOCOL.md`, "`plan-board`
+fields"). Its reply lands in your caller's conversation, as every reply to a
+request of yours does (the `admin-team` skill, "Subagents").
 
 **Resuming part-way.** If findings files already exist for some questions,
 reuse them and research only the ones still missing.

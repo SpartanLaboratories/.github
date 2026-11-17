@@ -97,11 +97,21 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
   call to plan the oldest issue: its issue comes from the arguments or, with
   none, from this step's own listing.
 - If there are no open issues, say so and stop.
-- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it, and set `restarted` on the first request, with the run's own clock readings (`~/.claude/agents/admin-team/PROTOCOL.md`, `restarted`). With no handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up. A handoff names the run's prompt flags, and the run that takes it up keeps them ("Prompt flags", **Flags in force**).
+- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it. One a run left when it stopped with work unfinished, not the second kind a finished run leaves ("Session handoffs" in the global `CLAUDE.md`), means you are taking a run up: set `restarted` on the first request, with the run's own clock readings (`~/.claude/agents/admin-team/PROTOCOL.md`, `restarted`). With no such handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up. A handoff left with work unfinished names the run's prompt flags, and the run that takes it up keeps them ("Prompt flags", **Flags in force**).
 - Read the chosen issue in full: `gh issue view <n> --repo <repo> --comments`.
   An issue that is only partly done (an earlier tier/stage landed, more is
   open) still counts — this run's goal is the **next step**, not necessarily
   the whole issue.
+- **Follow-ups.** Read every non-empty handoff of the same repository
+  (`~/.claude/handoffs/<owner>-<repo>-*.md`) other than the run's own, and
+  the `consequences.md` of every landed sibling (a sub-issue of the issue's
+  parent whose work has landed), for the follow-ups they leave open. A
+  finished run's handoff holds only what cannot be committed and points at
+  its `consequences.md`, which holds the rest ("Session handoffs" in the
+  global `CLAUDE.md`). List the follow-ups in the report below; the user says
+  which fall inside this run, and those go into the planner's brief (step 2).
+  An item of a finished run's handoff that this run acts on or records
+  durably it clears as "Session handoffs" says.
 - **Size it.** Ask the admin team for the issue's recorded grade (a `status`
   request naming the issue; grades are kept in its local state, never on GitHub),
   then re-check it yourself
@@ -112,8 +122,9 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
 - Tell the user the invocation as you parsed it (its issue number, mode word
   and flags, each as given or as absent), the issue number, title, the
   **grade** (the recorded grade and your check), the prompt flags in force
-  (or that none is), and a one-line statement of what you intend to do this
-  run, and **confirm
+  (or that none is), the follow-ups found (**Follow-ups**, or that none was)
+  for the user to say which fall inside this run, and a one-line statement
+  of what you intend to do this run, and **confirm
   before proceeding** — this run creates branches and commits and posts a
   comment (`--unattended` gives that go-ahead in advance: "Prompt flags"). If
   no grade is recorded or your check **disagrees** with it, say
@@ -327,9 +338,10 @@ every prompt waits on the user as the steps say.
   **decisions taken by default**: each prompt, the options it offered, the
   recommendation taken, the flag that took it, and where the choice now shows.
 - **Flags in force.** The step-1 report names the flags in force. A handoff the
-  run leaves names them, and a run that takes it up keeps them; flags named in
-  the invocation that takes it up replace them. In a chain they apply to every
-  sub-issue run ("Tracking issues and run modes", **Flags**).
+  run leaves with work unfinished names them, and a run that takes it up
+  keeps them; flags named in the invocation that takes it up replace them. In
+  a chain they apply to every sub-issue run ("Tracking issues and run modes",
+  **Flags**).
 - **`--confirm-before-land`.** Once step 6's tasks are done, before its final
   `document` event and the document-landing commit, the run halts and puts the
   decisions taken by default to the user (or says none was taken), as for any
@@ -371,7 +383,8 @@ Send the `halted` event when the run becomes halted, not when the wait begins
 **Grade 1 skips this step.** The issue text is the spec.
 
 Spawn `planner` with the repo-qualified issue reference (`<owner>/<repo>#<n>`),
-the issue text, and the confirmed **grade**. For grade 2, pass
+the issue text, the confirmed **grade**, and the follow-ups the user put
+inside this run (step 1, **Follow-ups**). For grade 2, pass
 `model: "sonnet"`; grades 3 and 4 use the planner's own model. The planner
 scales its pipeline to the grade (see `planner.md`, "Work grades") and writes
 into the issue's folder under `docs/plans/` (see "Planning documents — folder
@@ -450,8 +463,13 @@ do not have `planner` redo the design from scratch. Spawn `planner` to
 against current `master` and sanity-check its design decisions, then report a
 verdict plus any concrete additions or modifications — not a rewritten plan
 document. The verification runs no research and sends no `researched`; the
-run's `sized` names `plan` as its next step. Only fall back to a full replan if
-verification turns up the draft being unsound or badly stale.
+run's `sized` names `plan` as its next step, and its `detail` says it is
+checking the existing plan and names the plan document it is based on (for
+example "Checking the existing plan, `plan.md`, against master."): it is the
+board's one signal of a verification
+(`~/.claude/skills/dashboards/plan/RULES.md` §3, `wip.plan`). Only fall back
+to a full replan if verification turns up the draft being unsound or badly
+stale.
 
 When this verification pass comes back with recommended additions or
 modifications, **relay them to the user and wait for a decision before**
@@ -689,7 +707,7 @@ sends none.
 
 | Moment | `event` | Facts |
 |--------|---------|-------|
-| Step 1 sized (the run's first action after sizing) | `sized` | grade, baseline sha, the issue's systems if known, the next step |
+| Step 1 sized (the run's first action after sizing) | `sized` | grade, baseline sha, the issue's systems if known, the next step; when the run verifies an existing plan (step 2), a `detail` saying it is checking the existing plan and naming the plan document it is based on |
 | The run is halted (see "Halted — at any step") | `halted` | what waits on the user; for every question it puts to the user, in any step, `questions`: each question's text (and its options, if any); then `resumed` with the answer's gist |
 | Research questions being drafted (sent by the planner itself) | `research-planning` | `drafted`: questions drafted so far |
 | A research batch spawned (sent by the planner itself) | `research-started` | `researching`: per question, its slug and the board Row ids it bears on (`[]` for none) |
@@ -731,7 +749,12 @@ board, never the team's, through two more events: `retime` for an event's
 recorded time, until it sends `land`, and `reword` for its recorded text, until
 the document-landing commit. When the team's reply says the arrival check
 replaced an event's `at`, send a `retime` with your own clock reading and the
-reason. Their facts and limits: `PROTOCOL.md`, `plan-board` fields.
+reason. Their facts and limits: `PROTOCOL.md`, `plan-board` fields. The
+implementer and the planner may each correct the board events they sent
+themselves, the same two ways (`rookie-dev.md`, "Board events"; `planner.md`,
+"Board events during research"); the team's reply to one lands in your
+conversation, as every reply to a subagent's request does (the `admin-team`
+skill, "Subagents").
 
 The team raises the issue board's `state-boards` step itself inside the
 `state-boards` request of step 6, the commit task (`document-landing`) inside
@@ -822,6 +845,12 @@ send nothing and the list goes back to the user.
   never on a board or in a document.
 - If the work exposed a defect in a repo that *consumes* the project (downstream),
   report it as coordination — do not file it. `version-control-manager` files upstream-only.
+
+A run that finishes (resolved, a step taken, or planned) leaves a handoff,
+`~/.claude/handoffs/<owner>-<repo>-<issue>.md`, only when something it leaves
+cannot be committed: the second kind "Session handoffs" in the global
+`CLAUDE.md` describes, holding only that and pointing at the run's
+`consequences.md`, where every follow-up that can be committed is.
 
 Do not start a second issue. One issue per `/resolve-issue` — except in the
 `consecutive` and `concurrent` modes above, which work every sub-issue of one

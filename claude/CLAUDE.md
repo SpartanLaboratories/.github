@@ -168,6 +168,14 @@ the session clears it (empties the file) rather than deleting it. The key is `ad
 team and `<owner>-<repo>-<issue>` for a run (e.g. `SpartanLaboratories-WebTools-66`). A session
 with no issue has no handoff. Handoffs are local and never mirrored.
 
+A `/resolve-issue` run that finishes leaves a handoff of a second kind only when something it leaves
+cannot be committed. Every follow-up that can be committed goes in its `consequences.md` (Planning
+documents — folder layout); the handoff holds only what cannot be, says the run finished, and
+points at that `consequences.md`, so it tells no session that work was interrupted. Each of its
+items is cleared once a later run or the user acts on it or records it durably, and the file is
+emptied when none is left. Later runs in the repository read it for its follow-ups
+(`~/.claude/skills/resolve-issue/SKILL.md`, step 1, **Follow-ups**).
+
 ## graphify — the code knowledge graph
 
 A repository with a `graphify-out/graph.json` has a local knowledge graph of its code: god nodes,

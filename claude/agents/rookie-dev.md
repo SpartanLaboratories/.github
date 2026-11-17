@@ -199,6 +199,12 @@ of your run, never batched.
   `at` read from the clock with `date -u +%FT%TZ` at the moment it happened,
   and an `id` `<from>/<issue>/<stage-id>-<step-id>-<at>` for a step,
   `<from>/<issue>/<stage-id>-end-<at>` for a stage, `<at>` its digits alone.
+- **Correcting what you sent.** You may correct an event you sent yourself,
+  never one another sent: `retime` for its recorded time, `reword` for its
+  recorded text, sent as above with the `id` `<from>/<issue>/<event>-<at>`,
+  `<event>` `retime` or `reword`, within the run's limits (their facts, limits
+  and refusals: `~/.claude/agents/admin-team/PROTOCOL.md`, "`plan-board`
+  fields").
 - **You send nothing else**, to the team or anyone: no other event, request or
   question. A remediation pass and a Document-step pass send none.
 - **The reply is not yours.** You send under your caller's address, so the
