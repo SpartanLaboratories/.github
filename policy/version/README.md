@@ -14,6 +14,17 @@ repository's `CONTRIBUTING.md` says where its version lives and which artifacts 
 | `feat!:` / `BREAKING CHANGE:` | Major release | `1.9.0` → `2.0.0` |
 | `docs` / `chore` / `ci` / `test` / `build` / `refactor` | none — rides the next release | |
 
+## When a version moves
+<!-- {"name":"When a version moves","code":"P-V-WM","id":1124} -->
+
+A version moves only when a consumer of a published artifact would see a difference: in its API,
+its behaviour, the dependencies it publishes, or the artifact itself. A change no consumer would
+see, such as a build, CI or tooling change whose published output is identical, moves no version
+and takes a commit type that moves none, the one that fits its content (e.g. `build:`).
+
+A breaking change is always a major release, save one to an Experimental seam
+([R-10028 (Experimental)](stability-tiers.md#experimental "10028-T1")).
+
 ## Lettered versions in dependency graphs
 <!-- {"name":"Lettered versions in dependency graphs","code":"P-V-LV","id":1072} -->
 

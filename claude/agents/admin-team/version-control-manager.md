@@ -405,22 +405,20 @@ Conform to whatever you find. On top of that, the user's global
 - A version bump is its own `build:` commit.
 
 **Work grades** — your caller names the issue's grade (see "Work grades"
-in the global `CLAUDE.md`). It sets the commit type, the bump, and how the
-issue is linked:
+in the global `CLAUDE.md`). It sets the commit type and how the issue is
+linked; R-25 (Versioning) [25-T4] says the bump each commit type takes, and
+which commit type a change that moves no version takes:
 
-| Grade | Commit type | Version bump | PR links the issue with |
-|-------|-------------|--------------|--------------------------|
-| 1 — no impact | `docs:` | none — rides the next release | `Closes #N` |
-| 2 — small fix | `fix:` | MinorChange or trailing letter, per the repo's pattern | `Closes #N` |
-| 3 — small feature | `feat:`; with no downstream effect, the type that fits (e.g. `build:`) | Feature release — only with a downstream effect; otherwise none | `Closes #N` |
-| 4 — multi-system | `docs:` (planning documents only) | none | `Refs #N` — never `Closes` |
+| Grade | Commit type | PR links the issue with |
+|-------|-------------|--------------------------|
+| 1 — no impact | `docs:` | `Closes #N` |
+| 2 — small fix | `fix:` | `Closes #N` |
+| 3 — small feature | `feat:` | `Closes #N` |
+| 4 — multi-system | `docs:` (planning documents only) | `Refs #N` — never `Closes` |
 
-- **Grade 3 without a downstream effect.** A grade-3 change bumps the version
-  only when a consumer of a published artifact would see a difference (API,
-  behaviour, dependencies, or the artifact itself). When none would — a build,
-  CI or tooling change with identical published output — move no version and
-  use the commit type that fits the content. Do not stop to ask about this
-  case; it is settled in the global `CLAUDE.md`.
+- **A change no consumer would see.** Whatever its grade, do not stop to ask
+  whether it bumps or which commit type it takes: R-25 (Versioning) [25-T5]
+  settles it.
 - **No grade labels.** The grade is Claude-internal and never goes on
   GitHub: no `grade: N` label, no grade in a title, body or comment. The admin
   team records each issue's grade in its own local state; you receive it in the
@@ -438,8 +436,8 @@ issue is linked:
   and report it rather than picking a bump.
 
 **Versioning & release** (published libraries — anything on Maven Central etc.)
-- **Clean break:** break the signature and bump the major version. A breaking
-  wire/API change means the major moves.
+- **Clean break:** break the signature; R-25 (Versioning) [25-T6] says the
+  version a breaking change takes.
 - This org iterates a base version with a trailing letter suffix for
   incremental pre-next-line work (`2.0.0` → `2.0.0a` → `2.0.0b`; cf.
   `GeneralTools` `1.0.2a` → `1.0.2b`), then moves to the next numeric version
