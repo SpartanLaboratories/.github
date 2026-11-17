@@ -149,10 +149,11 @@ function arrowsOf(model, target, plannedIds, ctx) {
 }
 
 /* ---------- The four generated parts ---------- */
-/* The organizations' private repositories, read from GitHub (gh, or the command DASHBOARDS_GH names) as the ideas writer reads them: a name of
-   one in a text is elided, so no Whiteboard names one; where GitHub cannot be read, nothing is generated. */
+/* The organizations' private repositories, read as every board writer reads them (system/scripts/privaterefs.js: from GitHub, or the command
+   DASHBOARDS_GH names, cached on this machine): a name of one in a text is elided, so no Whiteboard names one; where they cannot be read,
+   nothing is generated. */
 function generate(o) {
-  const I = require(path.join(SKILL, "plan", "scripts", "ideas.js")), privates = o.privates || I.privatesOf(I.ownersOf());
+  const privates = o.privates || require(path.join(SKILL, "system", "scripts", "privaterefs.js")).privatesOf();
   const ctx = { skipped: [], privates };
   const sha = W.shortSha(o.root, o.sha); if (!sha) throw new Error(`${o.sha} is not a commit in ${o.root}`);
   return o.scope === "org" ? generateOrg(o, sha, ctx) : generateRepo(o, sha, ctx);

@@ -374,6 +374,8 @@ module.exports = function casesPlanStages(X) {
 };
 
 if (require.main === module) {
+  /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
+  process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
   const args = process.argv.slice(2), oi = args.indexOf("--out"), out = oi >= 0 ? args[oi + 1] : fs.mkdtempSync(path.join(os.tmpdir(), "plan-stages-"));
   const sk = p => path.join(__dirname, "..", ...p.split("/"));
   let bad = 0; module.exports({ sk, out, targets: [] }).forEach(([title, cases]) => { const f = cases.filter(x => !x[1]); bad += f.length;

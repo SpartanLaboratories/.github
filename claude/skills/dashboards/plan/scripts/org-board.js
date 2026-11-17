@@ -18,7 +18,11 @@
 // Its text is cleaned on the writers' one path (namerefs.js cleanWorkBoard()), as board.js cleans a repository work board.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
-const lib = require("./lib.js"), N = require("../../system/scripts/namerefs.js");
+const lib = require("./lib.js"), N = require("../../system/scripts/namerefs.js"), PR = require("../../system/scripts/privaterefs.js");
+/* A private repository is dropped from the board and its data entirely: where a public repository's text still names one (an issue's title, a unit's
+   name), the name is elided with "…" wherever it stands, as this board's sources are other repositories' data; the output is held to naming none
+   (system/scripts/privaterefs.js, the one rule every board writer takes) */
+const { elidePrivate, privateRefs, elideAll } = PR;
 /* the run's settings, read from its arguments by init() when it runs as a command (a script that requires this file for its exports
    reads none) */
 let args, root, LIVE_ONLY, SNAP_DIR, LIVE_DIR, named, SIBLINGS, CONFIG;
@@ -118,36 +122,10 @@ function buildRepo(owner, name, privates, branchTrees) {
 }
 /* Every repository of the organizations, by visibility: a private one is on no list at all (the board and its data never name one) */
 function listRepos(cfg) {
-  return [cfg.owner, ...(cfg.organizations || []).map(o => o.owner)].flatMap(o => ghJson(["repo", "list", o, "--json", "nameWithOwner,isArchived,url,visibility", "-L", "400"]));
-}
-/* A private repository is dropped from the board and its data entirely: where a public repository's text still names one (an issue's title, a unit's name), the name is
-   elided with "…", as a quotation elides a name it cannot show (GUIDANCE.md §4): owner/name, name#n and a CamelCase name wherever they stand, and with them in the same text a name
-   that is a plain word (a repository named Support), which alone reads as the word and is left. Returns the text as written and how many it elided. */
-function elidePrivate(text, privates) {
-  const names = [...privates].map(k => k.split("/")), e = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  /* a name's end: no name character after it, a full stop that ends the sentence included ("… owner/name.") */
-  const strong = names.flatMap(([o, n]) => [new RegExp(`(?<![\\w.-])${e(o)}/${e(n)}(?![\\w-]|\\.[\\w-])`, "g"), new RegExp(`(?<![\\w.-])${e(n)}#\\d+`, "g"), ...(/[a-z][A-Z]/.test(n) ? [new RegExp(`\\b${e(n)}\\b`, "g")] : [])]);
-  if (!strong.some(re => { re.lastIndex = 0; return re.test(text); })) return { text, n: 0 };
-  let s = text, n = 0;
-  strong.forEach(re => { s = s.replace(re, () => { n++; return "…"; }); });
-  names.filter(([, nm]) => !/[a-z][A-Z]/.test(nm)).forEach(([, nm]) => { s = s.replace(new RegExp(`\\b${e(nm)}\\b`, "g"), () => { n++; return "…"; }); });
-  return { text: s, n };
-}
-function elideAll(v, privates, seen) {
-  if (typeof v === "string") { const r = elidePrivate(v, privates); seen.n += r.n; return r.text; }
-  if (Array.isArray(v)) return v.map(x => elideAll(x, privates, seen));
-  if (v && typeof v === "object") { Object.keys(v).forEach(k => { v[k] = elideAll(v[k], privates, seen); }); return v; }
-  return v;
-}
-/* The output never names a private repository: its owner/name, its name#n, or a value that is its name; a name in CamelCase bare as well (a plain word such as a repository
-   named Support is a word of its own, and its forms above are what identifies the repository). */
-function privateRefs(text, privates) {
-  const out = [];
-  privates.forEach(key => { const [owner, name] = key.split("/"), e = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const forms = [`(?<![\\w.-])${e(owner)}/${e(name)}(?![\\w-]|\\.[\\w-])`, `(?<![\\w.-])${e(name)}#\\d`, `"(?:repo|repository|name)":\\s*"${e(name)}"`];
-    if (/[a-z][A-Z]/.test(name)) forms.push(`\\b${e(name)}\\b`);
-    if (new RegExp(forms.join("|")).test(text)) out.push(key); });
-  return out;
+  const owners = [cfg.owner, ...(cfg.organizations || []).map(o => o.owner)], listed = owners.flatMap(o => ghJson(["repo", "list", o, "--json", "nameWithOwner,isArchived,url,visibility", "-L", "400"]));
+  /* the reading kept as this machine's list of the private repositories, which every board writer reads (privaterefs.js remember()) */
+  PR.remember(new Set(listed.filter(x => x.visibility !== "PUBLIC").map(x => x.nameWithOwner)), owners);
+  return listed;
 }
 /* docs/plans/.live/ is git-ignored through the checkout's .git/info/exclude (the line added if it is missing): a file edit, not a git command */
 function ensureExcluded() {
@@ -197,6 +175,6 @@ function main() {
     notShown: notShown.map(x => x.repository), unaccounted, check: checked }, null, 2));
   process.exit(checked.some(c => c.status !== 0) ? 1 : 0);
 }
-/* the exports are set before main() runs: the ideas check it calls reads privateRefs() from this file (companions/scripts/wblib.js) */
+/* privateRefs() and elidePrivate() are system/scripts/privaterefs.js's, exported here as well for a script that still reads them from this file */
 module.exports = { repoPath, localPath, privateRefs, elidePrivate, SCHEMA };
 if (require.main === module) { try { main(); } catch (e) { console.error(`org-board: ${e.message}`); process.exit(1); } }

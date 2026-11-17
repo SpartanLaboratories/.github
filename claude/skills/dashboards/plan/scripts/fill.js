@@ -24,6 +24,9 @@
 //   An internal name (GUIDANCE.md §4; namerefs.js cleanWritten()) in the fields' text is reworded where a safe rewording exists, and named in notes; a text that
 //   would still name a barred one is refused, exit 2 and nothing written, the field and the name said: it is reworded and sent again. A wait on the user reads
 //   "waiting on you". An issue's title, quoted verbatim, an option's signature, which is code, and a $comment are left alone.
+//   A private repository (plan/RULES.md §1, "Private repositories"; privaterefs.js): its name in an issue's title or an excerpt the fields quote is cut to
+//   "…" and named in notes; any other text of the fields that names one is refused, exit 2 and nothing written; the board as merged is held to the same
+//   rule (lib.js resolveBoard()), so a fill that leaves a text naming one in place fails, every file put back.
 //   Two narrow ways into what the events own, each by what it names, so neither undoes an event:
 //   "trailAdd": [{ date, column, label, ref? }] appends trail entries, one already there skipped;
 //   "trailFix": [{ "label": "<the entry as it reads>", "to": "<as it should read>" }] rewords trail entries already there, each found by its label; a label not there is
@@ -220,6 +223,14 @@ function correctTaskTimes(plan, w, list, merged) {
 function mergeFill(board, fields, planDir) {
   if (!isObj(fields)) throw new Refused("the fields are not a JSON object");
   const dropped = [], notes = [], tSkip = titleSkip(null, "plan-board"), F = withoutNames(withoutLevels(fields, "", dropped), "", at => tSkip(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at) || /^trailFix\[\d+\]\.label$|^wip\.(?:interview|asked|questions|stages|qa|open|document)\[\d+\]\.(?:text|question|id|pass)$/.test(at), notes), plan = JSON.parse(JSON.stringify(board)), merged = [];
+  /* no private repository (plan/RULES.md §1, "Private repositories"; privaterefs.js): an issue's title or an excerpt the fields quote has the name cut
+     to "…", named in notes; any other text that names one is refused, nothing written. What only finds an item by the text it holds (a trailFix
+     label, an item named by its text) is left alone, so a text already written can still be corrected. */
+  { const PR = require(path.resolve(__dirname, "..", "..", "system", "scripts", "privaterefs.js"));
+    let privates; try { privates = PR.privatesOf(); } catch (e) { throw new Refused(e.message); }
+    const r = PR.guardData(F, "plan-board", privates, at => /^trailFix\[\d+\]\.label$|^wip\.(?:interview|asked|questions|stages|qa|open|document)\[\d+\]\.(?:text|question|id|pass)$/.test(at));
+    if (r.named.length) throw new Refused(`${PR.privateLine("the fields", r.named)}: reword it and fill again`);
+    r.elided.forEach(x => notes.push(`${x.at}: a private repository's name elided ("…")`)); }
   /* the qa passes by name, "Quality Review N" (passnames.js): the fill's own text and the board's, so an item named by its text still matches */
   { const fr = lib.renamePassesIn(F, titleSkip(null, "plan-board")), br = lib.renamePasses(plan);
     if (fr.length) notes.push(`the fill's ${fr.slice(0, 4).join(", ")}${fr.length > 4 ? ", …" : ""}: a qa pass written "${lib.PASS_NAME} N"`); br.forEach(l => notes.push(`the board: ${l}`)); }

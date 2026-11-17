@@ -230,6 +230,8 @@ module.exports = function casesStepBar(X) {
 };
 
 if (require.main === module) {
+  /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
+  process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
   const SKILL = path.resolve(__dirname, ".."), sk = p => path.join(SKILL, ...p.split("/"));
   const a = process.argv.slice(2), oi = a.indexOf("--out"), out = path.resolve(oi >= 0 ? a[oi + 1] : path.join(os.tmpdir(), "dashboards-verify"));
   const NB = "needs a browser: not run (verify-templates.js --browser runs it)";

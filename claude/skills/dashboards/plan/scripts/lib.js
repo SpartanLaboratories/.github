@@ -414,8 +414,12 @@ function sectionOf(md, anchor) {
   const { levelSpans, elideSpans } = require(path.resolve(__dirname, "..", "..", "system", "scripts", "levelrefs.js"));
   p = elideSpans(p, levelSpans(p));
   p = elideNamed(p);
+  /* a private repository's name, cut to "…" in the quotation as in every quoted text (plan/RULES.md §1, "Private repositories"; privaterefs.js) */
+  /* with no list to be had, nothing is elided here: a writer's guard (resolveBoard()) then writes nothing, and a check reads the hash alone */
+  const PR = require(path.resolve(__dirname, "..", "..", "system", "scripts", "privaterefs.js")), privates = (() => { try { return PR.privatesOf(); } catch (e) { return new Set(); } })();
+  p = PR.elidePrivate(p, privates).text;
   if (p.length > 600) p = p.slice(0, 600).replace(/\s+\S*$/, "") + " …";
-  return { heading: h.text.replace(/\s+/g, " ").trim(), paragraph: p, hash };
+  return { heading: PR.elidePrivate(h.text.replace(/\s+/g, " ").trim(), privates).text, paragraph: p, hash };
 }
 /* An excerpt's clauses that name the pipeline's agents or the approval flow (GUIDANCE.md §4; namerefs.js), each cut to "…": the clause
    runs from the last sentence, clause or list boundary before the name (". ", "; ", "· ", "! ", "? ") to the next one after it; a ";"
@@ -536,8 +540,11 @@ function excerptDrift(plan, dir) {
 /* Everything embed.js resolves from the folders on disk before it embeds an issue board: the issue links and the units' runs
    (linkIssueBoards()) and the statements' excerpts (copyExcerpts()); last, every qa pass the board names is named "Quality Review N"
    (passnames.js renamePasses()), whatever wrote it. First, an open board drops any sizing it holds (levels.js dropWorkLevels()) and stores
-   its test sets by name (testslib.js storeSets()). Returns one line per change. */
-function resolveBoard(plan, dir, opts) { return [...LV.dropWorkLevels(plan), ...require("./testslib.js").storeSets(plan), ...clearFoundation(plan), ...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...refreshSystems(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts), ...PN.renamePasses(plan)]; }
+   its test sets by name (testslib.js storeSets()). Last of all, no private repository is named (plan/RULES.md §1, "Private repositories";
+   privaterefs.js guardBoard()): an issue's title or an excerpt that names one has the name cut to "…", and any other text that names one
+   throws, so nothing is written. Returns one line per change. */
+function resolveBoard(plan, dir, opts) { const lines = [...LV.dropWorkLevels(plan), ...require("./testslib.js").storeSets(plan), ...clearFoundation(plan), ...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...refreshSystems(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts), ...PN.renamePasses(plan)];
+  return [...lines, ...require(path.resolve(__dirname, "..", "..", "system", "scripts", "privaterefs.js")).guardBoard(plan, "plan-board", `${plan && plan.folder ? plan.folder + "/" : ""}plan.json`)]; }
 /* ---------- The foundation (plan/RULES.md §4, "The foundation") ----------
    A board's first state, laid at sized: by apply-event.js on the fast path, by new.js on the fallback when the fast path failed. foundationPlan() is the
    one laying: step null lays it not started, for the sized event to start in place (the fast path); a step lays it started (new.js).

@@ -207,6 +207,8 @@ module.exports = function casesInternalNames(X) {
 };
 
 if (require.main === module) {
+  /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
+  process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
   const SKILL = path.resolve(__dirname, ".."), sk = p => path.join(SKILL, ...p.split("/"));
   let fails = 0;
   module.exports({ sk, out: os.tmpdir(), targets: [] }).forEach(([title, cases]) => { const bad = cases.filter(x => !x[1]); fails += bad.length;

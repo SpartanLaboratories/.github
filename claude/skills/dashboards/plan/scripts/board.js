@@ -420,6 +420,10 @@ require("./passnames.js").renamePassesIn(board, require("../../system/scripts/le
 /* no internal names on a work board (GUIDANCE.md §4; namerefs.js cleanWorkBoard()): a row's detail, a pass's note and a chain unit's name are copied from a
    board's data, whatever wrote it and however long ago, so they are reworded here, on the one path every repository work board comes from */
 const cleaned = require("../../system/scripts/namerefs.js").cleanWorkBoard(board);
+/* no private repository on a work board (plan/RULES.md §1, "Private repositories"; privaterefs.js): an issue's title that names one has the name
+   cut to "…"; any other text that names one (a row's detail, a dependency) is refused, nothing written, and is reworded on the board it comes from */
+let privateLines; try { privateLines = require("../../system/scripts/privaterefs.js").guardBoard(board, "work-board", "board.json"); }
+catch (e) { console.error(`board.js: ${e.message}`); process.exit(1); }
 fs.mkdirSync(outDir, { recursive: true });
 atomicWrite(jsonPath, JSON.stringify(board, null, 2) + "\n");
 // the live board is always the current template: it is regenerated at every event and never committed
@@ -460,5 +464,6 @@ console.log(`${live ? `live board, ${trees.length} worktree${trees.length === 1 
 /* a tracking issue's row names its systems and takes none of its own, landed or not (isTracking(): a landed tracking board is no longer in trackingNums) */
 const noSys = [...new Set([...rows.filter(r => !r.system && !r.unassigned && !isTracking(r.issue)).map(r => "#" + r.issue), ...unscheduled.filter(u => !u.system && !u.unassigned).map(u => "#" + u.issue)])];
 cleaned.forEach(x => console.log(`internal names: ${x.at} ${x.now ? "reworded" : "left out"}: ${JSON.stringify(x.was)}${x.now ? ` → ${JSON.stringify(x.now)}` : ""}`));
+privateLines.forEach(l => console.log(l));
 if (unclassified.length) console.log(`dependencies no state rule fits (left with no build state or locality, never given one): ${unclassified.join(" · ")}`);
 if (noSys.length) console.log(`no system recorded for ${noSys.join(", ")}: set "system" (or "unassigned": true, for no system) on those entries in board.json once, and board.js keeps it`);

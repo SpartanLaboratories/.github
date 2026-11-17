@@ -251,6 +251,8 @@ module.exports = function casesWipStages(X) {
   return groups;
 };
 if (require.main === module) { /* on its own, with no browser */
+  /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
+  process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
   const out = (() => { const i = process.argv.indexOf("--out"); return i >= 0 ? process.argv[i + 1] : path.join(os.tmpdir(), "cases-wip-stages"); })();
   const SKILL = path.resolve(__dirname, ".."), sk = p => path.join(SKILL, p);
   const NB = "needs a browser: not run (verify-templates.js --browser runs it)";

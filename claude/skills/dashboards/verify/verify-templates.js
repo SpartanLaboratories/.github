@@ -93,7 +93,8 @@
 // current with the templates. The StepBar (verify/cases-stepbar.js, dashboards-skill/54): the progress strip, the WIP strip and a tracking
 // issue's chain on the state boards' roadmap and the repository work board's rows, each labelled chevrons in order, done, current or to
 // come. The boards' companions (verify/cases-companions.js, GUIDANCE.md §13): the Whiteboards' generated parts read from git at a commit, the
-// refresh's plan and the batch check, the links list, the ideas writer and its check, the Ideas Card and the Ideas Panel, the publish step. A
+// refresh's plan and the batch check, the links list, the ideas writer and its check, the Ideas Card and the Ideas Panel, the publish step. The
+// private repositories (verify/cases-private-names.js, plan/RULES.md §1): one rule, quoted names cut to "…", other text refused, the checks failing. A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
 // passes and the rendered cases too.
 "use strict";
@@ -111,6 +112,10 @@ if (!BROWSER) process.env.DASHBOARDS_NO_BROWSER = "1"; else delete process.env.D
 process.env.DASHBOARDS_ADMIN_STATE = process.env.DASHBOARDS_ADMIN_STATE || path.join(os.tmpdir(), "dashboards-verify-no-state.json");
 /* the progress notes' watcher (plan/scripts/progress-index.js): no fixture starts one; the cases that test it turn it on for their own runs */
 process.env.DASHBOARDS_NO_WATCHER = "1";
+/* the private repositories (system/scripts/privaterefs.js; plan/RULES.md §1, "Private repositories"): a fixture list of invented names, so no case reads
+   GitHub or this machine's cache; DASHBOARDS_VERIFY=1 makes a reading that would go to either fail, saying why */
+process.env.DASHBOARDS_VERIFY = "1";
+process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
 /* a local clone of the .github mirror, for the case groups that read an old template version missing from verify/history/ (history.js) */
 const historyRepo = opt("history-repo", null);
 const checker = path.join(SKILL, "system", "scripts", "check-board.js");
@@ -2438,6 +2443,12 @@ catch (e) { console.log(`FAILED   the org work board's cases: ${e.message}`); li
    writer and its check, the Ideas Card and the Ideas Panel, the publish step. It needs no browser, and runs on its own too (node verify/cases-companions.js). */
 try { require("./cases-companions.js")({ sk, out, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { console.log(`FAILED   the companions' cases: ${e.message}`); linkFailures++; }
+
+/* The private repositories (verify/cases-private-names.js; plan/RULES.md §1, "Private repositories"; the user's decision q-380): the one rule
+   (system/scripts/privaterefs.js) and its list, every board writer cutting a quoted name to "…" and refusing any other text that names one, both
+   checkers failing a board that still names one, the verification reading no live GitHub. It needs no browser, and runs on its own too. */
+try { require("./cases-private-names.js")({ sk, out, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { console.log(`FAILED   the private repositories' cases: ${e.message}`); linkFailures++; }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";

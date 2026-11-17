@@ -1,0 +1,4 @@
+{
+  "$comment": "The private repositories the verification stands in with (system/scripts/privaterefs.js, DASHBOARDS_PRIVATES; plan/RULES.md §1, \"Private repositories\"): invented names, one with a plain word, one in CamelCase, one hyphenated, so no case reads GitHub or this machine's cache.",
+  "private": ["acme/Support", "acme/VaultKeeper", "acme/hidden-ledger"]
+}

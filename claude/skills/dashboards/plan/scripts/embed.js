@@ -13,7 +13,8 @@
 // from that sub-issue's own plan.json (unit.live, plan/RULES.md §3). It copies the excerpt of every statement's reference (verdict
 // and as-built statements: the referenced Markdown section's heading, first paragraph and hash) where none is copied yet for that
 // reference, and keeps one already copied (plan/RULES.md §2, "Statements"). plan.json is rewritten only when a link, a mirror or an
-// excerpt changed.
+// excerpt changed. An excerpt, as every quoted text, has a private repository's name cut to "…"; any other text of a board that names one,
+// an issue board's or a work board's, refuses the embed, nothing written (plan/RULES.md §1, "Private repositories"; privaterefs.js).
 // A sub-issue's board then re-embeds its parent's tracking board (the enclosing folder, when it holds the parent's plan.json and
 // dashboard.html), so every event of a unit's run reaches the tracking board, not only the first.
 // Beside the board it writes the live sidecar (plan/RULES.md §1, "plan.js"): plan.json → plan.js, board.json → board.js, the data
@@ -66,6 +67,9 @@ function embedOne(dir, opts) {
   const data = JSON.parse(json); // refuse to embed a file that does not parse
   setViewLinks(src !== dir, src !== dir ? require("./lib.js").viewParts(dir).root : null);
   let linked; try { linked = t.id === "plan" ? resolveBoard(data, src, { refresh: !!(opts && opts.refresh) }) : []; } finally { setViewLinks(false); }
+  /* the repository work board and the org work board name no private repository either (plan/RULES.md §1, "Private repositories"): an issue's
+     title has the name cut to "…", any other text that names one throws, nothing written (privaterefs.js; an issue board's is resolveBoard()'s) */
+  if (t.id === "board") linked.push(...require("../../system/scripts/privaterefs.js").guardBoard(data, undefined, "board.json"));
   if (t.id === "plan") { const k = refreshIdeas(data, src); if (k) linked.push(k); }
   if (linked.length) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol); atomicWrite(t.json, json); }
   let html = writeBlock(fs.readFileSync(t.html, "utf8"), t.id, json);

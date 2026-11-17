@@ -323,6 +323,9 @@ async function main() {
       if (e.kind === "system") { s.version = e.version == null ? null : e.version;
         /* a system under Internal Tooling draws its board in the plain ink (GUIDANCE.md §1): the registry decides, the board reads state.colour */
         if (PAL.colourSlots(R.systems).plain(e.slug)) s.colour = "plain"; else delete s.colour; }
+      /* no private repository (plan/RULES.md §1, "Private repositories"; privaterefs.js): the last amendment's title, quoted, has its name cut to "…";
+         any other text of the state that names one throws, nothing written; the board's own text is check-board.js's, which fails it */
+      require("./privaterefs.js").guardBoard(s, "state", `${path.relative(ROOT, stFile).split(path.sep).join("/")}`).forEach(l => S.notes.push(l));
       const stText = L.stateText(s);
       if (put(stFile, inEol(stText, st0.eol))) S.wrote.push(path.relative(ROOT, stFile).split(path.sep).join("/"));
       if (!had) S.notes.push(`${rel}: state.json written beside it from its state block`);

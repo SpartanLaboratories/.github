@@ -42,6 +42,7 @@
 // --no-browser runs every check that needs no browser (the palette, the DSL's dashes, the board links, the git-ignore check, and the
 // board's data: its state block, the embedded copies of state.json, workspace.dsl and systems.json, its part references; system/RULES.md
 // §9) and names the browser pass it defers. The data-only path of a state board (apply-state.js, system/RULES.md §10) runs it.
+// On every pass, a board that names a private repository fails, PRIVATE REPOSITORY (plan/RULES.md §1, "Private repositories"; privaterefs.js).
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const args = process.argv.slice(2);
 const USAGE_LINE = "usage: node check-board.js <board.html> [--auto [--no-browser]] [--out <dir>] [--tab <tabId>] [--width n] [--height n] [--theme light|dark] [--frame <px>]";
@@ -69,8 +70,8 @@ const paletteLines = () => [`CHECK palette: ${palette.tokens} system-colour toke
 /* The checks that need no browser, on every pass (--auto and --no-browser included): the registry's git-ignore check, the board links,
    and the board's data (the state block, the embedded copies of state.json, workspace.dsl and systems.json, the part references). */
 const src = fs.existsSync(page) ? fs.readFileSync(page, "utf8") : "";
-const regCheck = registryIgnored(), boardCheck = boardLinks(), stateCheck = stateChecks(), featureCheck = featureChecks(), linkCheck = deadLinks(), titleCheck = titleChecks(), nameCheck = nameChecks(), termCheck = termChecks();
-const staticChecks = [regCheck, boardCheck, stateCheck, linkCheck, featureCheck, titleCheck, nameCheck, termCheck].filter(Boolean);
+const regCheck = registryIgnored(), boardCheck = boardLinks(), stateCheck = stateChecks(), featureCheck = featureChecks(), linkCheck = deadLinks(), titleCheck = titleChecks(), nameCheck = nameChecks(), termCheck = termChecks(), privateCheck = privateChecks();
+const staticChecks = [regCheck, boardCheck, stateCheck, linkCheck, featureCheck, titleCheck, nameCheck, termCheck, privateCheck].filter(Boolean);
 const staticLines = () => staticChecks.flatMap(c => [...(c.note ? ["CHECK " + c.note] : []), ...(c.notes || []).map(n => "CHECK " + n), ...c.problems.map(p => "CHECK " + p)]);
 const staticProblems = staticChecks.flatMap(c => c.problems);
 
@@ -98,7 +99,7 @@ if (args.includes("--auto")) {
   modes.forEach(m => {
     const r = cp.spawnSync(process.execPath, [__filename, page, ...rest, ...m], { encoding: "utf8" });
     const lines = (r.stdout || "").trim().split(/\r?\n/), label = m.join(" ") || "light";
-    const bad = lines.filter(l => !/^CHECK note:/.test(l) && !(r.status === 0 && /FEATURE MISSING/.test(l))).filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|GRADE REFERENCE|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|DEAD LINK|BOARDS UNREADABLE|STATE |EMBED DIFFERS|PART UNKNOWN|FEATURE MISSING|STATUS DISAGREES WITH CODE|STRUCTURE CANVAS|REGISTRY INVALID|FAIL/.test(l));
+    const bad = lines.filter(l => !/^CHECK note:/.test(l) && !(r.status === 0 && /FEATURE MISSING/.test(l))).filter(l => /CHECK ERROR|Uncaught|threw|NOT VISIBLE|NO LEGEND|MISSING|WRONG HEADING|DEAD href|TOO MANY|HORIZONTAL SCROLL|GRADE REFERENCE|LEVEL REFERENCE|RAW UTC STAMP|PALETTE IN STATUS HUE|IMPACT SHOWS PLANNING|DASHED NOT PLANNED|FOOTER NOT IN ITS FORM|GIT-IGNORED|DEAD BOARD LINK|DEAD LINK|BOARDS UNREADABLE|STATE |EMBED DIFFERS|PART UNKNOWN|FEATURE MISSING|STATUS DISAGREES WITH CODE|STRUCTURE CANVAS|REGISTRY INVALID|PRIVATE REPOSITOR|FAIL/.test(l));
     console.log(`CHECK pass ${label}: ${r.status === 0 ? "PASS" : "FAIL"} · ${(lines.find(l => l.startsWith("screenshot:")) || "").replace("screenshot: ", "")}`);
     bad.forEach(l => console.log("  " + l));
     if (r.status !== 0) failed++;
@@ -424,6 +425,19 @@ function nameChecks() {
   }
   return { note: `internal names: ${notes.length ? notes.length + " warning" + (notes.length === 1 ? "" : "s") : "none"}`, notes, problems: [] };
 }
+// No private repository (plan/RULES.md §1, "Private repositories"; privaterefs.js), read without a browser: the board's data blocks (plan, board, state),
+// each text by where it stands, an issue's title included (a writer cuts a quoted name to "…"), then the whole page, a state board's hand-written
+// panels, its DSL, its registry copy and its links among it. Each find is a problem of the board, PRIVATE REPOSITORY, landed or not. The list is this
+// machine's (GitHub, cached); where it cannot be had the board fails, PRIVATE REPOSITORIES UNREAD, saying why. A rendered Markdown copy is no board.
+function privateChecks() {
+  if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
+  const PR = require("./privaterefs.js"), L = require("./statelib.js");
+  let P; try { P = PR.privatesOf(); } catch (e) { return { note: "private repositories: the list could not be read", problems: [`PRIVATE REPOSITORIES UNREAD: ${e.message}`] }; }
+  const problems = [];
+  ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { const h = PR.refsIn(JSON.parse(t), P); if (h.length) problems.push(PR.privateLine(`its ${id} data`, h)); } catch (e) { /* the data checks report it */ } });
+  if (!problems.length) { const keys = PR.privateRefs(src, P); if (keys.length) problems.push(PR.privateLine("the board", [{ at: "its page", keys }])); }
+  return { note: `private repositories: ${problems.length ? "named" : "none named"}`, problems };
+}
 // The element names (GUIDANCE.md §12, "The names, checked"; termrefs.js), read without a browser from the board's data block and its HTML: each a warning, never a problem.
 function termChecks() {
   if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
@@ -475,7 +489,7 @@ paletteLines().forEach(l => { console.log(l); if (/PALETTE IN STATUS HUE|DASHED 
 if (regCheck) { if (regCheck.note) console.log("CHECK " + regCheck.note); regCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 if (boardCheck) { if (boardCheck.note) console.log("CHECK " + boardCheck.note); boardCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
 if (stateCheck) { stateCheck.notes.forEach(n => console.log("CHECK " + n)); stateCheck.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); }
-[linkCheck, featureCheck, nameCheck].filter(Boolean).forEach(c => { (c.notes || []).forEach(n => console.log("CHECK " + n)); c.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); });
+[linkCheck, featureCheck, nameCheck, privateCheck].filter(Boolean).forEach(c => { (c.notes || []).forEach(n => console.log("CHECK " + n)); c.problems.forEach(p => { console.log("CHECK " + p); errors.push(p); }); });
 console.log(`screenshot: ${shot}`);
 if (!lines.some(l => l.includes("CHECK done"))) { console.log("FAIL: the probe never completed (page did not load, or scripts aborted before the probe ran)"); process.exit(1); }
 if (errors.length) { console.log(`FAIL: ${errors.length} problem(s)`); process.exit(1); }

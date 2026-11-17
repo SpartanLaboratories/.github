@@ -199,6 +199,8 @@ module.exports.buildFixture = buildFixture;
 module.exports.FIX_DIR = FIX_DIR;
 
 if (require.main === module) {
+  /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
+  process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
   const sk = p => path.join(__dirname, "..", p);
   if (process.argv.includes("--fixture")) {
     const fx = buildFixture(f => fs.readFileSync(sk(f), "utf8").replace(/\r\n/g, "\n")); fs.mkdirSync(sk(FIX_DIR), { recursive: true });

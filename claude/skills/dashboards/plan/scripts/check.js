@@ -15,6 +15,7 @@
 // DASHBOARDS_NO_BROWSER=1 in the environment (verify/verify-templates.js sets it unless run with --browser) opens no browser: a browser
 // pass the run would make fails as "browser: NOT RUN".
 // A foundation laid on the fast path passes while it is being written (plan/RULES.md §4, "The foundation"); past its plan's acceptance it fails.
+// No text of a board names a private repository, and neither does its page (plan/RULES.md §1, "Private repositories"; privaterefs.js): a failure.
 // Exit 0 when every rule holds, 1 otherwise. Warnings never fail the run.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -128,6 +129,26 @@ function levelFail(data, file) {
   walkB(data, "");
   if (bare.length) warn(`TEST SET BY NUMBER: ${file} writes a test set by its number: ${bare.slice(0, 4).join(", ")}${bare.length > 4 ? ", …" : ""}; write the set's name (GUIDANCE.md §4)`);
   if (hits.length) fail(`${file} shows a grade, which a dashboard never does: ${hits.slice(0, 6).map(h => `${h.at} ("${h.hit}")`).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}; say what the work is instead (one system, a bug fix, docs only)`);
+}
+
+/* No private repository (plan/RULES.md §1, "Private repositories"; system/scripts/privaterefs.js): no text of the board's data names one, an issue's
+   title or an excerpt included (the writers cut a quoted name to "…" and refuse any other text that names one), and neither does its page, read
+   whole as a last look; a failure, landed or not. The list is this machine's (GitHub, cached); where it cannot be had the check fails, saying why. */
+const PR = require(path.resolve(__dirname, "..", "..", "system", "scripts", "privaterefs.js"));
+let PRIVATES = null, PRIVATE_SEEN = false;
+function privateList() {
+  if (PRIVATES) return PRIVATES;
+  try { PRIVATES = PR.privatesOf(); } catch (e) { PRIVATES = { error: e.message }; fail(`PRIVATE REPOSITORIES UNREAD: ${e.message}`); }
+  return PRIVATES;
+}
+function privateFail(data, file) {
+  const P = privateList(); if (P.error) return;
+  const hits = PR.refsIn(data, P); if (hits.length) { PRIVATE_SEEN = true; fail(PR.privateLine(file, hits)); }
+  else ok(`private repositories: ${file} names none`);
+}
+function privateHtml(html, name) {
+  const P = privateList(); if (P.error || PRIVATE_SEEN) return;
+  const keys = PR.privateRefs(html, P); if (keys.length) fail(PR.privateLine(name, [{ at: "its page", keys }]));
 }
 
 /* A board's names come from passnames.js: a pass "Quality Review N", one not numbered "review", the qa step
@@ -651,7 +672,7 @@ function checkPlan(plan, dir, root) {
 
   const left = placeholders(plan, "", []);
   if (left.length) fail(`placeholders left from the template: ${left.slice(0, 8).join(", ")}${left.length > 8 ? ` and ${left.length - 8} more` : ""}`);
-  levelFail(plan, "plan.json");
+  levelFail(plan, "plan.json"); privateFail(plan, "plan.json");
   passWording(plan, "plan.json", boardLanded(plan));
   const lists = listings(plan, "", []);
   if (lists.length) fail(`code blocks over five lines in the data (the detail belongs in the Markdown, linked): ${lists.slice(0, 6).join(", ")}`);
@@ -1231,6 +1252,7 @@ function checkHtml(htmlPath, id, data, kindMeta) {
   pal.problems.forEach(p => fail(`palette: ${p}`)); pal.warnings.forEach(w => warn(`palette: ${w}`));
   if (!pal.problems.length) ok(`palette: ${pal.tokens} system-colour tokens, none in a status spectrum`);
   { const c = commentRefs(html); if (c.length) warn(nameWarning(`the comments of ${path.basename(htmlPath)}`, c)); }
+  privateHtml(html, path.basename(htmlPath));
   /* The element names (GUIDANCE.md §12, "The names, checked"; system/scripts/termrefs.js): a banned word, a capitalised element name in neither glossary list, a class that
      names an element's kind without its type word, read from the glossary and warned on, never failed */
   termWarnings(path.basename(htmlPath), data, html).forEach(warn);
@@ -1298,7 +1320,7 @@ function checkBoard(dir) {
   const rcs = (b.rows || []).filter(r => r.reconciliation && r.reconciliation.state);
   if (rcs.length) ok(`board.json: impact reconciliation ${Object.keys(RECON_WORDS).map(k => `${rcs.filter(r => r.reconciliation.state === k).length} ${RECON_WORDS[k]}`).join(", ")}`);
   const left = placeholders(b, "", []); if (left.length) fail(`placeholders left: ${left.slice(0, 8).join(", ")}`);
-  levelFail(b, "board.json");
+  levelFail(b, "board.json"); privateFail(b, "board.json");
   passWording(b, "board.json", false);
   if (!out.fail.length) ok(`board.json: ${(b.rows || []).length} runs, ${(b.roadmap || []).length} roadmap items, ${(b.unscheduled || []).length} unscheduled issues`);
   checkHtml(path.join(dir, "index.html"), "board", b, "work-board");
@@ -1352,7 +1374,7 @@ function checkOrgBoard(dir) {
       levelFail(r.board, `board.json (${r.name})`); passWording(r.board, `board.json (${r.name})`, false);
     } });
   (b.notShown || []).forEach((x, i) => { if (!str(x.repository) || !/^https:\/\//.test(String(x.url)) || /private/i.test(String(x.why))) fail(`notShown[${i}] needs a public repository's name, url and why (a private repository is named nowhere; got ${JSON.stringify(x)})`); });
-  const { repositories, organizations, ...top } = b; levelFail(top, "board.json");
+  const { repositories, organizations, ...top } = b; levelFail(top, "board.json"); privateFail(b, "board.json");
   if (fs.existsSync(path.join(dir, "board.js"))) fail("the org work board has no sidecar: it embeds its data, and the live view reads each checkout itself; remove board.js");
   if (!out.fail.length) ok(`board.json: ${repos.length} repositories in ${1 + orgs.length} organization${orgs.length ? "s" : ""}, ${repos.filter(r => r.board).length} with work-board data; ${b.live ? "the live view" : "the committed snapshot"}`);
   checkHtml(path.join(dir, "index.html"), "board", b, "org-work-board");

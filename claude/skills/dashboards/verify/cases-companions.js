@@ -23,7 +23,9 @@ module.exports = function casesCompanions(X) {
 
   /* GitHub stood in for: the organizations' repositories, one private */
   const ghStub = wr(path.join(sc, "gh-stub.js"), `const a=process.argv.slice(2);if(a[0]==="repo"&&a[1]==="list"){process.stdout.write(JSON.stringify([{nameWithOwner:a[2]+"/widgets",visibility:"PUBLIC"},{nameWithOwner:a[2]+"/secret-vault",visibility:"PRIVATE"}]));process.exit(0);}process.exit(1);`);
-  const env = { ...process.env, DASHBOARDS_GH: ghStub, DASHBOARDS_NO_BROWSER: "1" };
+  /* the private repositories read from that stand-in, as from GitHub, into a cache of this case's own (system/scripts/privaterefs.js), never the fixture list */
+  const env = (() => { const e = { ...process.env, DASHBOARDS_GH: ghStub, DASHBOARDS_NO_BROWSER: "1", DASHBOARDS_PRIVATES_CACHE: path.join(sc, "private-repositories.json") }; delete e.DASHBOARDS_PRIVATES; return e; })();
+  const noGitHub = () => ({ ...env, DASHBOARDS_GH: path.join(sc, "no-such-gh.js"), DASHBOARDS_PRIVATES_CACHE: path.join(sc, `no-cache-${Date.now()}-${Math.random().toString(36).slice(2)}.json`) });
   const cfgOwner = JSON.parse(rd(sk("plan/template/org-board.repositories.json"))).owner, PRIVATE = `${cfgOwner}/secret-vault`;
 
   /* ---------- A repository at a commit ---------- */
@@ -157,7 +159,7 @@ module.exports = function casesCompanions(X) {
     c.push(["a follow-up naming an internal name is reworded or left out, and a machine-local path is left out and said", !notes.some(t => /code-reviewer/i.test(t)) && !notes.some(t => /C:\/Users/.test(t)) && (g.skipped || []).some(s => /machine-local path/.test(s.why)), JSON.stringify(g.skipped)]);
     c.push(["every text it draws passes the rules of what leaves a repository", texts(g).every(t => !W.textProblems(t).length), texts(g).filter(t => W.textProblems(t).length).join(" | ")]);
     c.push(["a private repository named in an issue's title is elided, read from GitHub", /^Open issue #8 — Share the lexer with …/.test((byId(g, "gen-issue-8") || { data: {} }).data.text || "") && !texts(g).some(t => /secret-vault/.test(t)), (byId(g, "gen-issue-8") || { data: {} }).data.text]);
-    c.push(["with GitHub not to be read, nothing is generated", run(WB, ["generate", "--root", repo, "--sha", "HEAD", "--scope", "system:parser"], { env: { ...env, DASHBOARDS_GH: path.join(sc, "no-such-gh.js") } }).status === 1, ""]);
+    c.push(["with GitHub not to be read, nothing is generated", run(WB, ["generate", "--root", repo, "--sha", "HEAD", "--scope", "system:parser"], { env: noGitHub() }).status === 1, ""]);
     const idea1 = byId(g, "gen-idea-1"), about = arrows.find(a => a.data.from === "gen-idea-1" && a.data.to === "gen-el.repo.parser.cache");
     c.push(["an idea concerning a part is a note with an arrow to it, and its source is kept for the refresh's plan", idea1 && /^Idea 1 · improvement — /.test(idea1.data.text) && !!about && (g.sources || {})["gen-idea-2"] && g.sources["gen-idea-2"].element === "e7", JSON.stringify(g.sources)]);
     c.push(["a note is a white block outlined in terracotta, never the yellow of a person's note", idea1 && idea1.data.color === "white" && idea1.data.stroke === "terracotta" && (g.elements || []).every(e => e.data.color !== "yellow"), ""]);
@@ -288,7 +290,7 @@ module.exports = function casesCompanions(X) {
     const bad = wr(path.join(sc, "ideas-bad", "docs/plans/ideas.json"), js({ ...base, ideas: [{ ...base.ideas[0], owner: "sam" }] }));
     const cj = run(CHECK, [bad]), cg = run(CHECK, [f]);
     c.push(["check.js on an ideas file runs its check: one that fails exits 1, a good one passes", cj.status === 1 && /ideas file: ideas\[0\] has the field "owner"/.test(cj.stdout) && cg.status === 0 && /ideas file: 1 idea/.test(cg.stdout), `${cj.stdout.trim().slice(0, 200)} | ${cg.stdout.trim().slice(0, 120)}`]);
-    c.push(["ideas.js check reads GitHub for the private repositories, and with none to read writes nothing", A("check", "--file", f).status === 0 && run(IDEAS, ["add", "--file", f, "--kind", "fix", "--text", "Anything."], { env: { ...process.env, DASHBOARDS_GH: path.join(sc, "no-such-gh.js") } }).status !== 0 && read().ideas.length === 1, ""]);
+    c.push(["ideas.js check reads GitHub for the private repositories, and with none to read writes nothing", A("check", "--file", f).status === 0 && run(IDEAS, ["add", "--file", f, "--kind", "fix", "--text", "Anything."], { env: noGitHub() }).status !== 0 && read().ideas.length === 1, ""]);
   });
 
   guard("the harvest of a Whiteboard (ideas.js harvest)", c => {
@@ -378,6 +380,8 @@ module.exports = function casesCompanions(X) {
 };
 
 if (require.main === module) {
+  /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
+  process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
   const args = process.argv.slice(2), oi = args.indexOf("--out"), out = oi >= 0 ? path.resolve(args[oi + 1]) : path.join(os.tmpdir(), "dashboards-verify");
   const SK = path.resolve(__dirname, ".."), sk = p => path.join(SK, ...p.split("/"));
   let failed = 0;

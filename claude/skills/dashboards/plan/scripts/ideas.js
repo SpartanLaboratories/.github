@@ -11,11 +11,11 @@
 // element that is not generated and carries text (the user's notes), and writes each with its element id as its source, the kind its
 // words say and, as its concerns, the generated parts its arrows point at; a note that breaks the rules, carries an owner or a due date,
 // or is already in the file by its element id is left out and named. --org: the organization's file (concerns owner/repo or
-// owner/repo:<slug>, an issue owner/repo#n); the path decides it where --org is not given. GitHub is read for the organizations'
-// private repositories (gh, or the command DASHBOARDS_GH names, as org-board.js reads it), so that no idea names one; where it cannot
-// be read, nothing is written. Exit 0 done, 1 a check failed, 2 usage, 3 refused.
+// owner/repo:<slug>, an issue owner/repo#n); the path decides it where --org is not given. The organizations' private repositories are
+// read as every board writer reads them (system/scripts/privaterefs.js: from GitHub, or the command DASHBOARDS_GH names, cached on this
+// machine), so that no idea names one; where they cannot be read, nothing is written. Exit 0 done, 1 a check failed, 2 usage, 3 refused.
 "use strict";
-const fs = require("fs"), path = require("path"), cp = require("child_process");
+const fs = require("fs"), path = require("path");
 const SKILL = path.resolve(__dirname, "..", "..");
 
 const SCHEMA = "ideas/1";
@@ -110,21 +110,11 @@ function problems(d, ctx) {
   return P;
 }
 
-/* ---------- GitHub: the organizations' private repositories ---------- */
-const ghBin = process.env.DASHBOARDS_GH || "gh", ghVia = /\.js$/i.test(ghBin);
-function privatesOf(owners) {
-  const set = new Set();
-  owners.forEach(o => {
-    const r = cp.spawnSync(ghVia ? process.execPath : ghBin, ghVia ? [ghBin, "repo", "list", o, "--json", "nameWithOwner,visibility", "-L", "400"] : ["repo", "list", o, "--json", "nameWithOwner,visibility", "-L", "400"], { encoding: "utf8", windowsHide: true, timeout: 120000, stdio: ["ignore", "pipe", "pipe"] });
-    if (r.status !== 0) throw new Error(`GitHub could not be read for ${o}'s repositories (${(r.stderr || "").trim() || "gh failed"}): nothing written, as no idea may name a private repository`);
-    JSON.parse(r.stdout).filter(x => x.visibility !== "PUBLIC").forEach(x => set.add(x.nameWithOwner));
-  });
-  return set;
-}
-function ownersOf() {
-  const cfg = JSON.parse(fs.readFileSync(path.join(SKILL, "plan", "template", "org-board.repositories.json"), "utf8"));
-  return [cfg.owner, ...(cfg.organizations || []).map(o => o.owner)];
-}
+/* ---------- The organizations' private repositories ----------
+   Read as every board writer reads them (system/scripts/privaterefs.js): from GitHub, cached on this machine; where neither can be had, it
+   throws and nothing is written, as no idea may name a private repository. */
+const PR = require(path.join(SKILL, "system", "scripts", "privaterefs.js"));
+const privatesOf = owners => PR.privatesOf(owners), ownersOf = () => PR.ownersOf();
 
 /* ---------- The commands ---------- */
 class Refused extends Error {}

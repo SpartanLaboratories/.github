@@ -435,11 +435,18 @@ board links and the git-ignore check, and names the browser pass the board would
 full pass for a divergence), which it leaves to the presenter's next look.
 
 **Issue titles, quoted verbatim** (`GUIDANCE.md` §4, §5; admin-team/dashboards-skill/28). A title the board quotes — the Context's
-`<a data-board="N">title</a>` and the state's `lastAmended.title` — is the issue's own and is never reworded or elided. Grades are never
+`<a data-board="N">title</a>` and the state's `lastAmended.title` — is the issue's own and is never reworded or elided, but for a private
+repository's name, cut to "…" (`plan/RULES.md` §1, "Private repositories"). Grades are never
 part of an issue, so one that names a grade is a defect in the issue, not in the board: on every pass,
 without a browser and in it, `check-board.js` flags it, `ISSUE TITLE NAMES A GRADE: #n`, as a warning (the browser pass reads a title by
 its `data-issue-title` mark, which `linkIssues()` keeps on the resolved link or plain text, and leaves its text out of the grade scan), and never fails the
 board for it; the admin team brings it to the user to retitle on GitHub.
+
+**No private repository** (`plan/RULES.md` §1, "Private repositories"). On every pass, without a browser and in it, `check-board.js` fails
+(`PRIVATE REPOSITORY`) a board whose data blocks or page name a private repository of the organizations: a state board's hand-written
+panels, its DSL and registry copies and its links included, landed or not; where the list cannot be read it fails, saying why
+(`PRIVATE REPOSITORIES UNREAD`). `apply-state.js` cuts the name to "…" in the last amendment's title and refuses a state whose other text
+names one, nothing written.
 
 **No dead board link.** On a system, supersystem or repository state board, `check-board.js` reads the `BOARDS`
 map and fails (`DEAD BOARD LINK`) an entry whose file does not exist relative to the board, and

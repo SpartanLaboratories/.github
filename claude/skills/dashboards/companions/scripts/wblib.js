@@ -14,7 +14,8 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), crypto = require("crypto");
 const SKILL = path.resolve(__dirname, "..", "..");
 const N = require(path.join(SKILL, "system", "scripts", "namerefs.js")), L = require(path.join(SKILL, "system", "scripts", "levelrefs.js"));
-const { elidePrivate, privateRefs } = require(path.join(SKILL, "plan", "scripts", "org-board.js"));
+/* the private repositories' one rule, which every board writer takes too (system/scripts/privaterefs.js) */
+const { elidePrivate, privateRefs } = require(path.join(SKILL, "system", "scripts", "privaterefs.js"));
 const { dslElements } = require(path.join(SKILL, "system", "scripts", "statelib.js"));
 
 /* ---------- The type's limits and format ---------- */

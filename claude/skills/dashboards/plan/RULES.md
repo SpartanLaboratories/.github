@@ -113,7 +113,7 @@ board in its own folder.
 The board's own `#n` opens its GitHub issue — the `#n` of the header's title, over the issue line, which carries the issue's title on
 GitHub alone (`GUIDANCE.md` §6, "The header") — and `PR #n` its pull request. **An issue's title is quoted verbatim** (`GUIDANCE.md` §4,
 §5; admin-team/dashboards-skill/28): the issue line (`issueTitle`), a roadmap item's and a follow-up's `title`, and on the repository work board every
-Row's, group's, roadmap item's and unscheduled issue's, never reworded or elided (on the org work board a private repository's name in a title is elided, §10), each marked `data-issue-title` on the board; a unit's name
+Row's, group's, roadmap item's and unscheduled issue's, never reworded or elided but for a private repository's name, which is cut to "…" (below, "Private repositories"), each marked `data-issue-title` on the board; a unit's name
 is the presenter's, not a quotation. A title that names a grade is a defect in the issue: flagged, never a failure of the board (§8). No link points at a
 file that is not there: a board exists when its `dashboard.html` is in the same tree, and the
 link is relative to the linking board's folder, so it is never dead. Where the boards sit:
@@ -124,6 +124,35 @@ link is relative to the linking board's folder, so it is never dead. Where the b
   sub-issue's folder inside its tracking issue's); a sub-issue folder kept elsewhere does not link
   its parent's board, and `check.js` warns about it;
 - **any other** issue's board may be anywhere under `docs/plans/` in the tree.
+
+**Private repositories** (the user's decision, q-380). No board names a private repository of the organizations: not an issue board, a tracking
+board, the repository work board, the org work board (§10) or a state board (`system/RULES.md`). One rule, `system/scripts/privaterefs.js`, which
+every board writer, both checkers and the companions' scripts take:
+
+- **What names one.** Its `owner/name` and its `name#n` wherever they stand, a value that is its name under a `repo`, `repository` or `name`
+  key, and a name in CamelCase on its own. A name that is a plain word names the repository only beside one of those forms in the same
+  text; alone it reads as the word and is left, and so is "GitHub <word>", GitHub's own, and the word in lower case.
+- **A quotation is elided.** An issue's title (the fields above, quoted verbatim) and a statement's excerpt (§2, "Statements") are quoted text:
+  there the name is cut to "…", as a quotation elides what it cannot show, and nothing else in the quote changes. `embed.js` elides it as it
+  copies an excerpt.
+- **Any other text is refused.** Every writer — `apply-event.js`, `fill.js`, `embed.js`, `board.js`, `system/scripts/apply-state.js` (and `new.js`
+  through `embed.js`) — refuses a board in which any other text names one: nothing is written, and the refusal names the field. A fill
+  refuses the fields that name one (exit 2), save what only finds an item by the text it holds, so a text already written can be corrected;
+  an event fails (exit 1), every file put back. The text is reworded where the board stores it, through `fill.js`, and the event raised again.
+  The org work board, whose sources are other repositories' data, elides the name wherever it stands (§10).
+- **The checks fail a board that still names one.** `check.js` (`PRIVATE REPOSITORY`, the data by where each text stands, a title
+  included, then the board's page whole) and `system/scripts/check-board.js` (its data blocks, then the whole page: a state board's
+  hand-written panels, its DSL and registry copies and its links), landed or not.
+- **The list.** The private repositories are read from GitHub, `gh repo list` for each organization of
+  `plan/template/org-board.repositories.json`, and cached on this machine only, outside every mirrored path, at
+  `~/.claude/cache/dashboards/private-repositories.json`: a reading under six hours old is used as it stands, an older one is read again
+  (`org-board.js` writes it back at every generation). Where GitHub cannot be read, an older reading is used and said; with none, every
+  writer writes nothing and every check fails (`PRIVATE REPOSITORIES UNREAD`), saying why. The list is never written into the skill, a
+  board or anything committed.
+- **The verification reads no live GitHub.** `verify/verify-templates.js` and every case group run on their own set `DASHBOARDS_VERIFY=1` and
+  name a fixture list (`DASHBOARDS_PRIVATES`, `verify/fixtures/private-repositories.json`, invented names); with neither a fixture nor a
+  stand-in gh (`DASHBOARDS_GH`) the reading fails, saying why, and this machine's cache is never read or written there
+  (`verify/cases-private-names.js`).
 
 **A fix to an earlier plan's work** (admin-team/dashboards-skill/35). An issue that fixes the work of an earlier, landed issue records it in
 `plan.json` `fixOf` `{issue, title?, board}`, and its folder sits either **inside that landed issue's folder** (a folded-in fix, with no GitHub
@@ -1621,7 +1650,7 @@ label is dropped with the punctuation it leaves ("Sized; Label grade: 3; researc
 grade 4" reads "escalated", "re-graded" "re-sized", "(#61, grade 3)" "(#61)". A text in which a grade would remain is left out. Either way the summary says so, with the new
 wording, and `enrich: yes`: the presenter reads it. A test set written by its old number is written by its set's name ("L1 per-type
 gating" → "per-type gating", "the L2 test" → "the component test"); an old test level's other phrases ("Level 4a tests", "the Level 3
-pass") are left as they are. A quotation is never reworded: a plan excerpt elides the grade with "…" (§2, "Statements"). **An issue's title is never reworded or elided either** (admin-team/dashboards-skill/28; on the org work board a private repository's name in a title is elided, §10): it is quoted
+pass") are left as they are. A quotation is never reworded: a plan excerpt elides the grade with "…" (§2, "Statements"). **An issue's title is never reworded or elided either** (admin-team/dashboards-skill/28; but for a private repository's name, cut to "…" on every board, §1, "Private repositories"): it is quoted
 verbatim, and one that names a grade is a defect in the issue, which `check.js` flags (`ISSUE TITLE NAMES A GRADE: #n`, a
 warning) and the summary names under `issue defects`, for the team to bring to the user to retitle on GitHub; `system/scripts/apply-state.js`
 writes a state board's `facts.title` the same way, verbatim, and names it the same.
@@ -2249,6 +2278,10 @@ under its label before dashboards-skill/52 ("the documentation review pass", low
 "Documentation review" is not it) — fails a board not landed and `board.json`, and is a warning on a landed board,
 kept as it landed, `BOARD WORDING` (`GUIDANCE.md` §4, "A qa pass is named "Quality Review N"";
 `passnames.js` `passRefsIn()`); an issue's title, quoted verbatim, is left out.
+
+A private repository of the organizations named anywhere in the data, an issue's title or an excerpt included, or in the board's page
+fails every board, landed or not, and the repository work board and the org work board, `PRIVATE REPOSITORY`; where the list cannot be read
+the check fails, `PRIVATE REPOSITORIES UNREAD`, saying why (§1, "Private repositories").
 
 **The org work board** (`check.js docs/plans/org-work-board`, and `docs/plans/.live/org-work-board/`; its kind `org-work-board`, §10). Fails: a `board.json` whose `schema` is not
 `org-work-board/1`, that lacks `organization`, `url`, `generated`, `repositories` or `organizations`, or that lists no repository; an organization without its owner, parent and

@@ -73,6 +73,8 @@
 // of its run: boards-created is refused, and an older board's record of it is read and drawn.
 // The sizing is never written (levels.js): the laying reads it from the request, else the team's local state, for the kind and the steps line only; a board
 // not landed loses any it still holds at this rewrite (lib.js resolveBoard()); a landed one keeps them.
+// No private repository is named (plan/RULES.md §1, "Private repositories"; privaterefs.js, at every rewrite, lib.js resolveBoard()): an issue's title or an excerpt
+// that names one has the name cut to "…"; any other text that names one, a fact's or one the board already holds, fails the event, nothing written.
 // Events and fills share the boards' short lock (lib.js lockTree()), held for this whole run: a fill (fill.js) merges onto the latest plan.json behind it and
 // waits at most this run's second or two, so neither overwrites the other, and every file is written through a rename (lib.js atomicWrite()).
 // A stretch when the run was not running (run-restarted, facts { since, ended, reason }; team-raised; board/timeline-outages): its

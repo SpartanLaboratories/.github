@@ -212,6 +212,8 @@ if(v===undefined)process.exit(1);process.stdout.write(typeof v==="string"?v:JSON
 };
 
 if (require.main === module) {
+  /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
+  process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
   const a = process.argv.slice(2), o = a.includes("--out") ? a[a.indexOf("--out") + 1] : path.join(os.tmpdir(), "dashboards-verify");
   const sk = p => path.join(path.resolve(__dirname, ".."), ...p.split("/"));
   let bad = 0;
