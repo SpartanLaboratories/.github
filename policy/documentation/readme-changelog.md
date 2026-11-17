@@ -17,4 +17,7 @@ refactor that leaves the project's external shape as it was needs no README chan
 Every repository keeps a `CHANGELOG.md` in the Keep a Changelog layout, and a repository without
 one gets one. A change that lands adds its entry (Added, Changed, Fixed, Removed, …) in the same
 change: under `## [X.Y.Z] - <date>` when the landing bumps a version, which is known by then, and
-otherwise under `## [Unreleased]`. A comment- or doc-only change adds no entry.
+otherwise under `## [Unreleased]`. A comment- or doc-only change adds no entry. In
+`SpartanLaboratories/.github`, only a change to the organization's own scripts, under `scripts/`,
+adds an entry; its other changes, those to its copy of the Claude Code configuration under
+`claude/` included, add none.
