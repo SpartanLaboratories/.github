@@ -24,6 +24,7 @@ organization aims for, and may depart from with a stated reason, is Design:
 | Build | [R-31 (Build)](policy/build/INDEX.md "31-T1") |
 | Versions and stability | [R-25 (Versioning)](policy/version/README.md "25-T1"), [R-131 (Stability tiers)](policy/version/stability-tiers.md "131-T1") |
 | Names | [R-33 (Nomenclature)](policy/nomenclature/INDEX.md "33-T1") |
+| Sub-organizations | SpartanLabsGaming: [`POLICY.md`](https://github.com/SpartanLabsGaming/.github/blob/main/POLICY.md) |
 
 ## Conduct and security
 <!-- {"name":"Conduct and security","code":"P-C-CS","id":1015} -->

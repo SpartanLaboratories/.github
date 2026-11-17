@@ -121,7 +121,10 @@
       "docs/nomenclature/ui.md": { "root": "P", "under": "policy/nomenclature", "segment": "UI", "sections": {
         "Naming": "NA", "1. Basic elements": "BE", "2. Specific elements": "SE"
       } }
-    } }
+    } },
+    "SpartanLabsGaming.github": { "url": "https://github.com/SpartanLabsGaming/.github/blob/main/",
+      "folder": "SpartanLabsGaming.github",
+      "quotePointers": ["CODE_OF_CONDUCT.md", "CONTRIBUTING.md", "SECURITY.md"] }
   },
   "notConverted": [],
   "ids": {
@@ -152,7 +155,7 @@
     "101": { "101-T1": 1011, "101-T2": 10 },
     "103": { "103-T1": 1011, "103-T2": 10 },
     "104": { "104-T1": 1030, "104-T2": 1031 },
-    "130": { "130-T1": 1014 },
+    "130": { "130-Q1": "SpartanLabsGaming.github:CONTRIBUTING.md", "130-T1": 1014 },
     "131": { "131-T1": 1014 },
     "132": { "132-T1": 10030, "132-T2": 10031, "132-T3": 10032, "132-T4": 26 },
     "133": { "133-T1": 31 },
