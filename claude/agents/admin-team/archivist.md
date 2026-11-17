@@ -189,7 +189,8 @@ A line:
  "lane":"<the lane it belongs to, or null>","ledgerId":"<the id the ledger records it under, or null>",
  "about":{"kind":"request","ref":"<request id>"},
  "text":"<the question as put>","options":[{"key":"a","text":"…"}],
- "recommendation":{"option":"a","why":"…"},
+ "recommendation":{"option":"a","why":"…",
+   "by":"<the member or agent that made it, as the job names it, or null>"},
  "blocks":[{"kind":"request","ref":"<id>","requester":"<the session waiting on it, or null>"}],
  "blockedBy":["q-9"],"urgency":"blocking","pin":null,
  "premises":[{"fact":"…","source":"<file:line, ledger id or command>",
@@ -204,6 +205,10 @@ A line:
 - `about.kind` is `request`, `hook`, `file`, `issue`, `lane`, `tracker` (an
   entry of `predicted-issues.md`), `permission` (**A permission prompt**) or
   `other`; `ref` names it.
+- `recommendation.by` is the member or agent that made the recommendation,
+  as the job names it, or `null` when the job names none; you do not work it
+  out. A question with no recommendation has `recommendation` `null`. A line
+  logged without `recommendation.by` is left as it is.
 - `blocks` lists what waits on the answer: a request, a lane or a step, with
   `requester` the session waiting on a request held `needs-user`, `null` for
   the team's own work. `urgency` is `blocking` when something waits, else
@@ -466,13 +471,14 @@ place, and the queue, head first.
 
 Append each question the prompt carries, as **The questions** lays it out:
 `id` `q-<n>`, `ts` now (UTC), `by`, `lane`, `ledgerId`, the `text` and
-`options` exactly as the team put them, the recommendation, what it blocks
-and what it is about, `asked` with the time it was put, and its premises:
-each fact the question or its recommendation rests on, with where it was
-read, a check that reads it again, and what the check reads now. A question
-that only restates an open one is not logged twice: report the open one's
-id. A permission prompt is logged closed, as **The questions** says. Reply
-with the ids and the queue, head first.
+`options` exactly as the team put them, the recommendation with who made it
+as the prompt names it (`recommendation.by`), what it blocks and what it is
+about, `asked` with the time it was put, and its premises: each fact the
+question or its recommendation rests on, with where it was read, a check
+that reads it again, and what the check reads now. A question that only
+restates an open one is not logged twice: report the open one's id. A
+permission prompt is logged closed, as **The questions** says. Reply with
+the ids and the queue, head first.
 
 ### close-question
 
