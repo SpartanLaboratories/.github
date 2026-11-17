@@ -44,10 +44,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);p
 a{color:inherit}
 code{font-family:var(--mono);font-size:.92em;overflow-wrap:anywhere;background:var(--surface-2);border:1px solid var(--hair);padding:1px 4px;border-radius:3px}
 /* the code label (GUIDANCE.md §12, "Code"; dashboards-skill/42): every inline code drawn as a label of its own,
-   in both themes, at normal weight inside bold text; inside a chip, a pill or a tile (a label or a figure already: each class carries
-   its type word) it stays plain mono text */
+   in both themes, at normal weight inside bold text; inside a chip, a pill, a tile, a badge or a tag (a label or a figure already: each
+   class carries its type word, a tag's a whole part of the class, so .stage, .outage and .tags are not taken) it stays plain mono text */
 :is(b,strong,.name,.nm,dt,th) code{font-weight:400}
-:is([class*="chip"],[class*="pill"],[class*="tile"]) code{background:none;border:0;padding:0;border-radius:0}
+:is([class*="chip"],[class*="pill"],[class*="tile"],[class*="badge"],[class*="tag-"],[class$="tag"],[class*="tag "]) code{background:none;border:0;padding:0;border-radius:0}
 /* an option's signature, beneath its name: the code label set as a block (plan/RULES.md §2, "An option's signature") */
 code.codeblock{display:block;margin:3px 0;padding:3px 6px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.4;font-weight:400}
 .inspector .sigblock code.codeblock{font-size:12.5px;margin:5px 0 6px}

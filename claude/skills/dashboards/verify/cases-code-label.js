@@ -2,8 +2,10 @@
 // (it passes its helpers in), or on its own with no browser: node verify/cases-code-label.js [--out <dir>].
 // 1. The code label on every template (GUIDANCE.md §12, "Code"): every inline code a label of its own, the surface-2 fill, a hairline border,
 //    1 × 4 px padding and a 3 px radius, in both themes (the two tokens defined in each palette), at normal weight inside bold text (b, strong,
-//    .name, .nm, dt, th), and plain mono text inside a chip, a pill or a tile; the feature probe finds it on each template and misses it on a
-//    template without it.
+//    .name, .nm, dt, th), and plain mono text inside a chip, a pill, a tile, a badge or a tag (q-111: the Badge and the Tag as the boards
+//    vocabulary's CodeLabel row reads), a tag only where "tag" is a whole part of the class, never .stage, .outage or .tags; the selector's
+//    words the same as that row's; the feature probe finds it on each template and misses it on a template without it, or with the old
+//    three-word selector.
 // 2. An option's signature (plan/RULES.md §2, "An option's signature"): a field of its own, drawn verbatim beneath the option's short name as
 //    a block of code (code.codeblock) in the Considered cell (and the inspector's "Weighed against" list, the same button), the inspector
 //    (.sigblock) and the Decisions table, its text in the button's aria-label; an option without one draws its name alone, as before.
@@ -22,7 +24,7 @@ module.exports = function casesCodeLabel(X) {
   const tp = name => (targets.find(t => t.name === name) || {}).path || sk(name);
   const run = (f, a) => cp.spawnSync(process.execPath, [f, ...a], { encoding: "utf8", env: { ...process.env, DASHBOARDS_NO_BROWSER: "1", DASHBOARDS_ADMIN_STATE: path.join(sc, "no-state.json") } });
   const F = require(sk("system/scripts/features.js")), lib = require(sk("plan/scripts/lib.js"));
-  const T = { "plan/template/dashboard.html": ["plan-board"], "plan/template/board.html": ["work-board"], "system/template/system.html": ["system"], "system/template/supersystem.html": ["supersystem"] };
+  const T = { "plan/template/dashboard.html": ["plan-board"], "plan/template/board.html": ["work-board"], "plan/template/org-board.html": ["org-work-board"], "system/template/system.html": ["system"], "system/template/supersystem.html": ["supersystem"] };
   const H = Object.fromEntries(Object.keys(T).map(n => [n, rd(tp(n))])), PB = H["plan/template/dashboard.html"];
   const sc = path.join(out, "code-label"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const CHECK = sk("plan/scripts/check.js"), EMBED = sk("plan/scripts/embed.js"), FILL = sk("plan/scripts/fill.js");
@@ -39,17 +41,36 @@ module.exports = function casesCodeLabel(X) {
   const check = dir => { const r = run(CHECK, [dir]); return { status: r.status, text: (r.stdout || "") + (r.stderr || "") }; };
   const SIG = "getOrLoad(key, policy, maxAge, loader): Result<Lookup<V>>";
 
-  guard("the code label on every template: a label of its own, normal weight inside bold text, plain inside chips, pills and tiles (GUIDANCE.md §12, \"Code\")", c => {
+  const SEL = /:is\(\[class\*="chip"\],\[class\*="pill"\],\[class\*="tile"\],\[class\*="badge"\],\[class\*="tag-"\],\[class\$="tag"\],\[class\*="tag "\]\) code\{background:none;border:0;padding:0;border-radius:0\}/;
+  /* the plain-code selector's attribute tests, read from a template's CSS and run against a class attribute as a browser would: [op, value] */
+  const selOf = h => { const m = /:is\(((?:\[class[*$^~|]?="[^"]*"\],?)+)\) code\{background:none;/.exec(css(h)); return m ? [...m[1].matchAll(/\[class([*$^~|]?)="([^"]*)"\]/g)].map(x => [x[1], x[2]]) : []; };
+  const takes = (sel, cls) => sel.some(([op, v]) => op === "*" ? cls.includes(v) : op === "$" ? cls.endsWith(v) : op === "^" ? cls.startsWith(v) : op === "~" ? cls.split(/\s+/).includes(v) : op === "|" ? cls === v || cls.startsWith(v + "-") : cls === v);
+  const TYPE_PART = /chip|pill|tile|badge|tag(?![\w])/;
+
+  guard("the code label on every template: a label of its own, normal weight inside bold text, plain inside chips, pills, tiles, badges and tags (GUIDANCE.md §12, \"Code\")", c => {
     Object.entries(T).forEach(([name, [kind]]) => {
       const s = css(H[name]);
       c.push([`${name}: code drawn as a label (surface-2 fill, hairline border, 1 × 4 px padding, 3 px radius)`, /(?:^|\n)code\{font-family:var\(--mono\);font-size:\.92em;overflow-wrap:anywhere;background:var\(--surface-2\);border:1px solid var\(--hair\);padding:1px 4px;border-radius:3px\}/.test(s), name]);
       c.push([`${name}: both tokens in both palettes (light, dark by the system setting, dark by the switch)`, (s.match(/--surface-2:/g) || []).length >= 3 && (s.match(/--hair:/g) || []).length >= 3, js([(s.match(/--surface-2:/g) || []).length, (s.match(/--hair:/g) || []).length])]);
-      c.push([`${name}: normal weight inside bold text; plain inside a chip, a pill or a tile`, /:is\(b,strong,\.name,\.nm,dt,th\) code\{font-weight:400\}/.test(s) && /:is\(\[class\*="chip"\],\[class\*="pill"\],\[class\*="tile"\]\) code\{background:none;border:0;padding:0;border-radius:0\}/.test(s), name]);
+      c.push([`${name}: normal weight inside bold text; plain inside a chip, a pill, a tile, a badge or a tag`, /:is\(b,strong,\.name,\.nm,dt,th\) code\{font-weight:400\}/.test(s) && SEL.test(s), name]);
+      const sel = selOf(H[name]), want = ["chip", "where-chip", "section-chip", "verdict-pill", "kpi-tile", "badge", "badge bug", "tag-next", "tag-kind", "archtag", "card tag-kind"], not = ["stage", "stages", "stg-d stage", "archStages", "planStages", "outage", "outages", "tags", "tagbox", "tagtx", "ft-file", "name"];
+      const missed = want.filter(x => !takes(sel, x)), wrong = not.filter(x => takes(sel, x));
+      c.push([`${name}: the selector takes a badge's class and a tag's (.tag-next, .tag-kind, .archtag), and leaves .stage, .outage, .tags, .tagbox`, sel.length && !missed.length && !wrong.length, js({ missed, wrong })]);
+      const cls = [...H[name].replace(/\$\{[^{}]*\}/g, " ").matchAll(/\bclass="([^"<>]*)"/g)].map(m => m[1].trim()).filter(Boolean), taken = [...new Set(cls.filter(x => takes(sel, x)))], odd = taken.filter(x => !TYPE_PART.test(x));
+      c.push([`${name}: every class the selector takes on the template carries a type word as a whole part (${taken.length} taken)`, !odd.length, js(odd)]);
       const miss = F.probe(H[name], kind).filter(m => m.id === "code-label");
       c.push([`${name}: the feature probe finds it`, !miss.length, js(miss)]);
       const old = H[name].replace(/;background:var\(--surface-2\);border:1px solid var\(--hair\);padding:1px 4px;border-radius:3px\}/, "}");
       c.push([`${name}: the probe misses it on a template without it (FEATURE MISSING)`, F.probe(old, kind).some(m => m.id === "code-label"), name]);
+      const three = H[name].replace(SEL, ':is([class*="chip"],[class*="pill"],[class*="tile"]) code{background:none;border:0;padding:0;border-radius:0}');
+      c.push([`${name}: …and on a template with the old selector, no badge and no tag (FEATURE MISSING)`, three !== H[name] && F.probe(three, kind).some(m => m.id === "code-label"), name]);
     });
+    /* the boards vocabulary's CodeLabel row names what code stays plain inside; the selector's words are those, no more and no fewer */
+    const A = require(path.resolve(sk("."), "..", "..", "tools", "finding", "lists.js")), gf = A.glossaryFiles().boards;
+    const row = gf ? (/^\|\s*\*\*CodeLabel\*\*\s*\|([^\n]*)\|\s*$/m.exec(rd(gf)) || [])[1] : null, inside = row ? (/plain inside ([^|;]*)/.exec(row) || [])[1] : null;
+    const words = inside ? [...inside.matchAll(/\b([A-Z][a-z]+)\b/g)].map(m => m[1].toLowerCase()).sort() : null;
+    const selWords = [...new Set(selOf(PB).map(([, v]) => v.replace(/[-\s]/g, "")))].sort();
+    c.push(["the selector's words are the boards vocabulary's CodeLabel row's (\"plain inside a Chip, a Pill, a Tile, a Badge or a Tag\")", !!words && js(words) === js(selWords), js({ glossary: gf, row: words, selector: selWords })]);
   });
 
   guard("an option's signature beneath its short name, a block of code, in the Considered cell, the inspector and the Decisions table (plan/RULES.md §2)", c => {

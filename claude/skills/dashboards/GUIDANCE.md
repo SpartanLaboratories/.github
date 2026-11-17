@@ -1081,8 +1081,10 @@ its term; the presenter reports the need, and the element is never named here
 `` `code` `` span in the data, a path, a sha, a branch, a class — is a **CodeLabel**, a kind of Label in `ui.md`: the surface-2 fill
 (`--surface-2`), a hairline border (`--hair`), 1 × 4 px padding and a 3 px radius, in both themes, so code reads as code and never as bold
 text; inside bold text (`b`, `strong`, an inspector's or a Row's `.name`, `.nm`, a definition term, a table head) it keeps the normal
-weight. Inside a **Chip, a Pill or a Tile** — a Label or a figure already — it stays plain mono text: the templates select them by the
-type word each class carries (`boards.md`, "Board UI"). An option's signature (`plan/RULES.md` §2, "An option's signature") is a
+weight. Inside a **Chip, a Pill, a Tile, a Badge or a Tag** — a Label or a figure already — it stays plain mono text (the Badge and the Tag by
+q-111, as `boards.md` reads since): the templates select them by the type word each class carries (`boards.md`, "Board UI"), a Tag's
+only where `tag` is a whole part of the class (`.tag-next`, `.tag-kind`, `.archtag`), so `.stage`, `.outage` and the `.tags` row are not
+taken. An option's signature (`plan/RULES.md` §2, "An option's signature") is a
 **CodeBlock** beneath the option's name (`code.codeblock`). A step's files nested by their folders (`plan/RULES.md` §2, "A step's files") draw each file as a CodeLabel and their
 folder lines as plain text; until `ui.md` has terms for the nesting and its folder toggles these rules name them only by what they are. A Row's name, an option's and a title taken from either draw their `` `code` `` spans as CodeLabels wherever they are
 drawn, never as literal backticks; an attribute (an `aria-label`, a `title`) takes the text with its backticks dropped.

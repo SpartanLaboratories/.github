@@ -97,7 +97,7 @@ defines it.
 
 | Term | Its purpose on the boards |
 |------|---------------------------|
-| **CodeLabel** | a `code` span in the data, a path, a sha, a branch, a class; plain inside a Chip, a Pill or a Tile |
+| **CodeLabel** | a `code` span in the data, a path, a sha, a branch, a class; plain inside a Chip, a Pill, a Tile, a Badge or a Tag |
 | **Tracer** | from a KPI Tile up to the part of the Timeline Tile it belongs to (the steps that made the Tile's figure), in their kind of work's colour, labelled with how long that part took; under 760 px its label alone, on the Tile |
 
 ### Subtyped
@@ -105,15 +105,15 @@ defines it.
 
 | Term | Its purpose on the boards |
 |------|---------------------------|
-| **Panel** | the Guarantees Panel (headed "Guarantees"), the Context Panel (headed "Context"), the WIP Panel (the Panel that holds the WIP strip), the step Panel, a system Panel on the Systems Tab (its own Card the heading; a subsystem's inside its supersystem's), the org work board's repository Panel and organization Panel (a sub-organization's repository Panels inside its organization Panel), the inspector: the side Panel that shows the selected item, a Hide Button right of its heading |
-| **Card** | a guarantee Card, one guarantee a consumer can rely on; a Consequences Card, one consequence of the change as it now stands; an As built Card, one Row as built: its state, its statements and every change from the verdict; a unit Card, a tracking board's unit in progress, with its own run |
+| **Panel** | the Guarantees Panel (headed "Guarantees"), the Context Panel (headed "Context"), the WIP Panel (the Panel that holds the WIP strip), the step Panel, a system Panel on the Systems Tab (its own Card the heading; a subsystem's inside its supersystem's), the org work board's repository Panel and organization Panel (a sub-organization's repository Panels inside its organization Panel) and its Ideas Panel (headed "Ideas", after the organization Panels on its Repositories Tab: the organization's ideas file, one idea Card per idea), the inspector: the side Panel that shows the selected item, a Hide Button right of its heading |
+| **Card** | a guarantee Card, one guarantee a consumer can rely on; a Consequences Card, one consequence of the change as it now stands; an As built Card, one Row as built: its state, its statements and every change from the verdict; a unit Card, a tracking board's unit in progress, with its own run; the Ideas Card, in an issue or a tracking board's Context, the ideas of the repository's ideas file that name its issue; an idea Card, one idea of the organization's ideas file, on the org work board's Ideas Panel |
 | **Cell** | a Gap, Considered, Verdict or As built Cell; a step Cell |
 | **Tab** | each of a board's views: a state board's six core Tabs, its optional ones and a supersystem or repository state board's Systems Tab; a work board's Tabs |
 | **Tile** | the KPI Tiles, an issue board's counts, each with the Bar of what it counts; the Timeline Tile, the time the run took, step visit by step visit; the repository work board's Runs Tile, every run by its state, and its Landed Tile, the runs that have landed |
 | **Pill** | a verdict Pill, the verdict on an option weighed or on a quality review; an as-built Pill, a Row's as-built state; the research-state Pill, the state of a Row's research, in the head of its Considered Cell; the blocked Pill, "⊘ blocked by #n" on the unit up next while a blocker has not landed, in the waiting colour (yellow), drawn by the templates from the unit's blockers alone |
 | **Chip** | an issue Chip, an issue by its number, opening its board, or the GitHub issue while it has none; the "part of" Chip, the parent issue, in the header; a branch Chip, the run's branch, in the header; the chain Chip, a tracking board's chain in its header: how many units have landed, which are in progress and which is up next; the org work board's unlinked Chip, saying a board is not linked yet |
 | **Badge** | on a Consequences Card, the effect Badge, how a downstream party is affected; the need Badge, whether a consumer must change to adopt it; the API-change Badge, whether a public surface was added, changed, deprecated or removed |
-| **Tag** | a header fact with its label (the branch, the systems, a system board's visibility); "UP NEXT" on the unit up next; "⊟ archived" on a system no longer developed |
+| **Tag** | a header fact with its label (the branch, the systems, a system board's visibility); "UP NEXT" on the unit up next; "⊟ archived" on a system no longer developed; the kind Tag, an idea's kind (fix, improvement, feature, exploration or future, shown in capitals), on the Ideas Card and on an idea Card |
 | **DualStatePill** | the dependency DualStatePill: the build state on the status scale and the locality on a neutral ramp |
 | **Ring** | the research Ring, the research scale on a Considered Cell; the up-next Ring, a still outer Ring on the unit up next; whatever is being worked on, while its run waits on the user |
 | **Arrow** | the charging Arrow, the connector into a Verdict Cell; the connectors of a tracking board's units chain |
@@ -132,6 +132,6 @@ defines it.
 | **SlotBar** | the Quality Reviews Tile's Bar: one slot per review allowed, filled in order by each review's result |
 | **StepBar** | the WIP strip of an issue board (its progress strip) and of a tracking board, its chevrons labelled with the step names; the research indicator (planning, research, verification) and the plan step's StepBar (plan writing, plan accepted) in the step Panel, their chevrons labelled with those names; a tracking board's own chain on the phase's Card, one chevron per unit labelled with the unit's name, and in the header's chain Chip under its sentence, one chevron per unit labelled with the unit's issue number; a tracking issue's chain on the state boards' roadmap and on the repository work board's Rows, one chevron per unit labelled with the unit's name, on a line of its own like the WIP strip |
 | **Timeline** | the Timeline Tile's Bar: one part per timed step visit |
-| **Legend** | one per Tab or per Tile, and one per repository Panel on the org work board; an issue board's Timeline Tile carries two, its kinds of work (one entry per family, with its steps' shades) and its step visits (one entry per visit, with its times) |
+| **Legend** | one per Tab or per Tile, and one per repository Panel and one for the Ideas Panel on the org work board; an issue board's Timeline Tile carries two, its kinds of work (one entry per family, with its steps' shades) and its step visits (one entry per visit, with its times) |
 | **FillPulse** | the live indicator's dot while the view is live and changing |
 | **FullPulse** | whatever is being worked on, but not while its run waits on the user (the Ring row) |

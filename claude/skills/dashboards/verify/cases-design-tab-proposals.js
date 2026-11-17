@@ -56,7 +56,7 @@ module.exports = function casesDesignTabProposals(X) {
     c.push(["a click on a section chip opens the excerpt (bindRefs() binds it), and no statement keeps a parenthesised reference", /function bindRefs\(root\)\{ \(root\|\|document\)\.querySelectorAll\("a\.section-chip"\)/.test(s2) && !/\bsref\b/.test(s2), "bindRefs()"]);
     const css = (PB.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || "", chip = (/(?:^|\n)a\.section-chip\{([^}]*)\}/.exec(css) || [])[1] || "";
     c.push(["the chip is neutral: the kind chip's ink and hairline, never the link blue", /color:var\(--ink-2\)/.test(chip) && /border:1px solid var\(--line\)/.test(chip) && !/--link/.test(chip) && /\.legend b\.section-chip\{[^}]*color:var\(--ink-2\)/.test(css), chip]);
-    c.push(["code inside the chip stays plain (the code label's rule for a chip)", /:is\(\[class\*="chip"\],\[class\*="pill"\],\[class\*="tile"\]\) code\{background:none;border:0;padding:0;border-radius:0\}/.test(css), "CSS"]);
+    c.push(["code inside the chip stays plain (the code label's rule for a chip)", /:is\(\[class\*="chip"\],\[class\*="pill"\],\[class\*="tile"\],\[class\*="badge"\],\[class\*="tag-"\],\[class\$="tag"\],\[class\*="tag "\]\) code\{background:none;border:0;padding:0;border-radius:0\}/.test(css), "CSS"]);
     c.push(["the Design tab's lede names the § reference", /a statement's § reference for its detail/.test(PB), "renderBoard()"]);
   });
 

@@ -92,7 +92,7 @@ module.exports = function casesGapMarks(X) {
     const miss = want.filter(re => !re.test(k)).map(String);
     c.push(["the CSS: the count label, its zero, the lead, the two chips", !miss.length, js(miss)]);
     c.push(["the kind chip's look, the same font, colour, border and padding", /\.cell \.kick \.kind\{color:var\(--ink-2\);border:1px solid var\(--line\);border-radius:3px;padding:1px 5px;letter-spacing:\.04em;font-weight:600\}/.test(k), "kind"]);
-    c.push(["the chips' classes carry the type word, which the code label rule keeps plain inside", /:is\(\[class\*="chip"\],\[class\*="pill"\],\[class\*="tile"\]\) code\{background:none;border:0;padding:0;border-radius:0\}/.test(k) && /class="where-chip"/.test(PB) && /class="baseline-chip"/.test(PB), "code-label rule"]);
+    c.push(["the chips' classes carry the type word, which the code label rule keeps plain inside", /:is\(\[class\*="chip"\],\[class\*="pill"\],\[class\*="tile"\],\[class\*="badge"\],\[class\*="tag-"\],\[class\$="tag"\],\[class\*="tag "\]\) code\{background:none;border:0;padding:0;border-radius:0\}/.test(k) && /class="where-chip"/.test(PB) && /class="baseline-chip"/.test(PB), "code-label rule"]);
     c.push(["no chip or count is dashed (GUIDANCE.md §1: dashed means planned or pending)", !/\.(?:count-label|where-chip|baseline-chip)[^{]*\{[^}]*dashed/.test(k), "css"]);
   });
 
