@@ -4,7 +4,9 @@
 //    the late update, plan-accepted's close, the trail line in the rules' words, the stages read back from the trail.
 // 2. apply-event.js: a sub-issue's re-pass seeded at sized, the stage already open writing nothing at any step (the research step between), the
 //    moves with their trail lines, a check sent back and accepted, a halt holding the stage, plan-accepted closing the pass and the visit frozen
-//    with the stages; a writing pass from write at researched; a small fix and a board from before the stages keeping the plan step without them.
+//    with the stages; a writing pass from write at researched; a small fix and a board from before the stages keeping the plan step without them;
+//    a sized whose detail says the run checks the existing plan: a re-pass from existing, with no stages, re-read by a corrected sizing, and the
+//    detail left unread on a sub-issue or at another step (q-73).
 // 3. apply-event.js: the refusals (the step, the pass, the stage, a closed board, a tracking board with no architecture stages), each writing
 //    nothing, enrich no; the PLAN STAGE ORDER warning.
 // 4. apply-event.js late-update: a stage passed over recorded with no time, its report replaced by a second one, the same one a duplicate; refused for
@@ -170,6 +172,41 @@ module.exports = function casesPlanStages(X) {
     const p6 = apply(B6, "plan-stage", { stage: "check", detail: "x" }, T1);
     c.push(["a board from before the stages: refused, naming it, nothing written", p6.a.status === 1 && /a board from before the plan stages/.test(p6.S.error || "") && !board(B6).wip.plan.stages, js(p6.S.error)]);
     const k = checkOk(B); c.push(["check.js passes the writing pass's board", k.ok, k.out]);
+  });
+
+  guard("apply-event.js: a sized whose detail says the run checks the existing plan (plan/RULES.md §3, wip.plan; q-73)", c => {
+    const L = x => lib.existingPlanSaid(x);
+    c.push(["lib.js reads the signal and the plan it names; a detail without the verb and \"the existing plan\" says nothing", js(L("Checking the existing plan, `plan.md`, against main.")) === js({ said: true, named: "plan.md" }) && js(L("Verifying the existing draft docs/plans/12-x/draft.md.")) === js({ said: true, named: "docs/plans/12-x/draft.md" }) && L("Re-checking the existing plan.").said && L("Re-checking the existing plan.").named === null && !L("Checked the code. The existing plan stands.").said && !L("Sized; the plan starts.").said && !L(null).said, ""]);
+    const B = lay("existing", flight({}, { sub: false })), D = "Checking the existing plan, `plan.md`, against master.";
+    const s = apply(B, "sized", { step: "plan", detail: D }, T0);
+    c.push(["on an issue that is no sub-issue, sized at its plan: a re-pass from existing against the board's base, from the event, no stages", s.a.status === 0 && js(s.p.wip.plan) === js({ state: "re-pass", from: "existing", against: "master", since: T0 }) && s.p.wip.detail === D && !(s.S.warnings || []).some(x => /EXISTING PLAN/.test(x)), js([s.S.error, s.p.wip.plan, s.S.warnings])]);
+    const d = apply(B, "sized", { step: "plan", detail: D }, T0);
+    c.push(["the same sized twice writes the same pass", d.a.status === 0 && js(d.p.wip.plan) === js(s.p.wip.plan), js(d.p.wip.plan)]);
+    const ps = apply(B, "plan-stage", { stage: "write", detail: "x" }, T1);
+    c.push(["plan-stage is refused there, naming the existing plan's verification", ps.a.status === 1 && /no plan stages \(an existing plan's verification\)/.test(ps.S.error || ""), js(ps.S.error)]);
+    const k = checkOk(B); c.push(["check.js passes the board", k.ok, k.out]);
+    /* a corrected sizing re-reads the pass it laid, keeping its time; back to writing when the detail no longer says so */
+    const B2 = lay("existing-resized", flight({}, { sub: false }));
+    apply(B2, "sized", { step: "plan" }, T0);
+    const r1 = apply(B2, "sized", { step: "plan", detail: D }, T1);
+    c.push(["a sized sent again with the detail: the writing pass it laid becomes the re-pass from existing, its time kept", r1.a.status === 0 && js(r1.p.wip.plan) === js({ state: "re-pass", from: "existing", against: "master", since: T0 }), js([r1.S.error, r1.p.wip.plan])]);
+    const r2 = apply(B2, "sized", { step: "plan", detail: "Sized; the plan is written." }, T2);
+    c.push(["sent again without it: back to the writing pass, its time kept", r2.a.status === 0 && js(r2.p.wip.plan) === js({ state: "writing", since: T0 }), js([r2.S.error, r2.p.wip.plan])]);
+    /* the detail names no plan: recorded, and warned */
+    const B3 = lay("existing-unnamed", flight({}, { sub: false }));
+    const u = apply(B3, "sized", { step: "plan", detail: "Checking the existing plan." }, T0);
+    c.push(["a detail naming no plan document: the pass recorded, EXISTING PLAN UNNAMED warned", u.a.status === 0 && u.p.wip.plan.from === "existing" && (u.S.warnings || []).some(x => /^EXISTING PLAN UNNAMED/.test(x)), js([u.S.error, u.p.wip.plan, u.S.warnings])]);
+    /* not read on a sub-issue, nor at another step: warned, the pass as without it */
+    const B4 = lay("existing-sub", flight({}));
+    const sb = apply(B4, "sized", { step: "plan", detail: D }, T0);
+    c.push(["on a sub-issue: the re-pass from its parent with its stages, EXISTING PLAN NOT READ warned", sb.a.status === 0 && sb.p.wip.plan.from === "parent" && ids(sb.p).startsWith("re-pass:current") && (sb.S.warnings || []).some(x => /^EXISTING PLAN NOT READ: .*parent's plan/.test(x)), js([sb.S.error, sb.p.wip.plan, sb.S.warnings])]);
+    const B5 = lay("existing-research", flight({}, { sub: false }));
+    const rs = apply(B5, "sized", { step: "research", detail: D }, T0);
+    c.push(["a sized naming research: no pass, EXISTING PLAN NOT READ warned", rs.a.status === 0 && !rs.p.wip.plan && (rs.S.warnings || []).some(x => /^EXISTING PLAN NOT READ: .*names research/.test(x)), js([rs.S.error, rs.p.wip.plan, rs.S.warnings])]);
+    /* a small fix checking its existing plan: the same re-pass from existing, no stages */
+    const B6 = lay("existing-small-fix", flight({}, { sub: false, steps: ["sizing", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "merge", "landed"] }));
+    const sf = apply(B6, "sized", { step: "plan", detail: D }, T0);
+    c.push(["a small fix's sized with the detail: the re-pass from existing too", sf.a.status === 0 && js(sf.p.wip.plan) === js({ state: "re-pass", from: "existing", against: "master", since: T0 }), js([sf.S.error, sf.p.wip.plan])]);
   });
 
   /* ---------- 3. the refusals and the warning ---------- */

@@ -317,7 +317,8 @@ function applyEvent(orig, ev, facts, req, now) {
   const stopped = s => s === "halted" || s === "escalated";
   /* the plan step's pass opened where none stands (plan/RULES.md §3, "The plan stages"): a sub-issue's re-pass from its parent, any other issue's
      writing pass; with its plan stages, the first current at the event's time, on a line that has them (a research step on its steps line) where
-     `staged` (a sized opens them on a sub-issue alone: another issue sized at its plan verifies a plan already written, which has none) */
+     `staged` (a sized opens them on a sub-issue alone: another issue sized at its plan writes a small fix's plan, which has none, or checks the
+     existing plan, which its detail says and the sized records as a re-pass from existing instead) */
   const openPass = staged => {
     w.plan = plan.parent ? { state: "re-pass", from: "parent", since: now } : { state: "writing", since: now };
     const sids = staged && lib.planStagesLine(plan) ? lib.planPassIds(w.plan) : null;
@@ -464,8 +465,26 @@ function applyEvent(orig, ev, facts, req, now) {
       if (stopped(w.step)) { w.resume = null; w.waitingOn = null; }
       /* the run's start, kept once: the plan phase's first bound on the Timeline tile (plan/RULES.md §2, "The KPI tiles") */
       if (!lib.okStamp(plan.sized)) { plan.sized = now; applied.push(`sized ${now}`); }
+      /* the plan's pass a corrected sizing re-reads (a sized again, no event between, the pass it laid having no stages) */
+      const resized = !!(w.event && w.event.name === "sized" && w.plan && !w.plan.stages);
       setStep(step); setGlow(step);
-      if (step === "plan" && !tracking && !w.plan) openPass(!!plan.parent);
+      /* a run that checks the existing plan says so in its detail and names the plan (plan/RULES.md §3, wip.plan; q-73): on an issue that is no
+         sub-issue, sized at its plan, the pass is a re-pass from existing, against the board's base, with no plan stages; anywhere else the
+         detail is not read for it, and the summary says so */
+      const ex = lib.existingPlanSaid(facts.detail);
+      if (step === "plan" && !tracking && !plan.parent && ex.said && (!w.plan || resized)) {
+        const against = plan.baseline && typeof plan.baseline.ref === "string" && plan.baseline.ref.trim() ? plan.baseline.ref.trim() : null;
+        const P = { state: "re-pass", from: "existing", ...(against ? { against } : {}), since: resized && w.plan.since ? w.plan.since : now };
+        if (JSON.stringify(P) !== JSON.stringify(w.plan)) { w.plan = P; applied.push(`wip.plan re-pass from existing${against ? ` against ${against}` : ""} (the detail says the run checks the existing plan)`); }
+        if (!ex.named) WARNINGS.push("EXISTING PLAN UNNAMED: the sized detail says the run checks the existing plan but names no plan document (e.g. plan.md): the pass is recorded as the existing plan's verification; the run names the plan it is based on in its detail");
+      } else {
+        if (step === "plan" && !tracking && (!w.plan || (resized && w.plan.from === "existing"))) {
+          const since0 = resized ? w.plan.since : null;
+          openPass(!!plan.parent);
+          if (since0) w.plan.since = since0;
+        }
+        if (ex.said) WARNINGS.push(`EXISTING PLAN NOT READ: the sized detail says the run checks the existing plan, but ${tracking ? "a tracking board has no plan pass" : plan.parent ? "a sub-issue's sized opens the re-pass from its parent's plan" : step !== "plan" ? `the sized names ${step}, where a run checking an existing plan names plan` : "a plan pass already stands"}: the detail is not read for the pass`);
+      }
       if (step === "architecture") openArch();
       enrich.push(lib.foundationFilling(plan).function || lib.foundationFilling(plan).columns.length ? "sized: the foundation is laid and the event applied; what reads as being written comes from the issue and the documents: the function, the rows with their Gap and, for a sub-issue of a signed-off tracking plan, the Considered column, written in place on this board, as at any enrichment (embed.js clears plan.foundation)" : "sized: the function and, for a sub-issue of a signed-off tracking plan, the Gap and Considered columns come from the documents");
       detail = detail || `Sized; ${STEP_WORDS[step]} starts.`;
@@ -1739,7 +1758,12 @@ function applyParent(orig, sub, op, now) {
 function landUpward(dir, landed, now) {
   const wrote = [];
   for (let d = dir, p = landed; p && p.kind === "tracking" && p.status === "built" && p.parent && Number.isInteger(p.parent.issue);) {
-    const up = lib.parentFolder(d, p); if (!up || !fs.existsSync(path.join(up, "dashboard.html"))) { S.enrich.push(`#${p.issue} has landed, and its parent tracking board #${p.parent.issue} is not in the enclosing folder: its unit's landing there is the presenter's`); break; }
+    const up = lib.parentFolder(d, p); if (!up || !fs.existsSync(path.join(up, "dashboard.html"))) {
+      /* the enclosing folder is the parent's own and keeps no board (a tracking issue planned without one, KotlinBottools #1 above #2): there is no
+         unit Row to land, so nothing is left to write */
+      const encl = path.dirname(path.resolve(d));
+      if (path.basename(encl).startsWith(p.parent.issue + "-") && !["plan.json", "dashboard.html"].some(f => fs.existsSync(path.join(encl, f)))) break;
+      S.enrich.push(`#${p.issue} has landed, and its parent tracking board #${p.parent.issue} is not in the enclosing folder: its unit's landing there is the presenter's`); break; }
     const text = fs.readFileSync(viewRead(up), "utf8"), eol = /\r\n/.test(text) ? "\r\n" : "\n";
     let pp; try { pp = JSON.parse(text); } catch (e) { throw new Error(`the tracking board above #${p.issue} does not parse: ${e.message}`); }
     if (pp.kind !== "tracking" || pp.issue !== p.parent.issue) { S.enrich.push(`#${p.issue} has landed, and the board in the folder above it is not its parent tracking board #${p.parent.issue}: its unit's landing there is the presenter's`); break; }
