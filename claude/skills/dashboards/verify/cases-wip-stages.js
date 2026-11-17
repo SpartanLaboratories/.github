@@ -251,9 +251,11 @@ module.exports = function casesWipStages(X) {
   return groups;
 };
 if (require.main === module) { /* on its own, with no browser */
+  /* a private scratch of its own (verify/scratch.js): out/, the temp root and the stand-in team state, removed at exit unless kept */
+  const SCR = require("./scratch.js").open("cases-wip-stages");
   /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
   process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
-  const out = (() => { const i = process.argv.indexOf("--out"); return i >= 0 ? process.argv[i + 1] : path.join(os.tmpdir(), "cases-wip-stages"); })();
+  const out = (() => { const i = process.argv.indexOf("--out"); return i >= 0 ? process.argv[i + 1] : SCR.out; })();
   const SKILL = path.resolve(__dirname, ".."), sk = p => path.join(SKILL, p);
   const NB = "needs a browser: not run (verify-templates.js --browser runs it)";
   const gs = module.exports({ sk, out, targets: [], NEEDS_BROWSER: NB }); let bad = 0;

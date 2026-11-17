@@ -15,7 +15,7 @@
 //    A word the list's markers table names is no find in its technical sense (a marker directly before it or joined to it, or in code where
 //    the table reads it so; finding.md, "A technical sense by its marker"), and a find beside it.
 // 3. Every form of the size word §3 names found by the boards' scrub (levelrefs.js).
-// 3a. §4's markers, row by row of the live table: no find before or joined, a find elsewhere, the code-form cell held; the boards' scripts
+// 3a. §4's markers, row by row of the live table: no find before, joined or (a marker after) directly after, a find elsewhere, the code-form cell held; the boards' scripts
 //    as the tool.
 // 4. namerefs.js's header points at the list, the baseline and the tool.
 // Each group returns [title, cases], a case [name, ok, detail].
@@ -118,10 +118,11 @@ module.exports = function casesInternalNames(X) {
     const leftOut = ["the officer's final call", "the officer commits it"].filter(t => N.cleanWritten(t).out || N.nameRefs(t).some(h => N.unambiguous(h)));
     c.push(["\"the officer\" shortened, with a possessive or a pipeline verb, found as \"the manager\" is; warned of, never left out by a writer", !short.length && !leftOut.length, js({ short, leftOut })]);
     /* a name in backticks counts, a longer word that contains one does not; no surrounding word lets one through but a marker of the
-       list's directly before it or joined to it, and a word the list reads in code form is no find in code (finding.md, "A technical
-       sense by its marker"): "a single-thread executor", "runs on an `Executor`" are none, "the executor stops" is one */
+       list's directly before it, right after it or joined to it, and a word the list reads in code form is no find in code (finding.md, "A
+       technical sense by its marker"): "a single-thread executor", "runs on an `Executor`", "publisher key" are none, "the executor stops",
+       "the publisher and the key" and "publisher keys" are */
     const strict = [["the planner reconciled it", true], ["a single-thread executor drains the queue", false], ["the event publisher emits", true], ["the bytecode verifier rejects it", true], ["runs on an `Executor`", false],
-      ["the executor stops", true], ["the executor drains the queue", true], ["runs on the executor beside `pool()`", true], ["publisher key", true], ["the dispatch loop's executor", true],
+      ["the executor stops", true], ["the executor drains the queue", true], ["runs on the executor beside `pool()`", true], ["publisher key", false], ["the Publisher API", false], ["the publisher and the key", true], ["publisher keys", true], ["the dispatch loop's executor", true],
       ["the `Planner` type", true], ["the archivist's hook", true], ["two archivists", true], ["the solution architect", true], ["Presenters", true],
       ["uses OkHttp's `RoutePlanner`", false], ["an `ExecutorService`", false], ["RoutePlanner picks a route", false], ["plannerConfig", false], ["planner_id", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
     c.push(["every name a whole word wherever it stands, in backticks too, save a word in its technical sense (a marker before it, or in code where the list reads it so); a longer word that contains one is not a find", !strict.length, js(strict.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
@@ -176,9 +177,9 @@ module.exports = function casesInternalNames(X) {
   });
 
   /* §4's markers (finding.md, "A technical sense by its marker"): a word the table names is no find with one of its markers directly before
-     it (a space or a hyphen between, any case, its possessive, a code mark at the join) or joined to it after by a hyphen, and is one with
-     the marker elsewhere (after it with a space, or a clause away); a word the table reads in code form is no find in code, and one in prose
-     beside code. The boards' scripts (namerefs.js, levelrefs.js) find as the tool finds, row by row of the live table. */
+     it (a space or a hyphen between, any case, its possessive, a code mark at the join), joined to it after by a hyphen, or, for a marker
+     after, directly after it with a space or a line break; it is one with the marker elsewhere (after it with a space where it is no marker
+     after, or a clause away); a word the table reads in code form is no find in code, and one in prose beside code. The boards' scripts (namerefs.js, levelrefs.js) find as the tool finds, row by row of the live table. */
   guard("§4's markers: a word in its technical sense no find, the same word elsewhere a find; the boards' scripts as the tool", c => {
     if (!L) { c.push(["the list is read", false, readError]); return; }
     const ms = L.markers || [], LR = require(sk("system/scripts/levelrefs.js")), F = require(path.join(T, "match.js"));
@@ -187,8 +188,12 @@ module.exports = function casesInternalNames(X) {
     ms.forEach(m => {
       const w = m.word, g = isGrade(w), board = t => (g ? LR.levelRefs(t) : N.nameRefs(t)).length > 0, tool = t => (g ? F.gradeRefs(t) : F.nameRefs(t)).length > 0;
       const probes = [[`runs on a \`${w}\``, !m.codeForm], ["```\nval " + w + " = x()\n```", !m.codeForm], [`the ${w} beside \`x()\``, true], [`the ${w} stops`, true]];
-      m.markers.forEach(k => probes.push([`the ${k} ${w}`, false], [`the ${k}-${w}`, false], [`the ${k.toUpperCase()} ${w}`, false], [`the ${k}'s ${w}`, false], [`the \`${k}\` ${w}`, false],
-        [`the ${w}-${k}`, false], [`the ${k}, then the ${w}`, true], [`the ${w} ${k}`, true]));
+      /* a marker after (the row's "after" cell) clears the word directly after it too, with a space or a line break between, any case; no
+         marker clears it with another word between, and a longer word is no marker ("publisher keys") */
+      m.markers.forEach(k => { const after = (m.after || []).some(a => a.toLowerCase() === k.toLowerCase());
+        probes.push([`the ${k} ${w}`, false], [`the ${k}-${w}`, false], [`the ${k.toUpperCase()} ${w}`, false], [`the ${k}'s ${w}`, false], [`the \`${k}\` ${w}`, false],
+          [`the ${w}-${k}`, false], [`the ${k}, then the ${w}`, true], [`the ${w} ${k}`, !after], [`the ${w} and the ${k}`, true]);
+        if (after) probes.push([`the ${w}\n${k}`, false], [`the ${w} ${k.toUpperCase()}`, false], [`the ${w} ${k}s`, true]); });
       probes.forEach(([t, want]) => { const b = board(t), o = tool(t); if (b !== want || o !== want) bad.push(`"${t}": want ${want ? "a find" : "none"}, board ${b}, tool ${o}`); });
     });
     c.push([`every marker of every row (${ms.reduce((n, m) => n + m.markers.length, 0)}): no find before or joined, a find elsewhere; the code-form cell held in a backtick span and a fenced block; the boards' scripts and the tool agree`, !bad.length, js(bad.slice(0, 8))]);
@@ -207,11 +212,13 @@ module.exports = function casesInternalNames(X) {
 };
 
 if (require.main === module) {
+  /* a private scratch of its own (verify/scratch.js): out/, the temp root and the stand-in team state, removed at exit unless kept */
+  const SCR = require("./scratch.js").open("cases-internal-names");
   /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
   process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
   const SKILL = path.resolve(__dirname, ".."), sk = p => path.join(SKILL, ...p.split("/"));
   let fails = 0;
-  module.exports({ sk, out: os.tmpdir(), targets: [] }).forEach(([title, cases]) => { const bad = cases.filter(x => !x[1]); fails += bad.length;
+  module.exports({ sk, out: SCR.out, targets: [] }).forEach(([title, cases]) => { const bad = cases.filter(x => !x[1]); fails += bad.length;
     console.log(`${bad.length ? "FAILED  " : "checked "} ${title}: ${cases.length - bad.length}/${cases.length} cases`); bad.forEach(x => console.log(`  ${x[0]}: ${x[2]}`)); });
   process.exit(fails ? 1 : 0);
 }

@@ -199,6 +199,8 @@ module.exports.buildFixture = buildFixture;
 module.exports.FIX_DIR = FIX_DIR;
 
 if (require.main === module) {
+  /* a private scratch of its own (verify/scratch.js): out/, the temp root and the stand-in team state, removed at exit unless kept */
+  const SCR = require("./scratch.js").open("cases-mark-classes");
   /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
   process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
   const sk = p => path.join(__dirname, "..", p);
@@ -206,7 +208,7 @@ if (require.main === module) {
     const fx = buildFixture(f => fs.readFileSync(sk(f), "utf8").replace(/\r\n/g, "\n")); fs.mkdirSync(sk(FIX_DIR), { recursive: true });
     for (const [f, h] of Object.entries(fx)) { fs.writeFileSync(sk(path.join(FIX_DIR, f)), h); console.log("wrote " + path.join(FIX_DIR, f)); }
   }
-  const groups = module.exports({ sk, out: path.join(os.tmpdir(), "dashboards-verify"), targets: [] });
+  const groups = module.exports({ sk, out: SCR.out, targets: [] });
   let bad = 0;
   groups.forEach(([what, cases]) => { const f = cases.filter(x => !x[1]); bad += f.length; console.log(`${f.length ? "FAILED " : "checked"}  ${what}: ${cases.length - f.length}/${cases.length} cases`); f.forEach(x => console.log(`  FAIL ${x[0]} — ${x[2]}`)); });
   process.exit(bad ? 1 : 0);

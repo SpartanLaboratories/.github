@@ -152,11 +152,14 @@ names is no find, in any form it is matched in, where one of its markers stands 
 it, with only a space, a line break or a hyphen between, or is joined to it after by a hyphen:
 "dispatch executor", "the dispatcher's executor", "carrier-grade", "executor-backed". A marker is
 matched in any case and in its possessive, and a mark of emphasis or code (`*`, `_`, a backtick) at
-the join does not part the two ("`mcups-liveness` executor", "**dispatch executor**"). A marker
-anywhere else clears nothing: after the word with a space ("publisher key"), with another word
-between ("the dispatch loop's executor"), or elsewhere on the line. A word that list reads in code
-form is no find where it stands in code: in a backtick span or a fenced code block, rendered on a
-board (`<code>`, `<pre>`) included. The same word in prose beside code is a find.
+the join does not part the two ("`mcups-liveness` executor", "**dispatch executor**"). A word's
+markers after clear it as well where one stands directly after it, with only a space, a line break
+or a hyphen between, matched the same way: "publisher key", "the Publisher API". A marker anywhere
+else clears nothing: after the word with a space where it is no marker after ("executor
+dispatch"), with another word between ("the dispatch loop's executor"), or elsewhere on the line. A
+word that list reads in code form is no find where it stands in code: in a backtick span or a
+fenced code block, rendered on a board (`<code>`, `<pre>`) included. The same word in prose beside
+code is a find.
 
 ## On a board
 {"name":"On a board","code":"G-N-FI-B","id":1121}

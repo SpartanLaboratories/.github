@@ -313,9 +313,11 @@ module.exports = function casesNestedSteps(X) {
   return groups;
 };
 if (require.main === module) { /* on its own, with no browser */
+  /* a private scratch of its own (verify/scratch.js): out/, the temp root and the stand-in team state, removed at exit unless kept */
+  const SCR = require("./scratch.js").open("cases-nested-steps");
   /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
   process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
-  const out = (() => { const i = process.argv.indexOf("--out"); return i >= 0 ? process.argv[i + 1] : path.join(os.tmpdir(), "cases-nested-steps"); })();
+  const out = (() => { const i = process.argv.indexOf("--out"); return i >= 0 ? process.argv[i + 1] : SCR.out; })();
   const SKILL = path.resolve(__dirname, ".."), sk = p => path.join(SKILL, p);
   const gs = module.exports({ sk, out, targets: [] }); let bad = 0;
   gs.forEach(([t, cs]) => { const f = cs.filter(x => !x[1]); bad += f.length; console.log(`${f.length ? "FAILED  " : "checked "} ${t}: ${cs.length - f.length}/${cs.length} cases`); f.forEach(x => console.log(`  ${x[0]}: ${x[2]}`)); });

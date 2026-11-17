@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":26,"last":"2026-11-17"}
+{"id":"p9","count":28,"last":"2026-11-17"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -236,6 +236,17 @@ The permission system raises the denial.
     and stand-in team state, a case no entry holds (the entry for a board write on Windows is about a refused
     rename, the entry for a command past 180 seconds about the harness's move); added as "The skill's
     verification shares its temp files and stand-in team state with other jobs running beside it".
+  - 2026-11-17: a Presenter's helper script copying the global direction documents, a staged landing package's
+    files and a clone of the organization repository into a scratch tree, to run the rule checker over the whole
+    set, was refused by the auto mode classifier as "[Destructive or Unwanted Actions]", a case no entry holds (the
+    entry for the direction manager's write pass is about that pass run from the standing checkout, the entry for a
+    rule check in a scratch clone about what it leaves unread); added as "A read-and-copy into a scratch tree, to run
+    the rule checker over it, is refused as destructive".
+  - 2026-11-17: an archive job's bash heredoc writing its summary's working file into the archive's `work/` folder was
+    refused by the auto mode classifier as "[Destructive or Unwanted Actions]", a case no entry holds (the entry for a
+    subagent's Write of a working file is about the Write tool's refusal and, in its attempts, a heredoc's parse error);
+    added as "An archive job's shell write of its summary's working file is refused by the auto mode classifier as
+    destructive".
 
 ## A count changes in this mirrored file
 
@@ -675,7 +686,7 @@ Once the presenter handles its own rules, its brief among them, the session's au
 ## A read-only query of the running processes is denied
 
 ```json
-{"id":"p40","count":4,"last":"2026-11-14"}
+{"id":"p40","count":5,"last":"2026-11-17"}
 ```
 
 The team checks, read only, whether a member's job left a process behind (the entry "A member's attempt to stop its own background process is refused" has it do so). The session's auto mode classifier denied a query of the running processes' command lines (PowerShell `Get-CimInstance Win32_Process`) with no reason given. It is neither an edit of the team's own files nor a member's attempt to stop its own process.
@@ -687,6 +698,7 @@ The team checks, read only, whether a member's job left a process behind (the en
   - 2026-11-13: the graphify manager's query, filtered on the graph tool's name and made in a code-only refresh of a repository after a landing to see whether a hook's rebuild was still running, was denied with no reason given; the member stopped and tried no other route. The Coordinator read with `tasklist` that no such process was running, and the refresh, run again as a new job, finished clean. Told to the user at the console.
   - 2026-11-13: an Archivist's query of the node processes, made at the end of a session archive job, after all its steps had passed, to identify one running node process it had not started, was denied with no reason given; it stopped and tried no other route. Told to the user at the console.
   - 2026-11-14: in a trial of a background session, a direction manager's job checking a background Claude session it had started made two read-only PowerShell `Get-CimInstance Win32_Process` queries, the first with the command line, the second with only the parent process id and creation date; the classifier refused both, giving the reason "[Undermining Oversight]". The job stopped and tried no other route. The job's brief from the Coordinator had not carried the known caution against querying the process list with PowerShell or `Get-CimInstance`.
+  - 2026-11-17, about 05:5xZ: in a Presenter job in its skills lane, a Bash wait loop that polled `pgrep -f verify-templates` for the skill's template verification was refused by the classifier as "[Destructive or Unwanted Actions]", a reason none of the earlier encounters drew. The job's rules forbid querying the process list; the member called it its own error, tried no other process query and waited on the verification's log file instead. As the team reported it, not re-read by the Archivist.
 
 ## The permission system refuses the Archivist's deletion
 
@@ -810,7 +822,7 @@ A record that says "scratchpad <id8>: a, b, c" names items the script's words pa
 ## A subagent's Write of a working file is refused, "Subagents should return findings as text"
 
 ```json
-{"id":"p50","count":3,"last":"2026-11-14"}
+{"id":"p50","count":4,"last":"2026-11-17"}
 ```
 
 An archive job wrote its `summary.md` text to a file in the session scratchpad with the Write tool, to copy it into the archive folder after, as earlier archive jobs had been told to do. The Write tool refused the subagent's call with the message "Subagents should return findings as text". The harness keeps a subagent from writing report files with Write; a file that is the job's own output, such as an archive's `summary.md`, meets the same refusal when written as a working file this way. The Archivist's brief names no tool for writing `summary.md`.
@@ -822,6 +834,7 @@ An archive job wrote its `summary.md` text to a file in the session scratchpad w
   - 2026-11-14: an archive job: the Write tool refused the subagent's write of the summary text into the scratchpad ("Subagents should return findings as text"); the job wrote `summary.md` straight into the archive folder with bash heredocs and went on.
   - 2026-11-14: an archive job: the Write tool refused the subagent's write of `summary.md` into the archive folder itself, not only into the scratchpad, with the same message ("Subagents should return findings as text, not write report files"); the job wrote the file with bash heredocs. One heredoc of about 45 lines failed with a bash quote-matching error, and the same text split into three appends worked (cause not found). Resolution (a)'s direct write into the archive folder holds only for a bash heredoc, not for the Write tool.
   - 2026-11-14: an archive job: the Write tool again refused the subagent's write of `summary.md` into the archive folder itself. A bash heredoc carrying the whole summary then failed twice with a bash quote-matching error ("unexpected EOF while looking for matching quote"), though a short heredoc worked. The job wrote the summary with the Write tool to a working text file in the archive's `work/` folder and moved it into place.
+  - 2026-11-17, about 17:46Z: an archive job, at step 3: the Write tool refused the subagent's write of the summary's working file into the archive's `work/` folder, the route the resolution places and the one that worked on the third encounter, with the message "should return findings as text, not write report files", as the team reported it. Before it, one bash heredoc failed on a shell parse error and wrote nothing, and another was refused by the auto mode classifier (the entry "An archive job's shell write of its summary's working file is refused by the auto mode classifier as destructive"). Nothing was retried by another route; the job stopped with the session's folder holding its extracted conversation and its metadata only, and nothing deleted. Earlier archive jobs, up to the same day, wrote their summaries this way. It was the team's first session run in the desktop app after a restart that day, shortly after the user applied an auto-mode environment setup to the global settings; neither is checked as the cause. As the team reported it, save the folder's contents and the empty `work/` folder, read by the Archivist.
 
 ## The team's session ends without a handoff while jobs are running
 
@@ -1186,3 +1199,36 @@ The dashboards skill's template verification (`verify/verify-templates.js`) writ
 - **Predicted:** the admin team, on meeting it, 2026-11-17.
 - **Encounters:**
   - 2026-11-17, 02:18 to 02:47Z: the Presenter's job building the Whiteboard skill (hook-85, step 5, in its skills lane) ran the verification of the staged dashboards skill in its working copy; runs 1 to 4 each failed one or two event cases, a different case each time. Its account of the cause: other skill jobs on this machine, the presenter jobs the team ran in the KotlinBottools and OrganizationPage presenter lanes beside it, shared the runs' temp files and stand-in team state. Run 5, with private temp paths and its own state file, had no event failure; run 6 was running at the report. The reruns cost about 45 minutes of a lane four jobs waited behind. As the Presenter reported it at 03:03:54Z, the cause verified neither by the Coordinator nor by the Archivist, save the script's default paths, read.
+
+## A read-and-copy into a scratch tree, to run the rule checker over it, is refused as destructive
+
+```json
+{"id":"p75","count":1,"last":"2026-11-17"}
+```
+
+A member wants the rule checker run over a whole set of rule files that live in more than one place (the global direction documents, a staged package's files, the organization repository) before anything is placed, and runs a helper script that reads them and copies them into a scratch tree of its own to check them there. The session's auto mode classifier refuses the script's run as "[Destructive or Unwanted Actions]" before it runs, though it would write only in the scratch tree. It is not the entry "The direction manager's after-edit write pass of the rule checker is refused as destructive", which is about that write pass run from the standing checkout, nor "A mirror-sync's rule check in a scratch clone leaves another repository's files "not checked", and still passes", which is about what such a check leaves unread, nor "An action a standing allow line covers is refused by the auto mode classifier when sent inside a compound command". Not checked: what in the call drew the refusal (the copying of the global direction documents, the size of the copy, or the script being one the classifier could not read beforehand).
+
+- **Proposed resolution:** none decided. As practised on the encounter: the member stops at the refusal, tries no other route, and leaves the whole-set check to the rebuild's own rule check, which reads the same files where they are. Options, the Archivist's first reading, for the user to decide:
+  - a) A whole-set rule check runs only through the checker itself, pointed at the files where they are (its override variables), never through a copy into a scratch tree.
+  - b) The rebuild's own check is the one whole-set check, and a member checks only the files it changes before then.
+  - c) Both. Recommended: c), once it is checked that the checker can read a staged package's files in place.
+- **Predicted:** the admin team, on meeting it, 2026-11-17.
+- **Encounters:**
+  - 2026-11-17, about 06:1xZ: in a Presenter job in its skills lane, for a landing package of the rule rework, a `node` run of a helper script in the member's helper folder, which would have copied the global direction documents, the package's files and a clone of the organization repository into a scratch tree to run the rule checker over the set, was refused by the classifier as "[Destructive or Unwanted Actions]". Nothing ran; not retried; the rebuild's own check is to cover it. As the team reported it, not re-read by the Archivist.
+
+## An archive job's shell write of its summary's working file is refused by the auto mode classifier as destructive
+
+```json
+{"id":"p76","count":1,"last":"2026-11-17"}
+```
+
+An archive job writes its session summary to a working file under the archive's `work/` folder, for `archive.js write-summary` to place as `summary.md` (the Archivist's brief, archive mode, step 3). Sent as a bash heredoc, the write was refused by the session's auto mode classifier as "[Destructive or Unwanted Actions]" before anything ran, though it writes a new file only in a folder of the Archivist's own records. The Write tool to the same path was refused too, the entry "A subagent's Write of a working file is refused, "Subagents should return findings as text"", so neither route the job had was open. It is not that entry, which is about the Write tool's refusal and, in its attempts, a heredoc's parse error, never a classifier's refusal; nor "A read-and-copy into a scratch tree, to run the rule checker over it, is refused as destructive" or "An action a standing allow line covers is refused by the auto mode classifier when sent inside a compound command". Not checked: what in the call drew the refusal; whether the cause is the team's first session run in the desktop app after its restart that day, or the auto-mode environment setup the user applied to the global settings shortly before; whether a shorter heredoc, or one into another folder, would run.
+
+- **Proposed resolution:** none decided. As practised on the encounter: the job stops at the refusal, tries no other route, removes nothing and reports the call and the reason. Options, the Archivist's first reading, for the user to decide:
+  - a) The cause is checked first: whether the archive's own `work/` folder is covered by the auto-mode environment setup now in the global settings, and whether the same write runs in a session started through the launcher.
+  - b) An `autoMode.allow` line for the archive job's write of a file under the archive's `work/` folder, placed by the direction manager or staged for the user to place.
+  - c) `archive.js write-summary` takes the summary on its standard input as well as from a file, so no separate write of a working file is needed; whether the classifier passes that call is untested.
+  - Recommended: a), then b) if the cause is the classifier's reading of the new setup.
+- **Predicted:** the admin team, on meeting it, 2026-11-17.
+- **Encounters:**
+  - 2026-11-17, about 17:46Z: an archive job, at step 3, the summary write: a bash heredoc writing the summary's working file into the archive's `work/` folder was refused by the classifier as "[Destructive or Unwanted Actions]"; the Write tool to the same path was refused as well (the entry "A subagent's Write of a working file is refused, "Subagents should return findings as text""), and an earlier heredoc had failed on a shell parse error, writing nothing. Nothing retried by another route, nothing deleted; the session's folder holds its extracted conversation and its metadata only. Earlier archive jobs, up to the same day, wrote their summaries. As the team reported it, save the folder's contents and the empty `work/` folder, read by the Archivist.

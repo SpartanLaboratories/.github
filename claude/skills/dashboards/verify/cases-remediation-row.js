@@ -231,10 +231,12 @@ module.exports = function casesRemediationRow(X) {
 };
 
 if (require.main === module) {
+  /* a private scratch of its own (verify/scratch.js): out/, the temp root and the stand-in team state, removed at exit unless kept */
+  const SCR = require("./scratch.js").open("cases-remediation-row");
   /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
   process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
   const SKILL = path.resolve(__dirname, ".."), sk = p => path.join(SKILL, ...p.split("/"));
-  const args = process.argv.slice(2), i = args.indexOf("--out"), out = path.resolve(i >= 0 && args[i + 1] ? args[i + 1] : path.join(os.tmpdir(), "dashboards-verify"));
+  const args = process.argv.slice(2), i = args.indexOf("--out"), out = path.resolve(i >= 0 && args[i + 1] ? args[i + 1] : SCR.out);
   const targets = ["plan/template/dashboard.html", "plan/template/board.html"].map(name => ({ name, path: sk(name) }));
   const NEEDS_BROWSER = "needs a browser: not run (verify-templates.js --browser runs it)";
   const withData = (tpl, block, json) => require(sk("plan/scripts/lib.js")).writeBlock(tpl, block, json);

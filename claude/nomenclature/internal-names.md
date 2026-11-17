@@ -92,16 +92,17 @@ player", "the caller").
 ### Markers
 
 A word below is no find where one of its markers stands directly before it or joins it in a
-compound ("dispatch executor", "carrier-grade"), and, where its row says "no find", where the word
-itself stands in code. How a scan reads both is in [`finding.md`](finding.md).
+compound ("dispatch executor", "carrier-grade"), where one of its markers after follows it
+("publisher key"), and, where its row says "no find", where the word itself stands in code. How a
+scan reads each is in [`finding.md`](finding.md).
 
 The markers are the Communication Clarity Officer's to manage, for any word the list bars: it adds
 and removes them, writes them here and points the word's row at them, each a technical modifier or
 a compound part, and none that would let through a use of what the word's row bars. Whether a word
 is read in code form stays the user's, as does every term, wording and other exception.
 
-| Word | Markers | In code form |
-|------|---------|--------------|
-| **executor** | `backed`, `Caffeine`, `common-pool`, `daemon`, `dispatch`, `dispatcher`, `keepalive`, `library-created`, `liveness`, `maintenance`, `probe`, `retransmit`, `same-thread`, `shut-down`, `shutdown`, `single-thread`, `single-threaded`, `sweep`, `tick` | no find |
-| **publisher** | `API`, `key` | no find |
-| **grade** | `carrier` | a find |
+| Word | Markers | Markers after | In code form |
+|------|---------|---------------|--------------|
+| **executor** | `backed`, `Caffeine`, `common-pool`, `daemon`, `dispatch`, `dispatcher`, `keepalive`, `library-created`, `liveness`, `maintenance`, `probe`, `retransmit`, `same-thread`, `shut-down`, `shutdown`, `single-thread`, `single-threaded`, `sweep`, `tick` | none | no find |
+| **publisher** | `API`, `key` | `API`, `key` | no find |
+| **grade** | `carrier` | none | a find |

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Verify the dashboard templates once, so boards made from them need not be (GUIDANCE.md §8).
-//   node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>] [--browser]
+//   node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>] [--browser] [--keep]
+// Each run works in a private scratch of its own (verify/scratch.js): its output, its temp root and its stand-in for the team's state, removed
+// at exit unless a check failed or --keep (or --browser) keeps it, so runs at the same time share no file.
 // By default it runs only the checks that need no browser, and opens none (GUIDANCE.md §8: a skill or template change gets no browser
 // pass from the skill's own runs; the user checks it in a browser from what the report lists). It renders each template with its fixtures
 // into a scratch folder and runs system/scripts/check-board.js --auto --no-browser on every rendering, and runs the case groups below
@@ -101,15 +103,19 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
 const SKILL = path.resolve(__dirname, "..");
-require(path.join(__dirname, "..", "system", "scripts", "cliargs.js")).strict(process.argv.slice(2), { usage: "usage: node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>] [--browser]", valued: ["root", "out", "history-repo"], flags: ["browser"], max: 0 });
+require(path.join(__dirname, "..", "system", "scripts", "cliargs.js")).strict(process.argv.slice(2), { usage: "usage: node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>] [--browser] [--keep]", valued: ["root", "out", "history-repo"], flags: ["browser", "keep"], max: 0 });
 const args = process.argv.slice(2), opt = (n, d) => { const i = args.indexOf("--" + n); return i >= 0 ? args[i + 1] : d; };
-const out = path.resolve(opt("out", path.join(os.tmpdir(), "dashboards-verify")));
 /* No browser unless asked for (GUIDANCE.md §8): DASHBOARDS_NO_BROWSER=1 reaches every script the checks and cases spawn, so
    check-board.js and check.js open none (exit 3, "NOT RUN") and dumpDom() below renders nothing. */
 const BROWSER = args.includes("--browser");
 if (!BROWSER) process.env.DASHBOARDS_NO_BROWSER = "1"; else delete process.env.DASHBOARDS_NO_BROWSER;
-/* the cases read no team's local state (plan/scripts/levels.js localLevel()): a case that wants a level gives it, or points this elsewhere */
-process.env.DASHBOARDS_ADMIN_STATE = process.env.DASHBOARDS_ADMIN_STATE || path.join(os.tmpdir(), "dashboards-verify-no-state.json");
+/* a private scratch per run (verify/scratch.js), so two runs at the same time share nothing: a fresh <temp root>/dashboards-verify-XXXXXX
+   holding the default output folder (an explicit --out wins), the temp root of this run and of every process it spawns, and the stand-in
+   for the team's state below; removed at exit, kept when a check failed, with --keep, or with --browser (its screenshots are its result) */
+const SCR = require("./scratch.js").open("dashboards-verify", { keep: BROWSER });
+const out = path.resolve(opt("out", SCR.out));
+/* the cases read no team's local state (plan/scripts/levels.js localLevel()): a case that wants a level gives it, or points this elsewhere;
+   the stand-in is the scratch's no-state.json, never written, unless the caller set DASHBOARDS_ADMIN_STATE (scratch.js) */
 /* the progress notes' watcher (plan/scripts/progress-index.js): no fixture starts one; the cases that test it turn it on for their own runs */
 process.env.DASHBOARDS_NO_WATCHER = "1";
 /* the private repositories (system/scripts/privaterefs.js; plan/RULES.md §1, "Private repositories"): a fixture list of invented names, so no case reads

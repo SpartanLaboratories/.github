@@ -212,9 +212,11 @@ if(v===undefined)process.exit(1);process.stdout.write(typeof v==="string"?v:JSON
 };
 
 if (require.main === module) {
+  /* a private scratch of its own (verify/scratch.js): out/, the temp root and the stand-in team state, removed at exit unless kept */
+  const SCR = require("./scratch.js").open("cases-org-board");
   /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
   process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
-  const a = process.argv.slice(2), o = a.includes("--out") ? a[a.indexOf("--out") + 1] : path.join(os.tmpdir(), "dashboards-verify");
+  const a = process.argv.slice(2), o = a.includes("--out") ? a[a.indexOf("--out") + 1] : SCR.out;
   const sk = p => path.join(path.resolve(__dirname, ".."), ...p.split("/"));
   let bad = 0;
   module.exports({ sk, out: path.resolve(o) }).forEach(([what, cases]) => { const f = cases.filter(c => !c[1]); console.log(`${f.length ? "FAILED  " : "checked "} ${what}: ${cases.length - f.length}/${cases.length} cases`); f.forEach(c => console.log(`  ${c[0]}: ${c[2]}`)); bad += f.length; });

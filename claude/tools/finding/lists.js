@@ -128,24 +128,25 @@ function strengthOf(what, allowed) {
   if (/^(?:never|as section 4's markers say)\.?$/i.test(String(allowed || "").trim())) return "never";
   return "other";
 }
-/* The markers of section 4, from its table headed "Word", "Markers" and "In code form", or none when the
-   section has no such table: [{ word, markers: [marker], codeForm, line }], codeForm true where the
-   row reads the word in code form as no find. A word that is no word of the first three sections is an
-   error, and so is a row with no marker or an "In code form" cell other than "no find" or "a find". */
+/* The markers of section 4, from its table headed "Word", "Markers" and "In code form", with a "Markers
+   after" column where it has one, or none when the section has no such table: [{ word, markers: [marker],
+   after: [marker], codeForm, line }], after the markers that clear the word where they follow it with a
+   space as well, codeForm true where the row reads the word in code form as no find. A word that is no
+   word of the first three sections is an error, and so is a row with no marker or an "In code form" cell other than "no find" or "a find". */
 function markersOf(tables, file, barred) {
   const t = tables.find(x => { const h = x.header.map(c => c.toLowerCase()); return h.includes("word") && h.includes("markers"); });
   if (!t) return [];
-  const c = columns(t, file, { word: "Word", markers: "Markers", code: "In code form" });
+  const c = columns(t, file, { word: "Word", markers: "Markers", code: "In code form" }, { after: "Markers after" });
   const known = new Set(barred.map(w => w.toLowerCase())), seen = new Set();
   return t.rows.map(r => {
-    const word = bold(r.cells[c.word])[0], markers = ticks(r.cells[c.markers]), code = String(r.cells[c.code] || "").trim().toLowerCase().replace(/\.$/, "");
+    const word = bold(r.cells[c.word])[0], markers = ticks(r.cells[c.markers]), after = c.after == null ? [] : ticks(r.cells[c.after]), code = String(r.cells[c.code] || "").trim().toLowerCase().replace(/\.$/, "");
     if (!word) throw new ListError(file, r.line, "a row of the markers has no bold word");
     if (!known.has(word.toLowerCase())) throw new ListError(file, r.line, `"${word}" is no name, phrase or word of sections 1 to 3`);
     if (seen.has(word.toLowerCase())) throw new ListError(file, r.line, `"${word}" has a second row of markers`);
     seen.add(word.toLowerCase());
     if (!markers.length) throw new ListError(file, r.line, `"${word}" has no marker in backticks`);
     if (code !== "no find" && code !== "a find") throw new ListError(file, r.line, `"${r.cells[c.code]}" is neither "no find" nor "a find"`);
-    return { word, markers, codeForm: code === "no find", line: r.line };
+    return { word, markers, after, codeForm: code === "no find", line: r.line };
   });
 }
 /* The list's four sections, each by its "## <n>." heading and its first table, read by header names;

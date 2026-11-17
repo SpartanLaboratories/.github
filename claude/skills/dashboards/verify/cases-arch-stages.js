@@ -277,11 +277,13 @@ module.exports = function casesArchStages(X) {
 };
 
 if (require.main === module) {
+  /* a private scratch of its own (verify/scratch.js): out/, the temp root and the stand-in team state, removed at exit unless kept */
+  const SCR = require("./scratch.js").open("cases-arch-stages");
   /* no live GitHub, no machine cache: the private repositories from the fixture list (system/scripts/privaterefs.js) */
   process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = process.env.DASHBOARDS_PRIVATES || path.join(__dirname, "fixtures", "private-repositories.json");
-  const args = process.argv.slice(2), oi = args.indexOf("--out"), out = oi >= 0 ? args[oi + 1] : fs.mkdtempSync(path.join(os.tmpdir(), "arch-stages-"));
+  const args = process.argv.slice(2), oi = args.indexOf("--out"), out = oi >= 0 ? args[oi + 1] : SCR.out;
   const sk = p => path.join(__dirname, "..", ...p.split("/"));
   let bad = 0; module.exports({ sk, out, targets: [] }).forEach(([title, cases]) => { const f = cases.filter(x => !x[1]); bad += f.length;
     console.log(`${f.length ? "FAILED " : "checked"}  ${title}: ${cases.length - f.length}/${cases.length} cases`); f.forEach(x => console.log(`  ${x[0]}: ${x[2]}`)); });
-  console.log(`boards under ${path.join(out, "arch-stages")}`); process.exit(bad ? 1 : 0);
+  if (oi >= 0 || SCR.keep || bad) console.log(`boards under ${path.join(out, "arch-stages")}`); process.exit(bad ? 1 : 0);
 }

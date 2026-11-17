@@ -125,6 +125,15 @@ const withMarkers = rows => list({ s1Rows: ["| **Widgeteer** | **widgeteer**, **
   ok(m[1].word === "size" && m[1].codeForm === false, "markers: a third-section word, a find in code form", JSON.stringify(m[1]));
   ok(X.internalNames.roles[0].strength === "never", "a row that points at the markers is barred (strength never)");
   ok(X.internalNames.allowed.length === 1, "section 4's first table is still the allowed words");
+  ok(m[0].after.length === 0, "markers: a table with no markers after column has none", JSON.stringify(m[0]));
+}
+{
+  const after = rows => list({ s1Rows: ["| **Widgeteer** | **widgeteer**, **widget maker** | A role. | as section 4's markers say |"],
+    s4: [...allowedTable, "", "### Markers", "", "| Word | Markers | Markers after | In code form |", "|---|---|---|---|", ...rows] });
+  const m = L.load(opts(fixture(after(["| **widgeteer** | `gear` | `token`, `two-part` | no find |"])))).internalNames.markers;
+  ok(m.length === 1 && m[0].markers.join() === "gear" && m[0].after.join() === "token,two-part" && m[0].codeForm === true, "markers: a row's markers after, in backticks", JSON.stringify(m[0]));
+  const n = L.load(opts(fixture(after(["| **widgeteer** | `gear` | none | a find |"])))).internalNames.markers;
+  ok(n[0].after.length === 0 && n[0].codeForm === false, "markers: a markers after cell with none in backticks has none", JSON.stringify(n[0]));
 }
 ok(L.load(opts(fixture(list()))).internalNames.markers.length === 0, "markers: a section 4 with no markers' table has none");
 throwsList(() => L.load(opts(fixture(withMarkers(["| **gadget** | `gear` | no find |"])))), "markers: a word the list does not bar is an error with its line", /internal-names\.md:\d+: "gadget" is no name, phrase or word of sections 1 to 3/);

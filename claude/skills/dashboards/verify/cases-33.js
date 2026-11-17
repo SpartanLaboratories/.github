@@ -62,9 +62,10 @@ module.exports = function cases33(X) {
       "the executor confirms it (P1)", "the manager's final call", "the user's two answers at the interview", "it is signed off by the user",
       /* every name a whole word wherever it stands, in backticks too, save a word in its technical sense (finding.md, "A technical sense
          by its marker"; below) */
-      "the `planner` reruns it", "the executor drains the queue", "the event publisher emits", "publisher key", "the bytecode verifier rejects it", "the archivist kept the hook"];
+      "the `planner` reruns it", "the executor drains the queue", "the event publisher emits", "the publisher and the key", "publisher keys", "the bytecode verifier rejects it", "the archivist kept the hook"];
     const fine = ["uses OkHttp's `RoutePlanner`", "RoutePlanner picks a route", "an `ExecutorService` drains the queue", "qa pass 2 approved",
-      /* a marker of the list's directly before the word, or the word in code where the list reads it so */
+      /* a marker of the list's directly before the word or right after it, or the word in code where the list reads it so */
+      "publisher key", "the Publisher API",
       "runs on an `Executor`", "a single-thread executor drains the queue", "the dispatcher's executor", "the API publisher", "the QA tile", "from qa pass 1", "the implementer added a test", "waiting on the user", "the research step", "the architecture", "Level 2 — component",
       "Selenium Manager resolves the driver", "Selenium Manager's cache", "the step ends at its sign-off"];
     const miss = found.filter(t => !N.nameRefs(t).length), wrong = fine.filter(t => N.nameRefs(t).length);

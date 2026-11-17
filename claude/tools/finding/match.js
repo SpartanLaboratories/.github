@@ -68,12 +68,15 @@ function markerRowFor(N, w) {
 }
 /* A pattern no find where a marker stands directly before it (a space, a line break or a hyphen between,
    a mark of emphasis or code at the join, the marker in any case or its possessive) or is joined to it
-   after by a hyphen */
+   after by a hyphen, or where one of its markers after follows it with a space, a line break or a hyphen
+   between (the same marks at the join, the marker in any case or its possessive) */
 const JOIN_MARK = "[*_`]*";
+const alternation = list => list.map(x => wordsOf(x).map(word).join(SEP)).join("|");
 function withMarkers(src, row) {
   if (!row) return src;
-  const m = row.markers.map(x => wordsOf(x).map(word).join(SEP)).join("|");
-  return `(?<!${EDGE_BEFORE}(?:${m})(?:${APOS}s)?${JOIN_MARK}(?:${WS}|-)${JOIN_MARK})(?:${src})(?!${JOIN_MARK}-${JOIN_MARK}(?:${m})${EDGE_AFTER})`;
+  const m = alternation(row.markers);
+  const after = (row.after || []).length ? `(?!${JOIN_MARK}(?:${WS}|-)${JOIN_MARK}(?:${alternation(row.after)})(?:${APOS}s)?${EDGE_AFTER})` : "";
+  return `(?<!${EDGE_BEFORE}(?:${m})(?:${APOS}s)?${JOIN_MARK}(?:${WS}|-)${JOIN_MARK})(?:${src})(?!${JOIN_MARK}-${JOIN_MARK}(?:${m})${EDGE_AFTER})${after}`;
 }
 /* Every pattern of the internal names: [{ list, entry, source, sayInstead, warn, codeForm }], codeForm
    true where a find that stands in code is no find */

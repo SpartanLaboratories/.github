@@ -13,7 +13,9 @@
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os"), url = require("url");
 const SKILL = path.resolve(__dirname, ".."), sk = p => path.join(SKILL, ...p.split("/"));
-const args = process.argv.slice(2), oi = args.indexOf("--out"), OUT = path.resolve(oi >= 0 && args[oi + 1] ? args[oi + 1] : path.join(os.tmpdir(), "dashboards-view-follow"));
+/* a private scratch of its own (verify/scratch.js): out/, the temp root and the stand-in team state; kept, since its screenshots are its result */
+const SCR = require("./scratch.js").open("dashboards-view-follow", { keep: true });
+const args = process.argv.slice(2), oi = args.indexOf("--out"), OUT = path.resolve(oi >= 0 && args[oi + 1] ? args[oi + 1] : SCR.out);
 const rd = f => fs.readFileSync(f, "utf8"), wr = (f, t) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, t); return f; };
 const copy = x => JSON.parse(JSON.stringify(x)), js = x => JSON.stringify(x);
 const browsers = [process.env.CHROME, "C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "/usr/bin/google-chrome", "/usr/bin/chromium", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"].filter(Boolean);

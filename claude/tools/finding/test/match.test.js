@@ -54,9 +54,9 @@ yes(`${single} at the start\nand the end`, "a find at a text's start");
   const base = fs.readFileSync(path.join(live, "internal-names.md"), "utf8").replace(/\r\n/g, "\n");
   const cut = base.indexOf("\n### Markers");
   const text = (cut < 0 ? base : base.slice(0, cut)).replace(/\s*$/, "\n") + ["", "### Markers", "",
-    "| Word | Markers | In code form |", "|---|---|---|",
-    `| **${single}** | \`route\`, \`multi-step\` | no find |`,
-    `| **${gradeWord}** | \`shoe\` | a find |`, ""].join("\n");
+    "| Word | Markers | Markers after | In code form |", "|---|---|---|---|",
+    `| **${single}** | \`route\`, \`multi-step\` | \`token\` | no find |`,
+    `| **${gradeWord}** | \`shoe\` | none | a find |`, ""].join("\n");
   fs.writeFileSync(path.join(d, "internal-names.md"), text);
   fs.writeFileSync(path.join(d, "finding.md"), fs.readFileSync(path.join(live, "finding.md"), "utf8"));
   const F = load({ dirs: { nomenclature: d, glossary: d }, env: {}, readStored: () => null, home: path.join(dir, "nohome") });
@@ -68,6 +68,16 @@ yes(`${single} at the start\nand the end`, "a find at a text's start");
   fn(`the route-${single}`, "a marker joined before by a hyphen");
   fn(`the ${single}-route`, "a marker joined after by a hyphen");
   fy(`the ${single} route`, "a marker after with a space");
+  fn(`the ${single} token`, "a marker after, with a space");
+  fn(`the ${single}\ntoken`, "a marker after, a line break between");
+  fn(`the ${single}-token`, "a marker after, joined by a hyphen");
+  fn(`the ${cap(single)} TOKEN's scope`, "a marker after, any case, its possessive");
+  fn(`the **${single}** token`, "a marker after, a mark of emphasis at the join");
+  fy(`the token ${single}`, "a marker after, standing before the word");
+  fy(`the ${single} tokens`, "a marker after, a word that only contains it");
+  fy(`the ${single} and token`, "a marker after, another word between");
+  fy(`the ${single}\n\ntoken`, "a marker after, a blank line between");
+  fy(`the ${gradeWord} token`, "a marker after of another word clears nothing");
   fn(`the route\n${single}`, "a line break between");
   fy(`the route\n\n${single}`, "a blank line between");
   fn(`the multi step ${single}`, "a marker of two words, a space for its hyphen");
@@ -197,7 +207,14 @@ N.grades.forEach(r => r.words.forEach(w => {
   ok(at(`the ${k} ${w} runs`).length === 0, `live marker ${JSON.stringify(k)} of ${JSON.stringify(w)}: "the ${k} ${w}" not found`, JSON.stringify(at(`the ${k} ${w} runs`)));
   ok(at(`the ${w}-${k} runs`).length === 0, `live marker ${JSON.stringify(k)} of ${JSON.stringify(w)}: "${w}-${k}" not found`);
   ok(at(`the ${k}, then the ${w} runs`).length === 1, `live marker ${JSON.stringify(k)} of ${JSON.stringify(w)}: "the ${k}, then the ${w}" found`, JSON.stringify(at(`the ${k}, then the ${w} runs`)));
-  ok(at(`the ${w} ${k} runs`).length === 1, `live marker ${JSON.stringify(k)} of ${JSON.stringify(w)}: "the ${w} ${k}" found`);
+  if (!(m.after || []).some(a => a.toLowerCase() === k.toLowerCase())) ok(at(`the ${w} ${k} runs`).length === 1, `live marker ${JSON.stringify(k)} of ${JSON.stringify(w)}: "the ${w} ${k}" found`);
+}));
+/* every live marker after: no find of its word where it follows, a find where another word stands between */
+(N.markers || []).forEach(m => (m.after || []).forEach(k => {
+  const w = m.word, at = t => M.finds(t, { loaded: LIVE }).filter(f => f.hit.toLowerCase().replace(/['’]s$/, "").replace(/s$/, "") === w.toLowerCase());
+  ok(at(`the ${w} ${k} runs`).length === 0, `live marker after ${JSON.stringify(k)} of ${JSON.stringify(w)}: "the ${w} ${k}" not found`, JSON.stringify(at(`the ${w} ${k} runs`)));
+  ok(at(`the ${w}\n${k} runs`).length === 0, `live marker after ${JSON.stringify(k)} of ${JSON.stringify(w)}: a line break between, not found`);
+  ok(at(`the ${w} and the ${k} run`).length === 1, `live marker after ${JSON.stringify(k)} of ${JSON.stringify(w)}: "the ${w} and the ${k}" found`, JSON.stringify(at(`the ${w} and the ${k} run`)));
 }));
 
 /* ---- the shapes the board scripts read ----------------------------------------------------------- */
