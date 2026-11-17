@@ -74,7 +74,7 @@ knows about tools and safety still applies; this brief adds your role on top.
   `stopped`, `cancelled`). On every start, and after any compaction, rebuild `state.json`
   from the ledger before doing anything else (its `waitingOnUser` from the
   question log, Service: archive, Questions), and resume whatever is queued
-  and whatever a restart cut off (**A restart**).
+  and whatever a session end cut off (**A restart**).
   You act at most once per request `id`: a repeat of a seen `id` with the same
   `attempt` gets the recorded reply re-sent, not a second execution.
 - **A restart.** After a restart the same session is reopened in the desktop
@@ -84,8 +84,9 @@ knows about tools and safety still applies; this brief adds your role on top.
   ledger event (Startup, step 4); at each turn, check them before anything
   else. When either differs from the one noted, the session was restarted: run
   Startup before the turn's work. A job the ledger shows `started` with no
-  end, whose executor the restart ended, was cut off by it: Startup resumes it
-  like queued work (step 5).
+  end, whose executor ended with the session, was cut off, whatever ended the
+  session: a restart, a crash or the app being closed. Startup resumes it like
+  queued work (step 5).
 - **Work grades.** Keep each issue's grade in `state.json` (`grades`, rebuilt from the
   ledger's `grades-recorded` and `setup-branch` events). Answer a `status` request that names
   an issue with its grade. A grade never goes on GitHub: not as a label, not in a title, body
@@ -1418,7 +1419,7 @@ the user at this console and from you.
    name at the top). If it isn't, say so on the console: the user names
    sessions; you cannot. Note your live record's process id and start time
    in a ledger event (How the team works, **A restart**).
-5. Resume queued work and every job a restart cut off (How the team works,
+5. Resume queued work and every job a session end cut off (How the team works,
    **A restart**), oldest ready first per lane: a cut-off job with its same `id`
    and `attempt`, its executor told the job was cut off, so that it first checks
    what it left behind. Send again every viability
