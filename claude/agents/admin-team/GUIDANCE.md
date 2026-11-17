@@ -301,7 +301,7 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `commit` | Commit exactly `paths` on `branch` in `worktree` and push. May be fire-and-forget: the planner's research commits don't wait. Before a run's document-landing commit, raise its `document-landing` task done, ahead of the scan; a refused raise blocks the commit (The landing steps). |
 | `sync-branch` | Bring `branch` up to date with its base (merge, the repo's way). Report the files the base changed that the branch also touches. |
 | `prepare-landing` | Opens the run's Document step. Commit whatever of the run's change set (`paths`: the code with its plan) is not yet committed, then sync `branch` with its base (the `sync-branch` step; a clean merge proceeds, whatever files the base and the branch both touch; `needs-rework` naming the files on a conflict, save what the team resolves (Landing), and the request stays queued as not-ready until the same `id` returns with a higher `attempt` and a fresh `qa`), then commit the bump the grade calls for per `version-control-manager.md`, push, and reply `done` with `result.head`: the **code-landing commit**, the branch's last code change. From here on only documents change on the branch, and the Dokka configuration a level-2 documentation finding needs (the run's reconcile pass); the run builds its documents and asks for its state boards against this head. No PR, no boards. |
-| `land` | Per `version-control-manager.md` and `grade`, in one executor spawn (Landing, below). The change set is already committed: the code-landing commit (`prepare-landing`), then the run's document-landing commit (its `commit` of the documents, the issue's and tracking board files, the boards seeded onto the branch, the repository work board and the state boards). The executor confirms the base has not moved since the `prepare-landing` sync; if it has, it syncs again under the same rule, and that re-sync merge commit is the only commit the land adds: no bump, no board commit. Then push, PR, merge, resolution comment; then delete the branch (local and remote) and remove the worktree it was given. Then the release consideration when the bump moved a published module (Service: publishing), then the post-merge landed view (below). A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump. |
+| `land` | Per `version-control-manager.md` and `grade`, in one executor spawn (Landing, below). The change set is already committed: the code-landing commit (`prepare-landing`), then the run's document-landing commit (its `commit` of the documents, the issue's and tracking board files, the boards seeded onto the branch, the repository work board and the state boards). The executor confirms the base has not moved since the `prepare-landing` sync; if it has, it syncs again under the same rule, and that re-sync merge commit is the only commit the land adds: no bump, no board commit. Then push, PR (its closing keywords include each tracking issue the merge completes: Landing, below), merge, resolution comment, and one on each tracking issue the merge closed; then delete the branch (local and remote) and remove the worktree it was given. Then the release consideration when the bump moved a published module (Service: publishing), then the post-merge landed view (below). A `land` with no `issue` (a docs or config branch) gets a `docs:` PR titled by `title`, no closing keyword, no resolution comment, no bump. |
 | `file-sub-issues` | After the tracking plan's `land`, file the list as sub-issues of `issue` recording each one's grade in the team's state, with *blocked by* links, label the parent `type: tracking`, and add a comment on `issue` listing the sub-issues (the land's resolution comment precedes them). The requester states the user approved the list at the architecture sign-off; that relayed approval is enough for this action and no other. |
 | `file-issue` | File one issue in GitHub from `title` and `body`, without a gate, under `version-control-manager.md`'s filing rules: never against a downstream consumer of `surfacedIn`, about the change being landed, or for comment resolution, a code comment or KDoc that needs rewording (rejected with the rule); a request that mixes a defect with such wording gets the defect filed alone, its `done` naming the wording dropped; a speculative defect is rejected as a suspicion; reword anything Claude-internal; if an open issue already covers it, file nothing and reply `done` naming that issue (`result.filed: false`). Reply with `result.issue {number, url}`. |
 | `comment` / `label` | Post the comment, or add/remove the labels, on `issue`. |
@@ -322,7 +322,7 @@ board (`dashboards` skill, `plan/RULES.md` §10).
 | `create-label` | Per `procedure`: create the labels in `target`. |
 | `create-milestone` | Per `procedure`: create the milestones in `target`. |
 | `create-issue` | Per `procedure`: create the issues in `target` from the bodies in `inputs.files`, the first at `number`. |
-| `close-issue` | Per `procedure`: close issue `number` in `target`. |
+| `close-issue` | Per `procedure`: close issue `number` in `target`. A tracking issue whose last open sub-issue a landing closes is closed by that `land`'s pull request (Landing), not by this action. |
 | `reopen-issue` | Per `procedure`: reopen issue `number` in `target`. |
 | `fixture-pull-request` | Per `procedure`: a branch, a commit, the pull request and its merge in `target`, in the job's own scope. |
 | `status` / `cancel` | Answered by you, not an executor. `cancel` drops a queued (not started) request from its sender. |
@@ -378,6 +378,20 @@ retried without looking (`~/.claude/agents/admin-team/PROTOCOL.md`, A reply).
 - **Planning-docs landing.** A `land` that resolves no issue, such as a planning-docs PR, has no
   Document step of its own; a `state-boards` request on its branch is served like any other, and
   its post-merge view regenerates the live repository work board.
+- **A tracking issue closes with its last sub-issue.** When the `land`'s executor opens the pull
+  request of an issue at grades 1 to 3, it reads on GitHub whether the issue's parent is open, in
+  the same repository and labelled `type: tracking`, with every other sub-issue closed; if so, the
+  pull request carries a `Closes` line for the parent beside the issue's own, and the check goes
+  on up, level by level, one `Closes` line per level (`version-control-manager.md`, Issues —
+  resolving, **A tracking issue completed**). GitHub closes them at the merge, and the executor
+  then comments on each. The check runs when the pull request is opened, not after the merge: a
+  sub-issue reopened in between leaves its tracking issue closed over it, and the reply names it
+  for the user. A sub-issue still open, a unit of the plan or not, keeps its tracking issue open,
+  and a parent in another repository is left open; the reply names each (`result.tracking`). The
+  close is the `land`'s own pull request: it needs no `close-issue` and no section under
+  Temporary permissions. It and the tracking board's own landing at the last unit (Post-merge
+  landed view) wait on nothing of each other: the board lands after it in the same lane, once
+  the impact is reconciled.
 - **Release consideration.** When the executor's report lists **Release
   candidates** (published modules whose version the landing moved), hand
   them to the publishing service before the post-merge view: it runs in the

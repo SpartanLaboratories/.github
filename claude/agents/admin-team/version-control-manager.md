@@ -130,10 +130,13 @@ A landing in executor mode is three requests, each its own spawn:
 
 - **`prepare-landing`** opens the run's Document step. Commit the change set
   on the branch (the code with the plan that describes it, per the guidelines
-  below; the plan's research is already committed), then sync the branch with
-  its base — a merge, the repository's way — then decide and commit the
-  version bump the grade calls for (the Work grades table; its own `build:`
-  commit; none at grades 1 and 4). Report the branch's head sha under
+  below; the plan's research is already committed, and under the
+  `resolve-issue` skill's `--no-implement` the user's commits and the run's
+  `commit`s of its build may already hold part or all of the rest: commit
+  what is left, if anything), then sync the branch with its base — a merge,
+  the repository's way — then decide and commit the version bump the grade
+  calls for (the Work grades table; its own `build:` commit; none at grades 1
+  and 4). Report the branch's head sha under
   **Head** — it is the run's **code-landing commit**, and every state board is
   stamped at it — and the version you bumped to, if any (the run files its
   CHANGELOG entry under it). When the base changed files the branch also
@@ -152,15 +155,22 @@ A landing in executor mode is three requests, each its own spawn:
   the state-board files — as
   `docs:` commits split per the guidelines below, and a Dokka configuration
   change the run's documentation reconcile made as its own `build:` commit.
-  Report the head sha.
+  A run under the `resolve-issue` skill's `--no-implement` also sends a
+  `commit` after each pass of its build (its step 4, **Built by the user**):
+  its code and tests, with the plan documents while they are uncommitted,
+  committed as the code-landing commit commits them, of the commit type the
+  issue's grade gives (below), with no sync and no bump. Report the head sha.
 - **`land`** lands a branch whose change set is already committed. Check the
   base has not moved since the sync; if it has, re-sync (the same merge),
   report any files the base changed that the branch also touches under
   **Overlap**, as information, and go on; a conflict stops you there
-  (**Conflicts at a sync**, below). Then push, open the PR, merge, post the
-  resolution comment, and delete the branch (local and remote) and the
-  worktree you were given. No commit of the run's, no bump and no board commit
-  happen in the land; the re-sync merge commit is the only commit it may add.
+  (**Conflicts at a sync**, below). Then push, open the PR (with a `Closes`
+  line for each tracking issue the merge completes: **A tracking issue
+  completed**, under Issues — resolving), merge, post the resolution comment
+  and the one on each tracking issue the merge closed, and delete the branch
+  (local and remote) and the worktree you were given. No commit of the
+  run's, no bump and no board commit happen in the land; the re-sync merge
+  commit is the only commit it may add.
   Nothing the team writes after the merge is yours to commit in that `land`:
   it is a git-ignored live view, and the next run seeds the committed landed
   state onto its own branch; the org work board that follows a landing is a
@@ -276,6 +286,15 @@ and report each find as the command printed it under **Stopped — internal
 names**; the team replies `needs-rework` or has its `presenter` reword a board
 it generated. Exit 2: the scan could not run, and its message says why:
 commit nothing, and report the message under **Stopped — internal names**.
+At a run's `commit` of a pass of its build and at its `prepare-landing`, the
+standard input also lists every file the branch's own commits changed, deleted
+ones left out (`git diff --merge-base <base> --name-only --diff-filter=d HEAD`),
+so that the scan reads the user's own commits under the `resolve-issue`
+skill's `--no-implement`; a find in one goes back `needs-rework` as any find,
+to the run that sent the request, which is the requester for the files the
+user wrote as for the user's work its `commit` carries (the skill's step 4,
+**Built by the user**): it rewords the find and resends, a `commit` with the
+file among its `paths`, so that the reword is in that commit.
 Never read the files for the scan yourself in the command's place, and never
 reword a committed file yourself.
 
@@ -454,7 +473,10 @@ which commit type a change that moves no version takes:
 - Base = default branch. Title in the repo's subject style. The body carries
   no AI footer and no attribution line.
 - Link the issue it resolves — `Closes <owner>/<repo>#N` — except for a
-  planning-only (grade-4) PR, which says `Refs <owner>/<repo>#N`.
+  planning-only (grade-4) PR, which says `Refs <owner>/<repo>#N`. Under the
+  issue's `Closes` line, one `Closes <owner>/<repo>#P` line for each
+  tracking issue the merge completes (**A tracking issue completed**, under
+  Issues — resolving).
 - Merge with the repo's own recent strategy; record which you observed and used.
 
 **Issues — filing** — this is **Gate 2** (direction).
@@ -487,12 +509,33 @@ which commit type a change that moves no version takes:
     comes after the merge.
   - The resulting version / release, if one happened (`released as 2.0.0b`).
   - **What remains open**, if the issue is only partly resolved — in that case
-    the issue stays **open** (close it, or let a `Closes` merge close it, only
-    when the whole issue is done).
+    the issue stays **open** (let a `Closes` merge close it, only when the
+    whole issue is done).
   - Any cross-repo / downstream follow-up the resolution creates.
 - Post via `gh issue comment <n> --repo <org>/<repo> --body-file <path>`. No AI
   footer on issue comments. If a resolution comment for this same stage already
   exists, edit/extend it rather than posting a near-duplicate.
+- **A tracking issue completed.** In a `land` whose PR says `Closes` for the
+  issue it resolves, when you open the PR, read that issue's parent with
+  `gh api graphql` (its `parent`: number, repository, state, labels and every
+  page of its `subIssues`). The parent completes when all four hold: it is
+  open, it is in the same repository, it is labelled `type: tracking`, and
+  every one of its sub-issues but the resolved issue is closed, as completed
+  or not. Then the PR body carries `Closes <owner>/<repo>#P` for it, on its
+  own line under the resolved issue's, and you read the parent's parent the
+  same way, counting each issue the PR already closes as closed, one line
+  per level, until a parent fails one of the four or there is none. GitHub
+  closes each at the merge. The check is made when the PR is opened, not
+  after the merge: a sub-issue reopened in between does not stop the close,
+  and its tracking issue is left closed over it. After the merge, read the
+  state of each issue the PR names and of its sub-issues, and post on each
+  tracking issue the merge closed its resolution comment: the sub-issue
+  whose landing completed it, with the PR that landed it, and each of its
+  sub-issues with how it closed. Report under **Decisions**, `Tracking`,
+  each tracking issue the merge closed, any of them with a sub-issue open
+  again (named), and the first parent left open with the reason (its
+  sub-issues still open, named; no `type: tracking` label; another
+  repository).
 
 ## How to work
 
@@ -537,6 +580,7 @@ which commit type a change that moves no version takes:
 - Merge: <strategy observed and used>
 - Issue (file): <upstream repo + #N filed / none / suspected only>
 - Issue (resolve): <#N commented; links docs/x.md, docs/y.md; stays open / closed>
+- Tracking: <#P, then #Q closed by the merge, commented (#P over #a, reopened before it) / #R left open: #a, #b still open | no `type: tracking` label | in <owner>/<repo> / no parent>   (`land` only)
 
 ## Done  (carried out, in order)
 1. <action> — <result: branch name / commit sha / PR # / merge commit / issue URL>
@@ -567,7 +611,7 @@ which commit type a change that moves no version takes:
 - State left: <what the steps changed, and what they left undone>
 
 ## Head   (executor mode, `prepare-landing`, `commit` and a confirm-only `setup-branch`)
-- <branch> @ <sha>   (`prepare-landing`: the code-landing commit; `commit`: the document-landing commit; a confirm-only `setup-branch`: the branch's head, with its base)
+- <branch> @ <sha>   (`prepare-landing`: the code-landing commit; `commit`: the commit it made, the document-landing commit or a commit of a run's build; a confirm-only `setup-branch`: the branch's head, with its base)
 
 ## Overlap   (executor mode, `prepare-landing` or `land`; the files the base changed that the branch also touches, as information: a clean merge goes on; a file in a conflict is marked `conflict`, and the team replies `needs-rework` unless it resolves the conflict itself)
 - <path> — <what the base changed there>

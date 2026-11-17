@@ -20,8 +20,10 @@ description: >-
   with sub-issues), it works that issue's sub-issues: the next unblocked one by
   default, all of them in landing order with `consecutive`, each in a session
   of its own, or every unblocked one at once with `concurrent`. Prompt flags
-  given with it answer chosen prompts in advance with their recommendations.
-argument-hint: "[issue-number] [consecutive|concurrent] [--no-questions] [--no-signoff] [--accept-grade] [--accept-escalation] [--unattended] [--confirm-before-land] [--chain <tracking-issue>]"
+  given with it answer chosen prompts in advance with their recommendations;
+  `--no-implement` pauses it before each pass of the build for the user to
+  build it, and it goes on from what it finds built.
+argument-hint: "[issue-number] [consecutive|concurrent] [--no-questions] [--no-signoff] [--accept-grade] [--accept-escalation] [--unattended] [--confirm-before-land] [--no-implement] [--chain <tracking-issue>]"
 disable-model-invocation: true
 allowed-tools: Bash(gh issue list *), Bash(gh issue view *), Bash(gh pr list *), Bash(gh repo view *), Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git diff *)
 ---
@@ -97,7 +99,7 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
   call to plan the oldest issue: its issue comes from the arguments or, with
   none, from this step's own listing.
 - If there are no open issues, say so and stop.
-- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it. One a run left when it stopped with work unfinished, not the second kind a finished run leaves ("Session handoffs" in the global `CLAUDE.md`), means you are taking a run up: set `restarted` on the first request, with the run's own clock readings (`~/.claude/agents/admin-team/PROTOCOL.md`, `restarted`). With no such handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up. A handoff left with work unfinished names the run's prompt flags, and the run that takes it up keeps them ("Prompt flags", **Flags in force**).
+- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it. One a run left when it stopped with work unfinished, not the second kind a finished run leaves ("Session handoffs" in the global `CLAUDE.md`), means you are taking a run up: set `restarted` on the first request, with the run's own clock readings (`~/.claude/agents/admin-team/PROTOCOL.md`, `restarted`). With no such handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up. A handoff left with work unfinished names the run's prompt flags, and the run that takes it up keeps them ("Prompt flags", **Flags in force**). A handoff left at an implementation pause (step 4, **Built by the user**) is one left with work unfinished: the run that takes it up goes on from the pause, as that section says.
 - Read the chosen issue in full: `gh issue view <n> --repo <repo> --comments`.
   An issue that is only partly done (an earlier tier/stage landed, more is
   open) still counts — this run's goal is the **next step**, not necessarily
@@ -132,7 +134,9 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
   user, unless `--accept-grade` answers it ("Prompt flags"). The confirmed
   grade is the run's grade.
 - Check `git status` is clean. If it is not, stop and ask the user to settle
-  the working tree first.
+  the working tree first; a run taken up at an implementation pause
+  (**Handoff**) reads the change the tree holds instead (step 4, **Built by
+  the user**).
 - **Branch.** Every run, at every grade, creates its topic branch now: send the
   admin team a `setup-branch` request (the `admin-team` skill) with the issue
   reference, the **grade** and the note "set up the branch only, and
@@ -167,6 +171,14 @@ sub-issues yet is not planned: work it as an ordinary issue, at its grade.
   usual; once the user approves its sub-issues (or `--no-signoff` does) and
   they are filed, they take its place in the chain (under `consecutive`, the
   chain session finds them when it next reads the order).
+- **The end of a chain.** The landing of a tracking issue's last open
+  sub-issue closes it: the admin team's `land` gives that landing's pull
+  request a closing keyword for the tracking issue beside the issue's own,
+  and one for each tracking issue above it that the same merge leaves with
+  every sub-issue closed, so a nested plan's last landing also closes the
+  plan it is a unit of when nothing else of that plan is open (step 7). A
+  sub-issue still open keeps its tracking issue open, whether or not it is
+  a unit of the plan, and the land's reply names it.
 - **Flags.** The prompt flags given apply to every run in the chain, nested
   plans and the sub-issues filed into it included ("Prompt flags"); under
   `consecutive`, each member is started with them.
@@ -200,9 +212,10 @@ sub-issues yet is not planned: work it as an ordinary issue, at its grade.
 - **Report** each sub-issue's step 8 as it lands (under `consecutive`, the
   member's, from its result file). When the chain ends or everything left is
   waiting on the user, add a chain summary: what landed, what is in flight,
-  what waits and on what, what remains, the decisions taken by default in
-  each run ("Prompt flags") and, under `consecutive`, any member whose stop
-  was refused, with its id, for the user to stop.
+  what waits and on what, what remains, whether the tracking issue closed
+  (or which sub-issues keep it open: **The end of a chain**), the decisions
+  taken by default in each run ("Prompt flags") and, under `consecutive`, any
+  member whose stop was refused, with its id, for the user to stop.
 
 ## Chain members
 
@@ -265,7 +278,9 @@ alone.
   with `claude rm`. If the stop is refused, tell the user and go on: the
   chain summary names the member ("Report"). Then relay its report. After
   `landed` or `planned`, read the order again (a grade-4 member's filed
-  sub-issues take its place, "Nested plans") and start the next member. After
+  sub-issues take its place, "Nested plans") and start the next member, or,
+  with no open sub-issue left, end the chain with its summary: the last
+  landing has closed the tracking issue ("The end of a chain"). After
   `stopped`, the chain ends with its summary, since each sub-issue lands
   before the next one starts.
 - **The chain session sends the admin team nothing about a sub-issue.** Each
@@ -299,6 +314,7 @@ every prompt waits on the user as the steps say.
 | `--accept-escalation` | An `ESCALATE — grade` that proposes a higher grade, and the step-4 diff check: the run resumes at the grade the evidence shows ("Escalation"). An escalation into grade 4 then goes to the architecture, where `--no-signoff` decides whether the run waits. |
 | `--unattended` | All four above, and the step-1 go-ahead ("confirm before proceeding"). A find the admin team blocks for internal names is reworded, never resent asking for an exception. |
 | `--confirm-before-land` | None: it adds one halt (below). It combines with any of the others. |
+| `--no-implement` | None: it adds a halt before each pass of the build, for the user to build it (below). It combines with any of the others. |
 
 - **A recommendation, or a wait.** A flag answers only a prompt that carries a
   recommendation; a prompt with none waits on the user under any flag. The
@@ -350,6 +366,11 @@ every prompt waits on the user as the steps say.
   each goes back to the step that took it as the user's answer there, and the
   run resumes from that step, carrying forward what is still valid, as on an
   escalation.
+- **`--no-implement`.** At grades 2 and 3, the run halts before each
+  implementation pass it would start, for the user to build what the pass
+  would, then takes the work up again from what it finds built (step 4,
+  **Built by the user**). At grades 1 and 4 it has no effect, and the step-1
+  report says so.
 
 ## Escalation — at any step
 
@@ -501,6 +522,7 @@ branch. A `needs-rework` reply means the branch does not exist and nothing was
 created. Then, at grades 2–4, send the `branch-cut` event with the
 branch and the plan's stages ("Plan-board events" below). A run whose branch
 already exists still sends `branch-cut` after `plan-accepted`, with its stages.
+Under `--no-implement`, step 4 opens with the pause (**Built by the user**).
 
 **Grade 4:** go straight to step 6 (Document): its `prepare-landing` sync (no
 bump), the confirmation that the architecture and `consequences.md` are final,
@@ -520,6 +542,79 @@ and its `state-boards` task, which draws the planned systems dashed.
 - **Grades 2–3, a plan with a stage table:** also give `rookie-dev` the fields
   its board events need (`rookie-dev.md`, "Board events").
 
+**Built by the user (`--no-implement`, grades 2 and 3).** The run starts no
+implementation pass before the user has built: it pauses first, and spawns
+`rookie-dev` only for what the user leaves.
+
+- **When it pauses.** Before the first build, once step 3 has sent
+  `branch-cut`; after a re-plan an escalation sends the run back to; before a
+  re-pass on a **Not done / blocked** list, once the plan's re-pass has
+  settled it; and before each fix pass of step 5, the on-the-spot pass for
+  minor fixes and a remediation pass alike. Building what the user left,
+  right after the check (below), is the same pass and brings no second
+  pause. The Document step's passes change documents and do not pause.
+- **The pause.** Write the run's handoff ("Session handoffs" in the global
+  `CLAUDE.md`), since the session may stop while it waits: the pause, what
+  the pass would build, the flags in force, the plan document, the branch,
+  its base and any worktree. Tell the user, in the run's session, where to
+  build (the checkout, or the worktree's path), what the pass would build
+  (the plan's stages, the items the re-passed plan settles, or the review's
+  fixes), and that their commits on the branch are theirs to make and are
+  read as part of the change. At the first build of a grade-2 fix, add that
+  the plan's regression test comes first, and that its failing run before
+  the fix, when kept, goes in the word that hands the work back. Send
+  `halted` once the run is halted ("Halted — at any step"), with
+  `waitingOn` what the pass would build ("the implementation of the plan",
+  "the fixes the review asks for"), never the flag. Where a plan re-pass
+  gates part of the fixes (step 5), one pause covers them all: the user may
+  make the rest at once, and the run tells them when the re-pass has settled
+  the others; it is halted once the re-pass ends.
+- **Taking it up.** The run takes the work up on the user's word in its own
+  session, or as a new run on the issue that reads the handoff (step 1,
+  **Handoff**, which sets `restarted`). Either way, send `resumed` with the
+  gist of the user's word, clear the handoff, then:
+  1. **The check.** Spawn `rookie-dev` with the plan document path, the
+     grade, what the pass was to build, the change set as it stands (`git
+     diff --merge-base <base-branch> --stat`, the untracked files from `git
+     status --porcelain`, and the commits on the branch past its base, `git
+     log <base-branch>..HEAD`) and "what the pass was to build is in place in
+     whole, in part or not at all: change nothing and send no board event;
+     report each stage of the plan's stage table (each file-by-file item,
+     where it has none; each fix, at a fix pass) as built, partly built (what
+     is in place and what is left) or not started, with `path:line`
+     evidence, and each deviation from the plan".
+  2. **The record.** For each stage reported built, oldest first, send its
+     `late-update` ("Plan-board events" below): the board draws it done with
+     no time. At a fix pass with every fix made, send the event the pass
+     would end with, an `implementation-stage` with `remediation`, its fixes
+     done. Put each deviation to the user for its reasoning, one halt for
+     them all; it carries no recommendation, so it waits under any flag.
+  3. **The rest.** Where there is a deviation to log or something left,
+     resume the same `rookie-dev` with `SendMessage`: to log each deviation
+     in `final-implementation.md`, with the reasoning the user gave, and to
+     build the rest of what the pass was to build on what is in place, as the
+     grade's brief above says, changing nothing in place save as the plan
+     requires, and reporting a clash between the plan and what is in place
+     under **Not done / blocked**; at grade 2, with the fix already in place,
+     it records that the fix was in place before its test ran, instead of a
+     failing run. It sends the board events of what it builds, as on any
+     build.
+
+  Then the rest of this step applies as to any build: a **Not done /
+  blocked** list, an escalation, and the diff check over the whole change
+  set, the user's part included. At a fix pass, the rest of step 5 applies
+  instead.
+- **The commit.** Once `rookie-dev` has built what the user left, with no
+  **Not done / blocked** list and no escalation, and after the diff check
+  (at a fix pass, before the next `qa` pass or step 6), send the admin team
+  a `commit` request (the `admin-team` skill) with the issue, the branch,
+  the worktree and `paths`, every path of the change set not yet committed
+  (the code and tests, what the user left uncommitted, and the plan
+  documents), and wait for its `done`. The team scans it as any commit; a
+  find is reworded and the request resent. With nothing built after the
+  check, nothing is committed here: what is uncommitted rides the next such
+  commit, or the code-landing commit (step 6, task 0).
+
 **Steps laid out during a stage.** The run may add steps to a stage in the
 plan's stage table, or nest steps under one of its steps, when they only lay
 out work the plan already holds; anything else goes back to `planner` for a
@@ -532,7 +627,8 @@ Then:
   the user either one `planner` re-pass to resolve the gap or to hand back as
   is. Do not fill in the missing design yourself.
 - If it reports `ESCALATE — grade`, see "Escalation".
-- **Diff check.** Run `git diff <base-branch> --stat` and read the diff against
+- **Diff check.** Run `git diff --merge-base <base-branch> --stat`, with the
+  untracked files from `git status --porcelain`, and read the diff against
   the grade: grade 1 touches only comments, KDoc and Markdown; grade 2 changes
   no public signature, persisted or shared state, or wire format, and stays in
   one component; grade 3 stays inside one system. If the diff crosses its
@@ -541,9 +637,12 @@ Then:
 
 ## 5. QA — `qa`  (grades 1–3)
 
-Spawn `qa` with `grade:<N>` over the change set (`git diff <base-branch>...HEAD`
-plus untracked files), the plan document path (or, for grade 1, the issue text)
-and, for grade 2, `rookie-dev`'s recorded fail-before/pass-after test run. QA
+Spawn `qa` with `grade:<N>` over the change set (`git diff --merge-base
+<base-branch>` plus untracked files), the plan document path (or, for grade 1,
+the issue text) and, for grade 2, the recorded fail-before/pass-after test
+run: `rookie-dev`'s or, for a fix the user built (step 4, **Built by the
+user**), the one the user gave; with neither, say that none exists because the
+fix was in place before its test ran. QA
 gates the **tests and the code** only — the test-inspector and the code-reviewer
 (grade 1: the code-reviewer alone, checking that the diff is comments and
 documentation only and matches the issue); documentation is reviewed in step 6.
@@ -568,6 +667,9 @@ this one and every re-run, send the `qa-pass` event with `verdict: "running"`
   all, so at most two remediation loops; a pass whose fixes are all minor ends
   the loop as above. If the third pass still fails, stop and hand the user the
   findings, the report path, and the branch as it stands.
+
+Under `--no-implement`, each fix pass, on the spot or a remediation, opens
+with the pause and ends with the commit of step 4, **Built by the user**.
 
 ## 6. Document  (every grade)
 
@@ -606,14 +708,17 @@ boards (task 6):
    markers in those files in the worktree and resend the same `id` with
    `attempt + 1`; the team's executor finishes the merge.
 1. **Documentation review** (grades 1–3). Spawn `documentation-reviewer` over
-   the change set (`git diff <base-branch>...HEAD`). It reviews the inline
+   the change set (`git diff --merge-base <base-branch>` plus untracked
+   files). It reviews the inline
    documentation (documentation level 1) before the generated API reference
    (documentation level 2), and reports findings only; keep its report.
 2. **Reconcile documentation** (grades 1–3). Spawn `rookie-dev` for a short
    pass that applies the findings to the inline documentation (KDoc, line
    comments), to any document the findings name and, for a level-2 finding,
    to the Dokka configuration it names, changing **no behaviour, API or
-   test**. Then spawn `documentation-reviewer` once more. Findings left
+   test**. Then spawn `documentation-reviewer` once more, over the same
+   change set (`git diff --merge-base <base-branch>` plus untracked files),
+   which now holds the reconcile's edits. Findings left
    after that second review are fixed on the spot (a short `rookie-dev` pass,
    or wording directly) with no further review.
 3. **Dokka check** (grades 1–3, only where the repository applies the
@@ -716,7 +821,7 @@ sends none.
 | Research verified, or nothing to research (sent by the planner itself, when `planner.md`, "Board events during research", says) | `researched` | the research README path; none when nothing was researched |
 | Grade-4 sign-off: the user approves the architecture, as proposed or with changes (step 2); it closes the architecture stage report and opens write consequences, the board staying at its architecture step until `plan-accepted` | `architecture-signed-off` | the architecture path, the approved unit list; `detail`: one plain sentence giving the result of the stage it closes |
 | A plan stage opens, on a grade-3 plan a `plan-writer` drafts, or an architecture stage at grade 4 (sent by the planner itself, when `planner.md`, "Board events at the plan step", says; `report` by the run where step 2 says) | `plan-stage` | `stage`: the stage it opens (`write`, `check`, `consequences` or `report`, or the pass's first stage to go back to it, `re-pass` on a sub-issue; at grade 4 `write`, `check` or `report`); `detail`: one plain sentence giving the result of the stage it closes |
-| A plan or architecture stage passed over, recorded late with no time (sent by the planner itself for one it finds it passed over, and by the run for those step 2 says, never `report`) | `late-update` | `event`: `plan-stage`; `stage`: the stage; `detail`: one plain sentence giving its result; no `at` |
+| A plan or architecture stage passed over, recorded late with no time (sent by the planner itself for one it finds it passed over, and by the run for those step 2 says, never `report`); an implementation stage the check found built during an implementation pause (sent by the run: step 4, **Built by the user**) | `late-update` | `event`: `plan-stage`, or `implementation-stage` for an implementation stage, which also carries `stages`, every stage's id and name with its state as it then stands; `stage`: the stage; `detail`: one plain sentence giving its result; no `at` |
 | The plan accepted: planner COMPLETE, once whatever its report put to the user is answered (step 2); at grade 4 it closes write consequences | `plan-accepted` | the plan path, consequences path; `verdicts`: the board verdicts block of the planner's report that leads to the event, copied as it stands (step 2; `planner.md`, "The board verdicts block"), left out when the report carries none; `detail`: one plain sentence giving the result of the stage it closes |
 | Step 3 done | `branch-cut` | branch, worktree, `stages`: every stage of the plan, its id and name |
 | A stage of the plan's stage table ends; each rookie-dev report on a plan without one, and each remediation report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; a closing check stage's entry in `stages` also carries `result` (`passed` or `failed`), and the stage's report goes in `detail`, as its end report, written by whoever carries the stage out; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testSet, path, tests, rows). It names no `step`. A stage's end is sent by `rookie-dev` for the stages it builds (`rookie-dev.md`, "Board events"), and by the run for a stage it carries out itself, when the stage ends and before its next request. When `rookie-dev` returns, the run sends no `implementation-stage` for a stage it reported: only the events its report lists under **Events not sent**, and its own (a remediation's report, a halt, an escalation) |
@@ -790,7 +895,10 @@ only if **the user asked for a
 publish this run** (it lets the release use the budget's reserve; every
 version-bumping landing is considered for release regardless). The team:
 checks the base has not moved since the `prepare-landing` sync (if it has, it
-re-syncs; `needs-rework` on a conflict it cannot resolve itself); opens the PR; merges; posts the
+re-syncs; `needs-rework` on a conflict it cannot resolve itself); opens the PR, whose closing
+keywords also close the issue's tracking issue when this landing closes the last of its
+open sub-issues, and each tracking issue above it that closes in turn ("Tracking issues
+and run modes", **The end of a chain**; `result.tracking`); merges; posts the
 **issue-resolution comment** (steps taken + links to any plan/design docs); files
 an upstream issue if the work exposed one; deletes the branch and any worktree
 it allocated; considers the release — its publisher releases a moved
@@ -809,8 +917,9 @@ send a `file-sub-issues` request with the **user-approved** list: the team
 files each as a sub-issue of this issue, records its proposed grade in its own state (never on GitHub), and
 its landing-order dependencies as *blocked by* links, labels this issue
 `type: tracking`, and adds a comment listing the sub-issues. The issue stays
-open. If the user has not approved the list, neither at the sign-off nor in
-advance with `--no-signoff` ("Prompt flags"),
+open until the landing of its last sub-issue closes it ("Tracking issues and
+run modes", **The end of a chain**). If the user has not approved the list,
+neither at the sign-off nor in advance with `--no-signoff` ("Prompt flags"),
 send nothing and the list goes back to the user.
 
 - Relay the `done` reply's **result** as-is.
@@ -825,8 +934,12 @@ send nothing and the list goes back to the user.
 - The issue, its **grade**, and whether it is now **resolved**, a **step
   taken** (with what remains), or — grade 4 — **planned**, with the sub-issues
   filed and their grades.
+- For a sub-issue, the tracking issues its landing closed (`result.tracking`),
+  or none.
 - The plan or architecture document and any other `.md` files, with their
   merged links.
+- Under `--no-implement`, what each implementation check found (each stage
+  or fix built, partly built or not started) and what the run built after it.
 - The `qa` verdict, the code review's verdict, and the visual test-report path.
 - The documentation review's final verdict, the Dokka check's result where it
   ran, and the README and CHANGELOG changes (or that none was needed).

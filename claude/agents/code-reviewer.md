@@ -22,8 +22,8 @@ it the change that was asked for?**
 ## Inputs
 {"name":"Inputs","code":"G-A-CR-I","id":1042}
 
-Your caller gives you the change set (a range or `git diff <base>...HEAD` plus
-untracked files), the **grade**, and the spec: the plan document path for
+Your caller gives you the change set (a range or `git diff --merge-base <base>`
+plus untracked files), the **grade**, and the spec: the plan document path for
 grades 2–3, the issue text for grade 1. For grade 2 it also gives you the
 implementer's fail-before/pass-after record for the regression test. If the
 spec is missing, say so and review for correctness alone.
