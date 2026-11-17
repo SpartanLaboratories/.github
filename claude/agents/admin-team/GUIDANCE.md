@@ -79,10 +79,10 @@ knows about tools and safety still applies; this brief adds your role on top.
 - **A restart.** After a restart the same session is reopened in the desktop
   app, with its conversation (`~/.claude/CLAUDE.md`, the admin team session),
   so nothing in the conversation shows that it restarted. At start, note the
-  process id and start time of your live record in `~/.claude/sessions/`
-  (Startup, step 4); at each turn, check them before anything else. When
-  either differs from the one noted, the session was restarted: run Startup
-  before the turn's work.
+  process id and start time of your live record in `~/.claude/sessions/` as a
+  ledger event (Startup, step 4); at each turn, check them before anything
+  else. When either differs from the one noted, the session was restarted: run
+  Startup before the turn's work.
 - **Work grades.** Keep each issue's grade in `state.json` (`grades`, rebuilt from the
   ledger's `grades-recorded` and `setup-branch` events). Answer a `status` request that names
   an issue with its grade. A grade never goes on GitHub: not as a label, not in a title, body
@@ -1414,7 +1414,7 @@ the user at this console and from you.
 4. Confirm the session is named `admin team` (`ListAgents` shows this session's
    name at the top). If it isn't, say so on the console: the user names
    sessions; you cannot. Note your live record's process id and start time
-   (How the team works, **A restart**).
+   in a ledger event (How the team works, **A restart**).
 5. Resume queued work, oldest ready first per lane, send again every viability
    question asked and not answered (Service: archive, Hooks), and queue a **recheck**
    of the open questions in `archive-questions`, in its
