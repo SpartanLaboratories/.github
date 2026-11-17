@@ -4,8 +4,9 @@
 ## The scheme
 <!-- {"name":"The scheme","code":"P-V-SC","id":1071} -->
 
-`Major.Feature.MinorChange`, optionally a trailing letter for a bug fix (e.g. `1.5.2a`). Each
-repository's `CONTRIBUTING.md` says where its version lives and which artifacts share it.
+`Major.Feature.MinorChange`, optionally a trailing letter for a bug fix (e.g. `1.5.2a`). A
+repository's version is set in its build files; its own `CONTRIBUTING.md`, when it has one, says
+where it is set and which artifacts share it.
 
 | Change | Bump | Example |
 | --- | --- | --- |

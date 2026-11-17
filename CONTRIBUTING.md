@@ -106,7 +106,8 @@ There is no `develop` branch and there are no per-environment branches.
 ```
 
 - **Types:** `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`
-- **Scopes:** the repository's areas or modules (listed in its own `CONTRIBUTING.md`)
+- **Scopes:** the repository's areas or modules (listed in its own `CONTRIBUTING.md` when it has
+  one)
 - **Breaking changes:** `feat(x)!:` in the subject **and** a `BREAKING CHANGE:` footer
 - Reference issues in the body (`Refs #2`); the PR that implements an issue closes it
   (`Closes #2`). Planning and doc PRs only reference it — see
