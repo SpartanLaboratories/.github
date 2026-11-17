@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":23,"last":"2026-11-15"}
+{"id":"p9","count":24,"last":"2026-11-17"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -222,6 +222,10 @@ The permission system raises the denial.
   - 2026-11-15: the executors of consecutive mirror-syncs ran the internal-names scan in different
     ways, a case no entry holds; added as "A mirror-sync's internal-names scan is run differently from
     one executor to the next".
+  - 2026-11-17: a graphify hook rebuild launched by a post-checkout hook stopped partway, leaving its
+    lock file on disk and the graph's stamp behind, a case no entry holds (the entries for a member's
+    background process and for a refused process query are about stopping or finding one); added as
+    "A graphify hook rebuild stops partway and leaves its lock file behind".
 
 ## A count changes in this mirrored file
 
@@ -1125,3 +1129,16 @@ A mirror-sync's executor makes a fresh scratch clone of the organization reposit
 - **Predicted:** the admin team, on meeting it, 2026-11-16.
 - **Encounters:**
   - 2026-11-16: a mirror-sync's scratch clone, made under the global `core.autocrlf=true` and set to `core.autocrlf=false` and `core.safecrlf=false` only after cloning: all 289 tracked files checked out with CRLF line endings and showing as modified; the executor saw it when a `git rm` failed. Its one call running `git reset -q --hard` in its own scratch clone, with its copies, the `git rm` and a one-word README edit after it, was refused by the classifier as "[Undermining Oversight]"; none of its steps ran. Not worked around: nothing committed, the standing checkout untouched, the sync held while the user is asked how to clear the clone.
+
+## A graphify hook rebuild stops partway and leaves its lock file behind
+
+```json
+{"id":"p72","count":1,"last":"2026-11-17"}
+```
+
+A repository with a knowledge graph has git hooks that start a code-only rebuild of the graph in the background after a checkout or a commit. When the rebuild ends before it finishes, nothing reports it: its log stops partway, with neither a "Rebuilt" nor a "left untouched" line; its lock file (`graphify-out/.rebuild.lock`) stays on disk though no process holds it; and the graph's stamp (`built_at_commit`) stays at the commit before. A likely cause, not verified: the hook's background child ends with the shell that ran the git command, as when a member's shell ends with its job. Whether a lock file left this way stops the next rebuild from starting is not checked; on the first encounter a byte-range probe found it free.
+
+- **Resolution (decided by the user at the console, 2026-11-17, "a"; placed the same day by a change of a direction document):** the graphify manager's hooks mode checks, read only, for a lock file no process holds and a rebuild log with no closing line, and reports them at the next status. Option b, the graphify manager also clearing such a lock and running the code-only refresh itself when the stamp is behind a commit that changed code, and option c, leaving it as practised on the first encounter (left as it is when the graph's content is current), were not chosen. As placed, in the graphify manager's brief by the direction manager: the hooks mode gains a step 4, a read-only check for a lock file left on disk that no process holds, probed by taking graphify's own byte-range lock without waiting and never by querying the process list, and for a rebuild log whose last run has no closing line; the status mode reports both, and the report gains a "stopped rebuild" line. The mirror-sync of the brief follows.
+- **Predicted:** the admin team, on meeting it, 2026-11-17.
+- **Encounters:**
+  - 2026-11-17: KotlinBottools, after the landing of #28: the post-checkout hook started a rebuild at about 01:13Z when the executor switched the main checkout to `main`. The rebuild log ends at "AST extraction: 8/8 uncached files", with nothing added in the 9 minutes after; the lock file was left on disk, and a byte-range probe found it free. No harm: the graph's content is current at `3625163`, the later commits having changed only ignored board files, while its stamp still reads `57b4ffb` and 8 new AST cache entries remain. Left as it is, at the Coordinator's decision. As the graphify manager reported it, not re-read by the Archivist.

@@ -137,6 +137,15 @@ none:
    under Needs the user.
 3. `graphify hook status` again, and check that `.gitattributes` and
    `git status --short` are unchanged.
+4. Check, read only, for a hook rebuild that stopped partway: a
+   `graphify-out/.rebuild.lock` on disk that no process holds, probed with the
+   Python in `graphify-out/.graphify_python` by taking graphify's own
+   byte-range lock at offset 4096 without waiting and releasing it at once,
+   never by querying the process list; and the hooks' rebuild log,
+   `~/.cache/graphify-rebuild.log`, one for every repository, whose last run
+   has no closing line (a line that ends a run, as `Rebuilt` or
+   `left untouched` does). Report both, and the next status reports them
+   (status); clear nothing and refresh nothing.
 
 A repository with a graph and no hooks is put right here; a folder with no
 graph gets no hooks (the installer refuses it).
@@ -146,9 +155,11 @@ graph gets no hooks (the installer refuses it).
 Read only. For each repository the job names, every repository with a graph
 when it names none: the graph's size (nodes, edges, communities), when it was
 last built or refreshed, the commits on the default branch since then, how many
-communities still carry a placeholder label, the hooks' status, the board
-files' ignore (in place, differing from the template, missing, or tracked),
-the exclude lines, and that `git status` holds nothing of graphify's. List the
+communities still carry a placeholder label, the hooks' status, a hook
+rebuild that stopped partway (a free lock left on disk, the rebuild log's last
+run unfinished: checked as the hooks mode's step 4), the board files' ignore
+(in place, differing from the template, missing, or tracked), the exclude
+lines, and that `git status` holds nothing of graphify's. List the
 repositories in the job's folder that have no graph, without judging them.
 
 ### usage
@@ -220,6 +231,7 @@ estimate says so in its note. A pass that spent no model appends nothing.
 - graph: <nodes>/<edges>/<communities> → <nodes>/<edges>/<communities>
 - model: <tokens, input and output, or none> · upkeep line: <appended | none>
 - hooks: post-commit <status> · post-checkout <status> · merge driver <status> · ignore <status>
+- stopped rebuild: lock <none | held | free, left on disk> · rebuild log <last run closed | last run unfinished: its last line>   (hooks, status)
 - corpus: <files dropped as secrets, by name, or none>
 - untracked: <each file outside the ignores that graphify would read, by path, or none>   (build, refresh)
 - git status: unchanged (checked)
