@@ -102,12 +102,20 @@
       }
     ]
   },
-  "autoUpdatesChannel": "latest",
-  "theme": "dark",
-  "remoteControlAtStartup": true,
   "worktree": {
     "bgIsolation": "none"
   },
+  "extraKnownMarketplaces": {
+    "claude-kit": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/johnnyvizz/claude-kit.git"
+      }
+    }
+  },
+  "autoUpdatesChannel": "latest",
+  "theme": "dark",
+  "remoteControlAtStartup": true,
   "autoMode": {
     "allow": [
       "$defaults",
@@ -140,5 +148,8 @@
       "**Trusted repo**: github.com/SpartanLabsGaming/MyGameTools (origin) and its working directory; visibility unknown so treat as private",
       "**Org-specific CLIs**: None configured"
     ]
+  },
+  "enabledPlugins": {
+    "savvy-progress@claude-kit": true
   }
 }
