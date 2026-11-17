@@ -62,9 +62,11 @@ Every repository also keeps a `CHANGELOG.md` in the Keep a Changelog layout. A c
 lands adds its entry (Added, Changed, Fixed, Removed, …) in the same change: under
 `## [X.Y.Z] - <date>` when the landing bumps a version, since the version is known by then,
 else under `## [Unreleased]`; a repository without one gets one. A comment- or doc-only change
-adds no entry. The publisher reads a version's section as its GitHub release notes, and the
-notes of a version that ships name any superseded version it includes. In a `/resolve-issue`
-run, the Document step writes both the README delta and the entry.
+adds no entry. In `SpartanLaboratories/.github`, only a change to the organization's own scripts,
+under `scripts/`, adds an entry; its other changes, a mirror-sync included, add none. The
+publisher reads a version's section as its GitHub release notes, and the notes of a version that
+ships name any superseded version it includes. In a `/resolve-issue` run, the Document step
+writes both the README delta and the entry.
 
 ## Work grades
 
