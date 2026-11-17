@@ -14,8 +14,9 @@ description: >-
   the facts it rests on, or a permission prompt the harness raised, closed
   as logged), close-question
   (record an answer, a withdrawal, a revision, or what the user says to do
-  with a question put off), recheck (check one batch of the open questions
-  against the current state, report for filing as predicted issues those
+  with a question put off), recheck (form the batches of the open questions
+  when a recheck starts, or check one batch of them against the current
+  state, report for filing as predicted issues those
   that fit there better, and order them), log-predicted (add an issue the
   team expects), log-encounter (count an encounter of an issue),
   log-resolution (record an issue's resolution), sweep (find the team's
@@ -505,10 +506,14 @@ waiting behind another included: two open questions are in one group when
 their `blocks` name the same item (the same `kind` and `ref`) or the
 `blockedBy` of one names the other, and a group takes in every question
 linked to one of its own so. A question that holds something and is linked
-to none is a group of one. The team forms the batches when the recheck
-starts, from `questions.js queue` and the log, and skips a batch with no
-question. A batch's questions are ready to be put as soon as its job reports
-(the team's brief, Service: archive, Questions).
+to none is a group of one. You form the batches once, when the recheck
+starts, in a job of its own whose prompt names no question: from
+`questions.js queue` and the log, report each batch in order with the ids of
+its questions, the third group by group, leave out a batch with no question,
+and recheck none. The team queues each batch's job from that report, and the
+batches stand as formed until the recheck ends. A batch's questions are ready
+to be put as soon as its job reports (the team's brief, Service: archive,
+Questions).
 
 For each open question the prompt names:
 
@@ -675,7 +680,7 @@ call and the reason, and try no other route.
   each recheck result with its reason, each withdrawal with its fact or
   reasoning, each question to file as a predicted issue with your reason,
   each revised question to put, for a recheck its batch and the questions of
-  it ready to be put, and the queue, head first.
+  it ready to be put, or the batches it formed, and the queue, head first.
 - **Predicted issues** (log-predicted, log-encounter, log-resolution): each
   entry's id with its count, and that `predicted-issues.md` changed, for the
   mirror-sync.

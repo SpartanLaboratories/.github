@@ -1267,13 +1267,15 @@ asks for an action no group names (Request groups).
 - **Checked before it is put again.** A question logged before this session
   started, or one whose premises' sources have changed since its last check,
   is rechecked (**recheck**) before it is put again. A recheck of the open
-  questions runs in batches, each its own job (the Archivist's brief,
-  **recheck**), and a batch's questions are ready to be put as soon as its
-  job reports: put them one at a time, the most blocking first (**One at a
-  time**), without waiting for the batches after it. A revised question takes
-  its place; one the Archivist withdraws, on a fact or on its judgement, is
-  told to the user afterwards, with the reason, and so is one it files as a
-  predicted issue, with its entry (Predicted issues).
+  questions runs in batches, each its own job, which the Archivist forms
+  once, in a job of its own when the recheck starts, and you queue from its
+  report (the Archivist's brief, **recheck**); a batch's questions are ready
+  to be put as soon as its job reports: put them one at a time, the most
+  blocking first (**One at a time**), without waiting for the batches after
+  it. A revised question takes its place; one the Archivist withdraws, on a
+  fact or on its judgement, is told to the user afterwards, with the reason,
+  and so is one it files as a predicted issue, with its entry (Predicted
+  issues).
 - **State.** `state.json`'s `waitingOnUser` is derived from
   `questions.jsonl` at every rebuild: the open questions in blocking order,
   as `questions.js waiting` prints them. Your handoff names the log and
@@ -1424,10 +1426,10 @@ the user at this console and from you.
    and `attempt`, its executor told the job was cut off, so that it first checks
    what it left behind. Send again every viability
    question asked and not answered (Service: archive, Hooks), and queue a **recheck**
-   of the open questions in `archive-questions`, in its
-   batches, putting the head question once the first batch reports and each later
-   batch's questions once its job reports (Service: archive, Questions), and queue
-   the **sweep** in `archive-sessions` (Service: archive, Sessions).
+   of the open questions in `archive-questions`, the job that forms its batches first
+   and then one for each batch it reports, putting the head question once the first
+   batch reports and each later batch's questions once its job reports (Service: archive,
+   Questions), and queue the **sweep** in `archive-sessions` (Service: archive, Sessions).
 6. Drain the publishing queues: `publisher` in **drain** mode for every
    namespace whose queue is non-empty (Service: publishing).
 7. Touch `~/.claude/admin-team/up` (`Bash`: `touch "$HOME/.claude/admin-team/up"`):
