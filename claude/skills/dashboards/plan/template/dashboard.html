@@ -1692,7 +1692,9 @@ const STG_PILL={done:{g:"✓",label:"done",cls:"ink"},passed:{g:"✓",label:"pas
 const STG_WORD={done:n=>`a ${n} finished`,passed:n=>`a check ${n} that passed`,failed:n=>`a check ${n} that failed`,current:n=>`a ${n} at work now`,todo:n=>`dashed: a ${n} to come`};
 const stgState=x=>x.state==="done"?(x.kind==="check"&&STG_PILL[x.result]?x.result:"done"):x.state==="current"?"current":"todo";
 const stgCls=x=>x.state==="done"?"done":x.state==="current"?"cur":"todo";
-function stgPill(x,keys,noun){ const c=stgState(x); if(keys) keys.add(`<span>${pill(STG_PILL[c])} ${STG_WORD[c](noun)}</span>`); return pill(STG_PILL[c]); }
+/* a stage built while the run was halted, recorded late with no time (plan/RULES.md §3, "The late update of an implementation stage"): "✓ done · time not recorded" */
+function stgPill(x,keys,noun){ const c=stgState(x), late=x.state==="done"&&x.late===true, lbl=late?`${STG_PILL[c].label} · time not recorded`:null;
+  if(keys) keys.add(late?`<span>${pill(STG_PILL[c],"",lbl)} a ${noun} recorded late, with no time</span>`:`<span>${pill(STG_PILL[c])} ${STG_WORD[c](noun)}</span>`); return late?pill(STG_PILL[c],"",lbl):pill(STG_PILL[c]); }
 const stgList=R=>Array.isArray(R&&R.stages)?R.stages.filter(x=>x&&typeof x==="object"):[];
 const KEY_DISC=`<span><span class="mono" aria-hidden="true">▸</span> click a row to open or close its detail</span>`;
 const KEY_STG_OPEN=`<span><span class="mono" aria-hidden="true">▸</span> click a stage to open it in the step Panel</span>`;
@@ -1712,7 +1714,7 @@ function discItem(o){ const open=DISC_OPEN.has(o.key)?DISC_OPEN.get(o.key):!!o.c
   return `<li class="${o.cls}"${o.stage?` data-stage="${esc(o.stage)}"`:""}>${o.body?`<details class="stg-d" data-key="${esc(o.key)}"${open?" open":""}><summary class="stg-s">${head}<span class="chev" aria-hidden="true">▸</span></summary><div class="stg-b">${o.body}</div></details>`:`<div class="stg-s stg-plain">${head}<span class="chev" aria-hidden="true"></span></div>`}</li>`; }
 const discList=items=>items.length?`<ol class="sp-list stg-list">${items.join("")}</ol>`:"";
 const stgChip=(l,v)=>`<span><span class="l">${l}</span>${v}</span>`;
-const stampChips=x=>[okStamp(x.started)?stgChip("started",`<span class="nw">${when(x.started)}</span>`):"",okStamp(x.finished)&&x.state==="done"?stgChip("finished",`<span class="nw">${when(x.finished)}</span>`):""].filter(Boolean);
+const stampChips=x=>[okStamp(x.started)?stgChip("started",`<span class="nw">${when(x.started)}</span>`):"",x.state==="done"&&x.late===true?stgChip("finished",`<span class="nw">not recorded</span>`):okStamp(x.finished)&&x.state==="done"?stgChip("finished",`<span class="nw">${when(x.finished)}</span>`):""].filter(Boolean);
 const reportHtml=x=>x.state==="done"&&typeof x.report==="string"&&x.report.trim()?`<div class="stg-h">At its end</div><p>${rich(x.report)}</p>`:"";
 /* ---------- A stage's steps, nested (plan/RULES.md §3, "The record of a step", "The stage list", "Collapsing") [steps-block] ----------
    Each step by its number (the stage's place in wip.stages, then the step's place among the steps beside it at each depth, joined by "-": 2-3-19) and its
@@ -1920,7 +1922,7 @@ const histOf=R=>R&&R.history&&typeof R.history==="object"&&!Array.isArray(R.hist
 const visitsOf=(R,s)=>{ const v=histOf(R)[s]; return Array.isArray(v)?v.filter(x=>x&&typeof x==="object"):[]; };
 const shownOf=R=>R&&["halted","escalated"].includes(R.step)?(R.resume||null):(R&&R.step)||null;
 /* the waits on you (timeline-waits; lib.js waitsOf()): the time from a blocking question to its answer, never active time */
-const WAIT_BY=["halted","escalated","open-points"], isStoppedStep=s=>s==="halted"||s==="escalated";
+const waitByOk=x=>typeof x==="string"&&/^[a-z][a-z-]*[a-z]$/.test(x), isStoppedStep=s=>s==="halted"||s==="escalated";
 const waitsOf=R=>(Array.isArray(R&&R.waits)?R.waits:[]).filter(x=>x&&typeof x==="object"&&isTime(x.since));
 /* the stretches when the run was not running (timeline-outages; lib.js outagesOf()): never active time, and no wait on you */
 const outagesOf=R=>(Array.isArray(R&&R.outages)?R.outages:[]).filter(x=>x&&typeof x==="object"&&isTime(x.since)&&isTime(x.ended));
@@ -2409,7 +2411,7 @@ function timelineSteps(P,now){ const w=(P&&P.wip)||{}, H=histOf(w), steps=(Array
   recon.forEach(r=>{ r.recon=true; let k=seq.findIndex(v=>!v.recon&&idx(v.step)>idx(r.step)); if(k<0) k=seq.length; seq.splice(k,0,r); });
   /* the waits on you (timeline-waits): never a visit, never summed; while the run waits, no visit runs to now: the one the
      question interrupted ends at the question (a stop from before the waits were recorded began at the stop's since) */
-  const WT=waitsOf(w).map(x=>({step:typeof x.step==="string"?x.step:null,by:WAIT_BY.includes(x.by)?x.by:null,since:x.since,ended:isTime(x.ended)?x.ended:null}));
+  const WT=waitsOf(w).map(x=>({step:typeof x.step==="string"?x.step:null,by:waitByOk(x.by)?x.by:null,since:x.since,ended:isTime(x.ended)?x.ended:null}));
   if(live&&isStoppedStep(w.step)&&!WT.some(x=>!x.ended)&&isTime(w.since)) WT.push({step:cur,by:w.step,since:w.since,ended:null});
   /* the stretches when the run was not running (timeline-outages): never a visit, never a wait, never summed */
   const OG=outagesOf(w).map(x=>({step:typeof x.step==="string"?x.step:null,since:x.since,ended:x.ended,reason:typeof x.reason==="string"?x.reason:null})), sameT=(x,y)=>Date.parse(x)===Date.parse(y);

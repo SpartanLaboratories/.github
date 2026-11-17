@@ -242,6 +242,8 @@ function catchUpStageTable(w, dir, nope, enrich) {
 function stampItem(x, old, now, report) {
   const was = old && old.state;
   if (old) ["started", "finished", "report", "result"].forEach(k => { if (old[k] != null && x[k] == null) x[k] = old[k]; });
+  /* a stage recorded late (plan/RULES.md §3, "The late update of an implementation stage") stays late only while it stays done */
+  if (x.state !== "done") delete x.late;
   if (x.state === "todo") { delete x.started; delete x.finished; delete x.report; delete x.result; return x; }
   if (x.state === "current") { if (!x.started && now) x.started = now; if (was === "done" || was === "todo") { delete x.finished; delete x.report; delete x.result; } return x; }
   if (x.state === "done" && was !== "done") { if (now) x.finished = now; if (report) x.report = report; else delete x.report; }
@@ -865,20 +867,26 @@ const unitCount = (plan, step) => { const units = (Array.isArray(plan.rows) ? pl
   return { done: units.filter(r => step === "sub-issues" ? Number.isInteger(r.unit.issue) && r.unit.issue > 0 : typeof r.unit.board === "string" && !!r.unit.board.trim()).length, total: units.length }; };
 const lastEnded = H => Object.values(H).flatMap(vs => Array.isArray(vs) ? vs : []).map(v => v && v.ended).filter(x => typeof x === "string" && !isNaN(Date.parse(x))).sort((x, y) => Date.parse(x) - Date.parse(y)).pop() || null;
 const openOf = w => (Array.isArray(w.open) ? w.open : []).filter(x => x && typeof x.text === "string" && x.text.trim() && !x.resolved);
-/* ---------- The waits on the user (board/timeline-waits) ----------
-   The time from a blocking question to the user until its answer is waiting, not active time: no visit's duration and no Timeline figure
-   counts it. wip.waits records each wait, oldest first: { step, since, ended, by } — the step the run waited in, when the question was put,
-   when the answer came (null while it waits) and the signal that marked it: "halted" or "escalated" (the documented one: the stop's
-   wip.waitingOn, from the stop's event until the event that takes the board out of it, resumed or any other), or "open-points" (a
-   resumed on a board that was not stopped, after an event that left open points unresolved, or with a resumed that resolves one: the
-   question was put at the board's last event, and the wait runs from that event's time to the resumed's). The visit running when the
+/* ---------- The waits on the user (board/timeline-waits; the user's decision q-102) ----------
+   The time the run waits on the user is waiting, not active time: no visit's duration and no Timeline figure counts it. A wait is the run
+   waiting on the user, whatever event put it there: no list of event types defines one (waitsOnUser(), below). wip.waits records each wait,
+   oldest first: { step, since, ended, by } — the step the run waited in, when it began to wait, when the answer came (null while it waits)
+   and by, the event that marked it: the event that put the board into its record of the wait (today a halt or an escalation), the wait
+   running until the event that takes the board out of it, resumed or any other; or "open-points" (a resumed on a board that recorded no
+   wait, after an event that left open points unresolved, or with a resumed that resolves one: the question was put at the board's last
+   event, and the wait runs from that event's time to the resumed's). The visit running when the
    question is put ends there (held: "ended, waiting on you"), and the step's next visit starts at the answer, so a step a wait
    interrupts has two visits, "plan · visit 1" and "plan · visit 2", as a step the run comes back to has. A wait is a fact of the
    record, never guessed: a resumed with neither a stop before it nor an open point records none. waitSteps() writes them, freezeSteps()
    splits the visits around them, timelineSteps() leaves them out of the bar and the figure, and the Timeline mentions them nowhere, since
    time that is not counted is not mentioned (the halt stays, as the outcome of the visit it ends); the template's copy is the same rule. */
-const WAIT_BY = ["halted", "escalated", "open-points"];
 const isStopped = s => s === "halted" || s === "escalated";
+/* the board records the run waiting on the user: the one test every wait is read by, whatever event put the board there. The record is the
+   board stopped on the user (wip.step halted or escalated, what it waits on in wip.waitingOn), which the events that say the run waits put it
+   in and the event that takes it out ends; a waitingOn left standing on a board out of its stop (an older event's) is no wait */
+const waitsOnUser = w => isObj(w) && isStopped(w.step);
+/* a wait's by: the event that marked it, any event the board takes, or "open-points" */
+const waitByOk = x => typeof x === "string" && /^[a-z][a-z-]*[a-z]$/.test(x);
 const waitsOf = w => (Array.isArray(w && w.waits) ? w.waits : []).filter(x => isObj(x) && isTime(x.since));
 const openWait = w => { const ws = waitsOf(w), l = ws[ws.length - 1]; return l && !isTime(l.ended) ? l : null; };
 /* ---------- A stretch when the run was not running (board/timeline-outages) ----------
@@ -903,7 +911,7 @@ const hasOutage = (w, since, ended) => isTime(since) && isTime(ended) && outages
 const passAtCut = q => { const ps = (Array.isArray(q) ? q : []).filter(p => p && Number.isInteger(p.pass)); return ps.length ? { qa: ps.map(p => ({ pass: p.pass, verdict: "running" })) } : {}; };
 function outageSteps(pre, post, O, ev) {
   const b = post.wip, T = x => Date.parse(x), s = T(O.since), e = T(O.ended), within = t => isTime(t) && T(t) > s && T(t) < e;
-  const H = historyOf(b), cur = shownStep(b), stop = isStopped(b.step), mark = O.reason || true, lines = [];
+  const H = historyOf(b), cur = shownStep(b), stop = waitsOnUser(b), mark = O.reason || true, lines = [];
   const entries = Object.keys(H).flatMap(st => (Array.isArray(H[st]) ? H[st] : []).filter(isObj).map(V => ({ st, V })));
   const hit = [...entries.flatMap(({ st, V }) => [[V.since, `a visit of ${st} starts`], [V.ended, `a visit of ${st} ends`]]),
     ...waitsOf(b).flatMap(W => [[W.since, "a wait on the user starts"], [W.ended, "a wait on the user ends"]]),
@@ -979,7 +987,7 @@ function namedTimes(plan) {
   if (isObj(w.event)) add(w.event.name, w.event.at, "wip.event");
   Object.keys(H).forEach(st => (Array.isArray(H[st]) ? H[st] : []).forEach((v, i) => { if (!isObj(v)) return;
     if (isObj(v.event)) add(v.event.name, v.event.at, `wip.history.${st}[${i}].event`); add(v.endedBy, v.ended, `wip.history.${st}[${i}].ended`); }));
-  (Array.isArray(w.waits) ? w.waits : []).forEach((x, i) => { if (isObj(x) && isStopped(x.by)) add(x.by, x.since, `wip.waits[${i}].since`); });
+  (Array.isArray(w.waits) ? w.waits : []).forEach((x, i) => { if (isObj(x) && waitByOk(x.by) && x.by !== "open-points") add(x.by, x.since, `wip.waits[${i}].since`); });
   (Array.isArray(w.qa) ? w.qa : []).forEach((q, i) => { if (isObj(q)) add("qa-pass", q.at, `wip.qa[${i}].at`); });
   (Array.isArray(w.questions) ? w.questions : []).forEach((q, i) => { if (isObj(q)) { add("research-started", q.started, `wip.questions[${i}].started`); add("research-returned", q.returned, `wip.questions[${i}].returned`); } });
   return out;
@@ -1150,11 +1158,12 @@ const visitStart = (H, waits, ended, fallback) => { const t = Date.parse(ended);
    start, where no visit ended there yet). */
 function waitSteps(pre, post, ev, now, facts) {
   const a = (pre && pre.wip) || {}, b = post.wip, out = { opened: null, closed: null, endedBy: null, lines: [] };
-  const was = isStopped(a.step), is = isStopped(b.step), add = W => { b.waits = [...(Array.isArray(b.waits) ? b.waits : []), W]; return W; };
+  /* the run waits on the user from the event after which the board records it, whatever that event is, until the event that takes it out */
+  const was = waitsOnUser(a), is = waitsOnUser(b), add = W => { b.waits = [...(Array.isArray(b.waits) ? b.waits : []), W]; return W; };
   let W = openWait(b);
   if (!was && is) {
     /* a stop opens a wait at its event, unless one is open already */
-    if (!W) { out.opened = add({ step: shownStep(b), since: now, ended: null, by: b.step }); out.lines.push(`wip.waits + ${out.opened.step || "the run"} (${b.step}: waiting on the user from ${now})`); }
+    if (!W) { out.opened = add({ step: shownStep(b), since: now, ended: null, by: ev }); out.lines.push(`wip.waits + ${out.opened.step || "the run"} (${ev}: waiting on the user from ${now})`); }
   } else if (was && !is) {
     /* the event that takes the board out of a stop ends its wait; a stop from before the waits began at the stop's since */
     if (!W && isTime(a.since) && !(Date.parse(a.since) > Date.parse(now))) W = add({ step: shownStep(a), since: a.since, ended: null, by: a.step });
@@ -1191,7 +1200,7 @@ function freezeVisit(pre, post, step, ev, now) {
      answer that ended a wait since (board/timeline-waits); with no visit frozen before it (a board older than the snapshots),
      when the panel's "since" says */
   const V = { since: visitStart(H, [...waitsOf(b), ...outagesOf(b)], now, a.since), ended: now, endedBy: ev, to: shownStep(b) || b.step || null };
-  if (["halted", "escalated"].includes(a.step)) V.held = true;
+  if (waitsOnUser(a)) V.held = true;
   if (a.event && a.event.name) V.event = clone(a.event);
   if (typeof a.detail === "string" && a.detail.trim()) V.detail = a.detail;
   const open = openOf(a); if (open.length) V.open = clone(open);
@@ -1229,7 +1238,7 @@ function freezeSteps(pre, post, ev, now, facts) {
       if (!V.since || Date.parse(V.since) < Date.parse(W.since)) push(st, V);
     }
     /* the next visit starts at the answer */
-    if (!isStopped(b.step) && b.since !== now) { b.since = now; out.push(`wip.since ${now} (the next visit starts at the answer)`); }
+    if (!waitsOnUser(b) && b.since !== now) { b.since = now; out.push(`wip.since ${now} (the next visit starts at the answer)`); }
   }
   else if (ka && ka !== kb) push(sa, freezeVisit(pre, post, sa, ev, now));
   /* a qa verdict the run reached from another step (remediation, implementation): the pass is a visit of qa of its own */
@@ -2459,7 +2468,7 @@ function timelineSteps(plan, opts) {
   recon.forEach(r => { r.recon = true; let k = seq.findIndex(v => !v.recon && idx(v.step) > idx(r.step)); if (k < 0) k = seq.length; seq.splice(k, 0, r); });
   /* the waits on the user (board/timeline-waits): never a visit, never summed; a stop from before the waits were recorded began
      at the stop's since */
-  const WT = waitsOf(w).map(x => ({ step: typeof x.step === "string" ? x.step : null, by: WAIT_BY.includes(x.by) ? x.by : null, since: x.since, ended: isTime(x.ended) ? x.ended : null }));
+  const WT = waitsOf(w).map(x => ({ step: typeof x.step === "string" ? x.step : null, by: waitByOk(x.by) ? x.by : null, since: x.since, ended: isTime(x.ended) ? x.ended : null }));
   if (live && isStopped(w.step) && !WT.some(x => !x.ended) && isTime(w.since)) WT.push({ step: cur, by: w.step, since: w.since, ended: null });
   const waiting = live && WT.some(x => !x.ended);
   /* the stretches when the run was not running (board/timeline-outages): never a visit, never a wait, never summed */
@@ -2596,5 +2605,5 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
-module.exports = { ...LV, ...PN, PLAN_STAGES, PLAN_STAGE_NAMES, PLAN_STAGE_BRIEFS, STAGE_ROUND, CHECK_RESULTS, planPassIds, planStagesLine, existingPlanSaid, planStagesOf, seedPlanStages, planStageId, planStageName, stageRan, checkResult, planWayBack, planStageMove, planStageLine, planStageLate, planStagesClose, PLAN_STAGE_LINE, planStagesFromTrail, ARCH_STAGES, ARCH_STAGE_BRIEFS, archStagesOf, ARCH_STAGE_LINE, archStagesFromTrail, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, filedSummary, filedSummaries, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, WAIT_BY, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, verdictEntry, VERDICT_KINDS, OPTION_VERDICTS, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
+module.exports = { ...LV, ...PN, PLAN_STAGES, PLAN_STAGE_NAMES, PLAN_STAGE_BRIEFS, STAGE_ROUND, CHECK_RESULTS, planPassIds, planStagesLine, existingPlanSaid, planStagesOf, seedPlanStages, planStageId, planStageName, stageRan, checkResult, planWayBack, planStageMove, planStageLine, planStageLate, planStagesClose, PLAN_STAGE_LINE, planStagesFromTrail, ARCH_STAGES, ARCH_STAGE_BRIEFS, archStagesOf, ARCH_STAGE_LINE, archStagesFromTrail, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, filedSummary, filedSummaries, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, waitsOnUser, waitByOk, isStopped, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, verdictEntry, VERDICT_KINDS, OPTION_VERDICTS, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
   trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, FILING_TIME, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };

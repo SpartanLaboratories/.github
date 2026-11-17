@@ -111,7 +111,7 @@ module.exports = function casesTimelineWaits(X) {
     c.push(["the neighbour rule across a wait: a visit after it with no start of its own begins at the answer, never at the question", p2 && p2.from && p2.from.t === "2026-11-01T17:43:53Z", js(lib.timelineLines(T2))]);
     const bad = copy(r.p); bad.wip.waits = [{ step: "plan", since: "2026-11-01T17:43:53Z", ended: "2026-11-01T17:30:52Z", by: "a guess" }, { step: "plan", since: "2026-11-01T17:50:00Z", ended: null, by: "halted" }];
     const B5 = lay("bad-waits", bad), ck = run(CHECK, [B5.dir]), o = ck.stdout || "";
-    c.push(["check.js fails a wait out of order and an unknown signal, and warns on an open wait on a board not stopped", ck.status !== 0 && /wip\.waits\[0\]: since .* is after ended/.test(o) && /wip\.waits\[0\]\.by is the signal/.test(o) && /wip\.waits\[1\] is open while the board is not stopped/.test(o), o.split(/\r?\n/).filter(l => /waits/.test(l)).join(" | ").slice(0, 500)]);
+    c.push(["check.js fails a wait out of order and a by that names no event, and warns on an open wait on a board that records no wait on the user (q-102)", ck.status !== 0 && /wip\.waits\[0\]: since .* is after ended/.test(o) && /wip\.waits\[0\]\.by is the event that marked the wait/.test(o) && /wip\.waits\[1\] is open while the board records no wait on the user/.test(o), o.split(/\r?\n/).filter(l => /waits/.test(l)).join(" | ").slice(0, 500)]);
   });
 
   /* 4. the template's copy is the same rule */
@@ -120,7 +120,7 @@ module.exports = function casesTimelineWaits(X) {
     /* a top-level definition: from its line to the next line that starts at the margin */
     const def = name => { const i = lines.findIndex(l => l.startsWith(`const ${name}=`) || l.startsWith(`function ${name}(`)); if (i < 0) throw new Error(`the template defines no ${name}`);
       let j = i + 1; while (j < lines.length && /^\s/.test(lines[j])) j++; return lines.slice(i, j).join("\n"); };
-    const names = ["PASS_NAME", "STEP_NAME", "ROUTE_NAME", "routeKey", "routeName", "remediationName", "stepLabel", "routesOf", "STEP_ORDER", "histOf", "visitsOf", "shownOf", "WAIT_BY", "waitsOf", "outagesOf", "okStamp", "isTime", "TL_FAMILIES", "tlFamily", "tlShade", "timelineFamilies", "APPROX_SOURCES", "approxBounds", "timelineLanded", "timelineSteps", "timelineRows", "tlSpan", "timelineTotal"];
+    const names = ["PASS_NAME", "STEP_NAME", "ROUTE_NAME", "routeKey", "routeName", "remediationName", "stepLabel", "routesOf", "STEP_ORDER", "histOf", "visitsOf", "shownOf", "waitByOk", "waitsOf", "outagesOf", "okStamp", "isTime", "TL_FAMILIES", "tlFamily", "tlShade", "timelineFamilies", "APPROX_SOURCES", "approxBounds", "timelineLanded", "timelineSteps", "timelineRows", "tlSpan", "timelineTotal"];
     const src = names.map(def).join("\n") + "\nconst reconStep=()=>({trail:[],milestones:[]});\nthis.api={timelineSteps,timelineRows,timelineTotal};";
     const box = {}; vm.createContext(box); vm.runInContext(src, box);
     const A = box.api, shape = T => js({ v: T.visits.map(v => [v.step, v.label, v.from && v.from.t, v.to && v.to.t, v.ms, !!v.open]) });

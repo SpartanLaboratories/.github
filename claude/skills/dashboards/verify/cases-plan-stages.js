@@ -288,9 +288,9 @@ module.exports = function casesPlanStages(X) {
     const rw = apply(B, "reword", { event: "plan-stage", recordedAt: "2026-11-15T10:19:00Z", from: "drafted in full", to: "drafted whole", reason: "plainer" });
     c.push(["reword finds the closed stage's report by its time, and the detail and the trail line with it", rw.a.status === 0 && stage(rw.p, "write").report === "The plan is drafted whole." && rw.p.wip.detail === "The plan is drafted whole." && (rw.p.trail || []).some(t => t.label === "Plan stage: check/accept · write: done — The plan is drafted whole."), js([rw.S.error, stage(rw.p, "write"), rw.p.wip.detail])]);
     const rl = apply(B, "reword", { event: "late-update", recordedAt: T2, from: "x", to: "y", reason: "z" });
-    c.push(["reword of a late update is refused: a second late update replaces its report", rl.a.status === 1 && /second late update/.test(rl.S.error || ""), js(rl.S.error)]);
+    c.push(["reword of a late update is refused: a second late update replaces its report", rl.a.status === 3 && rl.S.result === "refused" && /second late update/.test(rl.S.refused || ""), js([rl.a.status, rl.S.refused, rl.S.error])]);
     const rr = apply(B, "retime", { event: "late-update", from: T2, to: T3, reason: "z" });
-    c.push(["retime of a late update is refused: it has no time", rr.a.status === 1, js(rr.S.error)]);
+    c.push(["retime of a late update is refused: it has no time", rr.a.status === 3 && rr.S.result === "refused" && !!rr.S.refused, js([rr.a.status, rr.S.refused, rr.S.error])]);
   });
 
   /* ---------- 6. check.js ---------- */

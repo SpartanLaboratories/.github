@@ -69,10 +69,21 @@ module.exports = function casesRetime(X) {
     c.push(["a later event applies on the corrected record, which it keeps", q.a.status === 0 && q.p.sized === "2026-11-01T17:30:00Z" && q.p.wip.step === "landing", js([q.S.result, q.S.error, q.p.sized])]);
   });
 
+  guard("apply-event.js: a refused retime or reword is a refusal, not a failure (the user's decision q-99): exit 3, apply-event: refused, the reason on its line, enrich no", c => {
+    const plan = running(), B = lay("refusal-report", plan), f0 = files(B);
+    const txt = (ev, facts) => run(APPLY, ["--event", req(plan, ev, facts), "--worktree", B.root, "--no-gh", "--no-live", "--at", "2026-11-03T00:00:00Z"]);
+    const t = txt("retime", R("plan-accepted", "2026-11-01T21:30:00Z", "2026-11-01T21:20:00Z")), L = (t.stdout || "").split(/\r?\n/), line = k => (L.find(l => l.startsWith(k + ": ")) || "").slice(k.length + 2);
+    c.push(["a retime refused: exit 3, apply-event: refused, the refusal on the refused line, no error or restored line, enrich no, nothing written", t.status === 3 && line("apply-event") === "refused" && /^retime: .*holds no time 2026-11-01T21:30:00Z/.test(line("refused")) && !L.some(l => /^(error|restored): /.test(l)) && line("enrich") === "no" && /refused correction writes nothing/.test(line("why")) && files(B) === f0, (t.stdout || "").slice(0, 400)]);
+    const j = apply(B, plan, "reword", { event: "sized", recordedAt: "2026-11-01T17:10:00Z", from: "a passage the record never held", to: "another", reason: "a test" }, "2026-11-03T00:00:00Z");
+    c.push(["a reword refused, in --json: result refused, the refused field, error null, enrich no, the why the refusal's", j.a.status === 3 && j.S.result === "refused" && /^reword: /.test(j.S.refused || "") && j.S.error == null && j.S.enrich === "no" && js(j.S.why) === js(["a refused correction writes nothing, and no fill writes it: the refusal is the reason of the rejected reply"]) && files(B) === f0, js([j.a.status, j.S.result, j.S.refused, j.S.error, j.S.why])]);
+    const f = apply(B, plan, "plan-stage", { stage: "write", detail: "x" }, "2026-11-03T00:00:00Z");
+    c.push(["any other event the rules refuse stays a failed run: exit 1, failed, the error line", f.a.status === 1 && f.S.result === "failed" && f.S.refused == null && /plan-stage/.test(f.S.error || ""), js([f.a.status, f.S.result, f.S.error])]);
+  });
+
   guard("apply-event.js retime: refused, nothing written, where the record does not hold the old time, the new one crosses a neighbouring bound, or the facts fall short", c => {
     const plan = running(), B = lay("refusals", plan), f0 = files(B);
     const no = (name, ev, facts, re, at) => { const r = apply(B, plan, ev, facts, at || "2026-11-03T00:00:00Z");
-      c.push([name, r.a.status === 1 && r.S.result === "failed" && re.test(r.S.error || "") && files(B) === f0, js([r.a.status, r.S.result, r.S.error])]); };
+      c.push([name, r.a.status === 3 && r.S.result === "refused" && re.test(r.S.refused || "") && files(B) === f0, js([r.a.status, r.S.result, r.S.refused])]); };
     no("an old time the record does not hold", "retime", R("plan-accepted", "2026-11-01T21:30:00Z", "2026-11-01T21:20:00Z"), /holds no time 2026-11-01T21:30:00Z: plan-accepted is recorded at 2026-11-01T21:31:00Z/);
     no("a sizing at another time than plan.sized", "retime", R("sized", "2026-11-01T21:31:00Z", "2026-11-01T21:20:00Z"), /holds the sizing at 2026-11-01T17:10:00Z/);
     no("another event named at the same time", "retime", R("halted", "2026-11-01T17:10:00Z", "2026-11-01T17:20:00Z"), /sized is recorded at the same time/);
@@ -84,14 +95,16 @@ module.exports = function casesRetime(X) {
     no("no event named", "retime", { from: "2026-11-01T17:10:00Z", to: "2026-11-01T17:20:00Z", reason: "x" }, /no facts.event/);
     no("an event a retime does not correct (run-restarted)", "retime", R("run-restarted", "2026-11-01T17:10:00Z", "2026-11-01T17:20:00Z"), /no event whose time a retime corrects/);
     no("no times", "retime", R("sized", "midnight", "2026-11-01T17:20:00Z"), /no facts.from and facts.to/);
-    no("a request naming no event, with a retime's facts: never read as facts.event", null, R("sized", "2026-11-01T17:10:00Z", "2026-11-01T17:20:00Z"), /names no event: a retime is "event": "retime"/);
+    /* a request that names no event is no retime: refused as any request is, a failed run (exit 1), not a correction's refusal */
+    { const r = apply(B, plan, null, R("sized", "2026-11-01T17:10:00Z", "2026-11-01T17:20:00Z"), "2026-11-03T00:00:00Z");
+      c.push(["a request naming no event, with a retime's facts: never read as facts.event (a failed run, no correction refused)", r.a.status === 1 && r.S.result === "failed" && /names no event: a retime is "event": "retime"/.test(r.S.error || "") && files(B) === f0, js([r.a.status, r.S.result, r.S.error])]); }
     /* a stretch when the run was not running: its bounds are its own facts */
     const p2 = running(); p2.wip.outages = [{ step: "document", since: "2026-11-02T01:00:00Z", ended: "2026-11-02T02:11:00Z", reason: "session restart" }];
     const B2 = lay("outage", p2), g0 = files(B2);
     const o1 = apply(B2, p2, "retime", R("plan-accepted", "2026-11-02T02:11:00Z", "2026-11-02T02:20:00Z"), "2026-11-03T00:00:00Z");
-    c.push(["an old time that bounds a stretch when the run was not running", o1.a.status === 1 && /bound of a stretch when the run was not running/.test(o1.S.error || "") && files(B2) === g0, js([o1.S.error])]);
+    c.push(["an old time that bounds a stretch when the run was not running", o1.a.status === 3 && o1.S.result === "refused" && o1.S.error == null && /bound of a stretch when the run was not running/.test(o1.S.refused || "") && files(B2) === g0, js([o1.S.refused])]);
     const o2 = apply(B2, p2, "retime", R("plan-accepted", "2026-11-01T21:31:00Z", "2026-11-02T01:30:00Z"), "2026-11-03T00:00:00Z");
-    c.push(["a new time inside a stretch crosses its start", o2.a.status === 1 && /crosses a stretch when the run was not running/.test(o2.S.error || "") && files(B2) === g0, js([o2.S.error])]);
+    c.push(["a new time inside a stretch crosses its start", o2.a.status === 3 && o2.S.result === "refused" && o2.S.error == null && /crosses a stretch when the run was not running/.test(o2.S.refused || "") && files(B2) === g0, js([o2.S.refused])]);
     /* a neighbour's time may be met, never passed */
     const m = apply(B, plan, "retime", R("sized", "2026-11-01T17:10:00Z", "2026-11-01T21:31:00Z"), "2026-11-03T00:00:00Z");
     c.push(["a new time that meets the next bound exactly applies", m.a.status === 0 && m.p.sized === "2026-11-01T21:31:00Z" && js(vis(m.p, "plan")) === js([["2026-11-01T21:31:00Z", "2026-11-01T21:31:00Z"]]), js([m.S.error, vis(m.p, "plan")])]);
@@ -110,10 +123,10 @@ module.exports = function casesRetime(X) {
     c.push(["…the entry names the new time with its day, and its trail entry among what moved", /It is recorded at 2026-11-02 00:10:00 UTC; the run's start, the visits it bounds \(sizing, plan\) and its trail entry move with it\.$/.test(e.what), e.what]);
     const pass = day([{ date: "2026-11-01", column: "gap", label: "Sized; the plan starts" }, { date: "2026-11-01", column: "gap", label: "Research started: `q1`" }]), B2 = lay("day-pass", pass), g0 = files(B2);
     const r2 = apply(B2, pass, "retime", R("sized", "2026-11-01T23:50:00Z", "2026-11-02T00:10:00Z"), "2026-11-03T00:00:00Z");
-    c.push(["a new day that passes a later entry's date: refused, nothing written", r2.a.status === 1 && /moves its trail entry past "Research started/.test(r2.S.error || "") && files(B2) === g0, js([r2.S.error])]);
+    c.push(["a new day that passes a later entry's date: refused, nothing written", r2.a.status === 3 && r2.S.result === "refused" && r2.S.error == null && /moves its trail entry past "Research started/.test(r2.S.refused || "") && files(B2) === g0, js([r2.S.refused])]);
     const two = day([{ date: "2026-11-01", column: "gap", label: "Run started" }, { date: "2026-11-01", column: "gap", label: "Sized; the plan starts" }]), B3 = lay("day-two", two), h0 = files(B3);
     const r3 = apply(B3, two, "retime", R("sized", "2026-11-01T23:50:00Z", "2026-11-02T00:10:00Z"), "2026-11-03T00:00:00Z");
-    c.push(["two entries of the event on the old day: refused, which one is its own cannot be told", r3.a.status === 1 && /2 entries of sized on 2026-11-01/.test(r3.S.error || "") && files(B3) === h0, js([r3.S.error])]);
+    c.push(["two entries of the event on the old day: refused, which one is its own cannot be told", r3.a.status === 3 && r3.S.result === "refused" && r3.S.error == null && /2 entries of sized on 2026-11-01/.test(r3.S.refused || "") && files(B3) === h0, js([r3.S.refused])]);
     const none = day([{ date: "2026-11-02", column: "verdict", label: "Plan accepted" }]), B4 = lay("day-none", none);
     const r4 = apply(B4, none, "retime", R("sized", "2026-11-01T23:50:00Z", "2026-11-02T00:10:00Z"), "2026-11-03T00:00:00Z");
     c.push(["no entry of the event on the old day: applied, the summary says no date moved", r4.a.status === 0 && (r4.S.applied || []).some(l => /no entry of sized on 2026-11-01: no date moved/.test(l)) && js(r4.p.trail) === js(none.trail), js([r4.S.error, r4.S.applied])]);

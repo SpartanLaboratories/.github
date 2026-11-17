@@ -26,7 +26,7 @@ const SLOTS = PALETTE.light.length;
 const { boardLanded, boardClosed, workLevelFields, featureRun } = require("./levels.js");
 const { passRefsIn, PASS_NAME } = require("./passnames.js");
 const { unitTests, unitLandings, DEP_STATES, HOLD_STATES, isUnitRef, unitFiled, planPassIds, STAGE_ROUND, CHECK_RESULTS, ARCH_STAGES } = require("./lib.js");
-const { foundationFilling, WAIT_BY, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
+const { foundationFilling, waitsOnUser, waitByOk, HISTORY_FIELDS, HISTORY_STEPS, finishedSteps, statementRefs: statementRefsOf, okStamp, isTime, APPROX_SOURCES, timelineApproxNote, timelineSteps, tlSpan, timelineLines, timelineLeftOut, timelineTotal, unitInRun, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, parseRef, excerptDrift, closedDuplicate, BUILDING_STATES, stagedState, nextUnit, leftForLater, BOARDLESS_STATES, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, EVENTS, SIDECAR, readSidecar, glowMismatch, reconciliation, isNoChange, RECON_WORDS, signedOffParent, registry, headingSlugs, readBlock, findPlans, subIssueBoard, subIssuePlan,parentBoard, fixOfBoard, foldedIn, parentFolder, staleUnitRuns, otherBoards, issueRefs, treeRoot, boardFolders, boardLink, linkRule, viewSource, viewParts, viewBaseHref, viewedFolder, setViewLinks, opt, flag } = require("./lib.js");
 
 const STATUS = ["planned", "building", "built", "abandoned"];
 const STATES = ["pending", "in-progress", "partially-built", "as-planned", "amended", "deviated", "dropped", "deferred", "complete", "landed"];
@@ -470,23 +470,24 @@ function checkPlan(plan, dir, root) {
       const since = Date.parse(w.since || w.updated || "");
       if (since && Date.now() - since > 86400000) warn(`halted since ${w.since || w.updated}: more than a day`);
     }
-    /* the waits on the user (board/timeline-waits): wip.waits, oldest first, each { step, since, ended, by }, written by
-       apply-event.js (lib.js waitSteps()); at most the last one open, and an open one only while the board is stopped */
+    /* the waits on the user (board/timeline-waits; q-102): wip.waits, oldest first, each { step, since, ended, by }, written by
+       apply-event.js (lib.js waitSteps()); at most the last one open, and an open one only while the board records the run waiting on the
+       user (lib.js waitsOnUser()); by the event that marked it, never held to a list of event types */
     if (w.waits != null) {
       if (!Array.isArray(w.waits)) fail("wip.waits is the waits on the user, oldest first: [{ step, since, ended, by }]");
-      else { let prev = null; const stopped = ["halted", "escalated"].includes(w.step);
+      else { let prev = null; const waiting = waitsOnUser(w);
         w.waits.forEach((x, j) => { const a = `wip.waits[${j}]`;
           if (!x || typeof x !== "object" || Array.isArray(x)) { fail(`${a} must be one wait, { step, since, ended, by }`); return; }
           if (!isTime(x.since)) fail(`${a}.since is the ISO date-time the question was put (got ${JSON.stringify(x.since)})`);
           if (x.ended != null && !isTime(x.ended)) fail(`${a}.ended is the ISO date-time the answer came, or null while it waits (got ${JSON.stringify(x.ended)})`);
           if (isTime(x.since) && isTime(x.ended) && Date.parse(x.since) > Date.parse(x.ended)) fail(`${a}: since ${x.since} is after ended ${x.ended}`);
           if (x.step != null && (!STEPS.includes(x.step) || ["halted", "escalated", "cancelled", "landed"].includes(x.step))) fail(`${a}.step is the step the run waited in (got ${JSON.stringify(x.step)})`);
-          if (!WAIT_BY.includes(x.by)) fail(`${a}.by is the signal that marked the wait, one of ${WAIT_BY.join(", ")} (got ${JSON.stringify(x.by)})`);
+          if (!waitByOk(x.by)) fail(`${a}.by is the event that marked the wait (an event's name, or open-points) (got ${JSON.stringify(x.by)})`);
           if (prev && isTime(x.since) && Date.parse(x.since) < Date.parse(prev)) fail(`${a} began ${x.since}, before the wait ahead of it ended (${prev}): the waits run oldest first and never overlap`);
           if (x.ended == null && j < w.waits.length - 1) fail(`${a} is open (no ended) with a wait after it: only the last wait may be open`);
-          if (x.ended == null && !stopped) warn(`${a} is open while the board is not stopped (wip.step ${w.step}): the event that took it out of its stop ends the wait`);
+          if (x.ended == null && !waiting) warn(`${a} is open while the board records no wait on the user (wip.step ${w.step}): the event that took it out of its wait ends the wait`);
           prev = isTime(x.ended) ? x.ended : x.since; });
-        if (stopped && !w.waits.some(x => x && x.ended == null)) warn(`the board is ${w.step} with no open wait in wip.waits: the stop was raised before the waits were recorded; the Timeline takes wip.since as its start`); }
+        if (waiting && !w.waits.some(x => x && x.ended == null)) warn(`the board is ${w.step} with no open wait in wip.waits: the stop was raised before the waits were recorded; the Timeline takes wip.since as its start`); }
     }
     /* the stretches when the run was not running (board/timeline-outages): wip.outages, oldest first, each { step, since, ended,
        reason }, written by apply-event.js (lib.js outageSteps()): closed, in order, overlapping no other, no wait and no visit */
@@ -839,6 +840,10 @@ function checkPanel(plan, w, ids, tracking, dir) {
         if (x.result != null && !["passed", "failed"].includes(x.result)) fail(`${at}.result must be passed or failed`);
         if (x.result != null && x.kind !== "check") fail(`${at}.result is recorded on a stage that is not a check`);
         ["started", "finished"].forEach(k => { if (x[k] != null && !isTime(x[k])) fail(`${at}.${k} must be a UTC ISO time`); });
+        /* a stage built while the run was halted, recorded late (RULES §3, "The late update of an implementation stage"): done, with no finished */
+        if (x.late != null && x.late !== true) fail(`${at}.late is true on a stage recorded late, or left out (got ${JSON.stringify(x.late)})`);
+        if (x.late === true && x.state !== "done") fail(`${at} is recorded late and is ${x.state}: a stage recorded late is done`);
+        if (x.late === true && x.finished != null) fail(`${at} is recorded late, with no time, and records finished ${x.finished}`);
         if (x.report != null && !str(x.report)) fail(`${at}.report must be the stage's closing report`); });
     }
   }

@@ -108,7 +108,7 @@ module.exports = function casesReword(X) {
   guard("apply-event.js reword: refused, nothing written, where the facts fall short, the passage is not the event's, the wording breaks the writers' rule, or the board is past its Document commit", c => {
     const plan = running(), B = lay("refusals", plan), f0 = files(B);
     const no = (name, facts, re, B0, p0) => { const b = B0 || B, pp = p0 || plan, g = files(b), r = apply(b, pp, "reword", facts, NOW);
-      c.push([name, r.a.status === 1 && r.S.result === "failed" && re.test(r.S.error || "") && files(b) === g, js([r.a.status, r.S.result, r.S.error])]); };
+      c.push([name, r.a.status === 3 && r.S.result === "refused" && re.test(r.S.refused || "") && files(b) === g, js([r.a.status, r.S.result, r.S.refused])]); };
     const P = "the request was refused twice before it ran", N = "the request service declined to run it twice";
     no("no event named", { recordedAt: T1, from: P, to: N, reason: "x" }, /no facts.event/);
     no("no recorded time", { event: "implementation-stage", from: P, to: N, reason: "x" }, /no facts.recordedAt/);
@@ -187,24 +187,24 @@ module.exports = function casesReword(X) {
     const r = runSent(B, plan, "reword", W("implementation-stage", T1, P, N), NOW);
     c.push(["a run's reword of its own event applies as the team's does", r.a.status === 0 && r.S.result === "ok" && r.p.wip.stages.every(s => !s.report.includes(P)) && ncorr(r.p) === ncorr(plan) + 1, js([r.S.result, r.S.error])]);
     const g = files(B), r2 = runSent(B, r.p, "reword", W("state-boards", T1, N, P), "2026-11-03T00:01:00Z");
-    c.push(["a run's reword of the team's record: refused", r2.a.status === 1 && /team's record/.test(r2.S.error || "") && files(B) === g, js([r2.S.error])]);
+    c.push(["a run's reword of the team's record: refused", r2.a.status === 3 && r2.S.result === "refused" && r2.S.error == null && /team's record/.test(r2.S.refused || "") && files(B) === g, js([r2.S.refused])]);
     /* a run's retime */
     const p2 = running(); const B2 = lay("run-retime", p2), g2 = files(B2);
     const rt = (facts, at) => runSent(B2, p2, "retime", facts, at || NOW);
     const R = (event, from, to) => ({ event, from, to, reason: "the time the run read when it happened" });
     const n1 = rt(R("implementation-stage", T1, "2026-11-02T10:13:00Z"));
-    c.push(["a run's retime later than the event's arrival can have been (its recorded time plus 2 min): refused", n1.a.status === 1 && /later than implementation-stage's arrival can have been/.test(n1.S.error || "") && files(B2) === g2, js([n1.S.error])]);
+    c.push(["a run's retime later than the event's arrival can have been (its recorded time plus 2 min): refused", n1.a.status === 3 && n1.S.result === "refused" && n1.S.error == null && /later than implementation-stage's arrival can have been/.test(n1.S.refused || "") && files(B2) === g2, js([n1.S.refused])]);
     const n2 = rt(R("implementation-stage", T1, "2026-11-02T10:08Z"));
-    c.push(["a run's retime whose facts.to is no clock reading to the second: refused", n2.a.status === 1 && /no clock reading to the second/.test(n2.S.error || "") && files(B2) === g2, js([n2.S.error])]);
+    c.push(["a run's retime whose facts.to is no clock reading to the second: refused", n2.a.status === 3 && n2.S.result === "refused" && n2.S.error == null && /no clock reading to the second/.test(n2.S.refused || "") && files(B2) === g2, js([n2.S.refused])]);
     const n3 = rt(R("document", "2026-11-02T14:00:00Z", "2026-11-02T13:59:30Z"));
     c.push(["a run's retime of its own event within the bounds applies", n3.a.status === 0 && n3.S.result === "ok", js([n3.S.error])]);
     const p4 = running(); p4.wip.event = { name: "landing", at: "2026-11-02T15:00:00Z" }; p4.wip.step = "landing"; p4.wip.since = "2026-11-02T15:00:00Z"; p4.wip.updated = "2026-11-02T15:00:00Z";
     p4.wip.document.tasks.forEach(t => { t.state = "done"; t.finished = "2026-11-02T14:30:00Z"; }); p4.wip.history.document.push({ since: T4, ended: "2026-11-02T15:00:00Z", endedBy: "landing", to: "landing" });
     const B4 = lay("run-retime-land", p4), g4 = files(B4), n4 = runSent(B4, p4, "retime", R("implementation-stage", T1, "2026-11-02T10:09:00Z"), NOW);
-    c.push(["a run's retime once its land is sent: refused", n4.a.status === 1 && /land has been sent/.test(n4.S.error || "") && files(B4) === g4, js([n4.S.error])]);
+    c.push(["a run's retime once its land is sent: refused", n4.a.status === 3 && n4.S.result === "refused" && n4.S.error == null && /land has been sent/.test(n4.S.refused || "") && files(B4) === g4, js([n4.S.refused])]);
     const p5 = running(); p5.wip.history.document.push({ since: T4, ended: "2026-11-02T13:30:00Z", endedBy: "state-boards", to: "document", event: { name: "state-boards", at: "2026-11-02T13:30:00Z" } });
     const B5 = lay("run-retime-team", p5), g5 = files(B5), n5 = runSent(B5, p5, "retime", R("state-boards", "2026-11-02T13:30:00Z", "2026-11-02T13:29:00Z"), NOW);
-    c.push(["a run's retime of the team's record: refused", n5.a.status === 1 && /state-boards is the team's record/.test(n5.S.error || "") && files(B5) === g5, js([n5.S.error])]);
+    c.push(["a run's retime of the team's record: refused", n5.a.status === 3 && n5.S.result === "refused" && n5.S.error == null && /state-boards is the team's record/.test(n5.S.refused || "") && files(B5) === g5, js([n5.S.refused])]);
     /* the team's retime, asked for by a board correction, keeps its own reach: a later time, past the run's bound */
     const t1 = apply(B2, n3.p, "retime", R("implementation-stage", T1, "2026-11-02T10:13:00Z"), NOW);
     c.push(["the team's retime (no --arrived) keeps its reach: a time later than the run's bound applies", t1.a.status === 0 && t1.S.result === "ok", js([t1.S.error])]);

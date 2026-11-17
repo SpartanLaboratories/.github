@@ -40,7 +40,8 @@
 // Writes only the issue's board files, its parent tracking board's files and docs/plans/.live/; never git, never a commit, never the
 // committed repository work board. Every file is written through a temporary file and a rename, and on any failure every file it wrote is put
 // back as it was: exit 1, nothing changed. Exit 0 when applied, or when the event was already applied (the same event twice changes
-// nothing); exit 2 on a usage error.
+// nothing); exit 2 on a usage error; exit 3 when a retime or reword is refused, nothing written: a refusal, not a failure (apply-event: refused,
+// the reason on the refused line; the team replies rejected with it, the user's decision q-99).
 // A sized on a folder with no board lays the foundation itself and then applies the event to it (plan/RULES.md §4, "The foundation"; layFoundation(),
 // lib.js foundationPlan()), so the board can be opened within seconds of the run's start: the title, the issue's title and the function from
 // the event, the issue on the tracker (not with --no-gh), the parent's unit row or the registry, each from the first that tells it; what none
@@ -95,7 +96,9 @@
 // with their stages by the event that opens the pass (sized, researched, resumed); plan-stage (facts.stage, facts.detail) opens a stage and closes
 // the one before it, one trail line, the stage already open writing nothing (read before any refusal); late-update (facts.event plan-stage,
 // facts.stage, facts.detail, no facts.at and no --at) records a stage passed over with no time, moving only wip.updated; plan-accepted closes
-// them. A refused plan-stage or late-update writes nothing, and no fill writes it either: the summary says enrich: no. A tracking board's
+// them. A late-update with facts.event implementation-stage and facts.stages records an implementation stage built while the run was halted, the
+// same way: done with no time (late: true), the other stages' states from facts.stages, the Rows' as-built states derived, the step unmoved
+// (plan/RULES.md §3, "The late update of an implementation stage"). A refused plan-stage or late-update writes nothing, and no fill writes it either: the summary says enrich: no. A tracking board's
 // architecture step runs as four architecture stages (plan/RULES.md §3, "A multi-system run's architecture step"; wip.architecture): seeded at
 // researched, moved by the same two events read at that step, report closed and write consequences opened by architecture-signed-off, the board
 // staying at its architecture step until plan-accepted closes them, clears them and moves it on.
@@ -127,7 +130,7 @@ const RUN_SENT = ARRIVED != null;
 if (ARRIVED != null && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.test(ARRIVED) || isNaN(Date.parse(ARRIVED)))) { console.error(`${USAGE}\n(--arrived takes the request's arrival time as an ISO time with its zone, e.g. 2026-11-09T14:03:27Z; got ${JSON.stringify(ARRIVED)})`); process.exit(2); }
 
 /* the summary, printed at the end whatever happens */
-const S = { result: null, event: null, arrival: null, unread: [], verdicts: null, issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0, unfinished: null };
+const S = { result: null, refused: null, event: null, arrival: null, unread: [], verdicts: null, issue: null, board: null, laid: null, applied: [], enrich: [], rerendered: [], wrote: [], view: [], seeded: [], parent: null, live: null, check: null, warnings: [], defects: [], error: null, restored: 0, unfinished: null };
 /* the fast path's own warnings: printed under "warnings" and counted on the check line */
 const WARNINGS = S.warnings;
 /* the summary's verdicts line at plan-accepted (plan/RULES.md §4, "The verdicts at plan acceptance"): what facts.verdicts wrote and what it
@@ -148,9 +151,9 @@ const say = () => {
   /* the facts the event carried and did not read (unreadFacts()): only once it applied, when every path it takes has read what it reads */
   S.unread = S.result === "ok" ? unreadFacts() : [];
   if (S.warnings.length && S.check && !/fast-path warning/.test(S.check)) S.check += ` · ${S.warnings.length} fast-path warning${S.warnings.length === 1 ? "" : "s"} (below)`;
-  const enrich = S.enrich.length ? "yes" : "no", noWork = S.unfinished ? "no enrichment: the run reports those tasks' true states and the event is raised again" : S.result === "failed" && NO_FILL ? NO_FILL : "the event's facts decide everything it writes";
+  const enrich = S.enrich.length ? "yes" : "no", noWork = S.unfinished ? "no enrichment: the run reports those tasks' true states and the event is raised again" : S.result === "refused" ? CORRECTION_REFUSED : S.result === "failed" && NO_FILL ? NO_FILL : "the event's facts decide everything it writes";
   if (flag("json")) { console.log(JSON.stringify({ ...S, enrich, why: S.enrich.length ? S.enrich : [noWork] })); return; }
-  const L = [["apply-event", S.result], ["event", S.event], ["arrival", S.arrival], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board], ["laid", S.laid],
+  const L = [["apply-event", S.result], ["refused", S.refused], ["event", S.event], ["arrival", S.arrival], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board], ["laid", S.laid],
     ["applied", S.applied.join("; ") || "nothing"], ["verdicts", S.verdicts ? verdictsLine(S.verdicts) : null], ["unread", S.unread.length ? `${S.unread.map(k => "facts." + k).join(", ")} (carried by the event and not read by it: nothing on the board came from ${S.unread.length === 1 ? "it" : "them"})` : null], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : noWork],
     ["rerendered", S.rerendered.join(", ") || "none"], ["wrote", S.wrote.join(", ") || "nothing"], ["view", VIEWING ? S.view.join(", ") || "nothing" : null], ["seeded", S.seeded.length ? S.seeded.join(", ") : null], ["parent", S.parent || "none"], ["live", S.live || "untouched"],
     ["check", S.check || "not run"], ["warnings", S.warnings.length ? S.warnings.map(w => "warn " + w).join(" | ") : null], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["unfinished", S.unfinished ? S.unfinished.join(", ") : null], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
@@ -738,7 +741,62 @@ function applyEvent(orig, ev, facts, req, now) {
        architecture stages ("A multi-system run's architecture step"). */
     case "plan-stage": case "late-update": {
       const late = ev === "late-update", said = typeof facts.stage === "string" ? facts.stage.trim() : "";
-      if (late && (typeof facts.event !== "string" || facts.event.trim() !== "plan-stage")) refuse(`late-update: facts.event names the event the update records late, plan-stage (got ${JSON.stringify(facts.event == null ? null : facts.event)})`);
+      if (late && (typeof facts.event !== "string" || !["plan-stage", "implementation-stage"].includes(facts.event.trim()))) refuse(`late-update: facts.event names the event the update records late, plan-stage or implementation-stage (got ${JSON.stringify(facts.event == null ? null : facts.event)})`);
+      /* An implementation stage built while the run was halted for its implementation, recorded late (plan/RULES.md §3, "The late update of an
+         implementation stage"; the run's pauses for the user to build, the user's decisions scheme/noimpl): the stage done with late: true and no
+         finished, its report the detail, its steps done with it (a done stage's steps are drawn done); every other stage's state from
+         facts.stages, a stage it turns done recorded late too, the stage it makes current with no started (it became current when the stage
+         before it was built, at a time not recorded); the touched Rows' as-built states as an implementation-stage derives them; the step
+         unmoved, no trail line, no wip.event, no wip.detail, wip.updated alone moving (below). Refused, nothing written, off the implementation
+         step, on a tracking board or a board with no wip.stages, for a stage or a facts.stages entry the board does not know, without
+         facts.stages, with facts.remediation (a fix pass the user finished is closed by the run's implementation-stage), and for a stage
+         recorded done with a time. A second late update of the same stage replaces its report. */
+      if (late && facts.event.trim() === "implementation-stage") {
+        if (!said) refuse("late-update carries no facts.stage, the implementation stage it records");
+        if (["built", "abandoned"].includes(plan.status) || ["landed", "cancelled"].includes(w.step)) refuse(`late-update: the board has ${plan.status === "abandoned" || w.step === "cancelled" ? "been cancelled" : "landed"}, and a closed board is kept as it closed`);
+        if (tracking) refuse("late-update: a tracking board keeps no implementation stages (its build is its units' runs): an implementation stage is recorded late on its unit's own board");
+        const at = stopped(w.step) ? w.resume : w.step;
+        if (at !== "implementation") refuse(`late-update: the board stands at ${at || "no step"}${stopped(w.step) ? ` (${w.step}, to resume there)` : ""}, not at its implementation step: an implementation stage is recorded late only there`);
+        const have = Array.isArray(w.stages) ? w.stages.filter(x => x && typeof x === "object") : [];
+        if (!have.length) refuse("late-update: this board records no implementation stages (wip.stages): nothing to record late");
+        const X0 = have.find(x => x.id === said);
+        if (!X0) refuse(`late-update: ${JSON.stringify(said)} is no implementation stage of this board (its stages: ${have.map(x => x.id).join(", ")})`);
+        if (facts.remediation != null) refuse("late-update: a fix pass the user finished is closed by the run's implementation-stage with facts.remediation, sent after its check at its own time; a late update records an implementation stage alone");
+        if (!Array.isArray(facts.stages) || !facts.stages.length) refuse("late-update: a late update of an implementation stage carries facts.stages, every stage's id and name with its state as it then stands");
+        const off = facts.stages.filter(s => !s || typeof s.id !== "string" || !have.some(x => x.id === s.id.trim()));
+        if (off.length) refuse(`late-update: facts.stages names ${off.map(s => JSON.stringify(s && s.id != null ? s.id : null)).join(", ")}, no stage of this board: a late update records the stages the board holds (a revised stage table comes with an implementation-stage)`);
+        const mine = facts.stages.find(s => s.id.trim() === said);
+        if (!mine || mine.state !== "done") refuse(`late-update: facts.stages gives ${said} as ${mine ? JSON.stringify(mine.state) : "nothing"}: the stage a late update records is done`);
+        if (X0.state === "done" && X0.late !== true) refuse(`late-update: ${said} is recorded done already${X0.finished ? ` (finished ${X0.finished})` : ""}: a late update records only a stage built while the run was halted`);
+        const before = JSON.parse(JSON.stringify(have)), was = JSON.stringify(w.stages);
+        mergeStages(w, factsWith(facts, { stages: facts.stages.map(s => ({ ...s, id: s.id.trim() })) }), applied, enrich, false, ids, false, { now: null, report: null, txt });
+        const st = Array.isArray(w.stages) ? w.stages : [], X = st.find(x => x.id === said);
+        st.forEach(x => { const b = before.find(y => y.id === x.id) || {};
+          if (x.state === "done" && (b.state !== "done" || b.late === true)) { x.late = true; delete x.finished; }
+          if (x.state === "current" && b.state !== "current") delete x.started; });
+        if (detail) X.report = detail; else if (X0.late === true && X0.report) X.report = X0.report; else delete X.report;
+        /* each stage's fields in the order every merge writes them (STAGE_KEEP), so the same late update twice reads the same board */
+        w.stages = st.map(x => { const o = { id: x.id, name: x.name, state: x.state, rows: x.rows }; STAGE_KEEP.forEach(k => { if (x[k] != null) o[k] = x[k]; }); Object.keys(x).forEach(k => { if (!(k in o)) o[k] = x[k]; }); return o; });
+        if (JSON.stringify(w.stages) === was) return { plan: orig, applied, enrich, parentOp: null, unchanged: true, said: `the implementation stage ${said} is recorded late already with that report: nothing written` };
+        const fresh = st.filter(x => x.state === "done" && !before.some(y => y.id === x.id && y.state === "done")), cur = st.find(x => x.state === "current");
+        const withIt = fresh.filter(x => x.id !== said).map(x => x.id);
+        applied.push(`wip.stages: ${said} done, recorded late with no time${X0.late === true ? " (its report replaced)" : ""}${withIt.length ? `; ${withIt.join(", ")} done with it, late` : ""}${cur ? `; ${cur.id} current${cur.started ? "" : ", its start not recorded"}` : ""}`);
+        /* the derived as-built states, as an implementation-stage writes them (plan/RULES.md §2, "Before the outcome") */
+        rows.forEach(r => {
+          const s = lib.stagedState(plan, r), had = lib.recordedState(r);
+          if (!s || s === had || !["pending", ...lib.BUILDING_STATES].includes(had)) return;
+          if (s === "partially-built" && !(r.asBuilt && typeof r.asBuilt.summary === "string" && r.asBuilt.summary.trim())) { enrich.push(`${r.id} is partially built and has no summary yet`); return; }
+          r.asBuilt = { ...(r.asBuilt || {}), state: s }; applied.push(`${r.id} ${s}`);
+        });
+        if (plan.status === "planned") { plan.status = "building"; applied.push("status building"); }
+        const touched = [...new Set(fresh.flatMap(x => x.rows || []))].filter(id => ids.has(id));
+        if (fresh.length) enrich.push(`stage${fresh.length > 1 ? "s" : ""} ${fresh.map(x => x.id).join(", ")} done, recorded late: the summaries and outcomes of ${touched.length ? touched.join(", ") : "the rows they touch"}, and any deviation from final-implementation.md, come from the documents`);
+        else if (X0.late === true) enrich.push(`stage ${said}'s report replaced by a second late update: the rows it touched read as before`);
+        /* the step stays where it is; at implementation (not stopped) its FullPulse follows the stage now current, as an implementation-stage's does */
+        if (!stopped(w.step)) setGlow("implementation");
+        detail = w.detail || null; note = null;
+        break;
+      }
       if (!said) refuse(`${ev} carries no facts.stage, the plan stage it ${late ? "records" : "opens"} (re-pass, write, check, consequences or report)`);
       /* on a tracking board the stages are its architecture stages (wip.architecture), read by the step the board stands at */
       const noun = tracking ? "architecture stage" : "plan stage", where = tracking ? "wip.architecture.stages" : "wip.plan.stages";
@@ -1319,7 +1377,7 @@ function recordPlanMerge(plan, w, facts, applied, txt) {
 /* A stage's result (a stage of kind check): facts.stages[i].result, or facts.result when this event finishes that one stage: what its closing event reports, "passed" or "failed" (green or red, plan/RULES.md §3); nothing else is read. */
 const RESULT_OF = v => { const t = String(v == null ? "" : v).trim().toLowerCase(); return /^(pass|passed|ok|green|good|success|succeeded)$/.test(t) ? "passed" : /^(fail|failed|red|bad|failure)$/.test(t) ? "failed" : null; };
 /* Stage fields a merge keeps: copied at branch-cut from the plan's stage table (brief, kind, steps, ref), recorded from the events (started, finished, report, result). */
-const STAGE_KEEP = ["brief", "kind", "steps", "ref", "started", "finished", "report", "result"];
+const STAGE_KEEP = ["brief", "kind", "steps", "ref", "started", "finished", "report", "result", "late"];
 /* The brief goes on the board as the plan writes it, or not at all: a plan's text that names a sizing, an internal name or an older pass wording is the plan's to reword, never reworded here (GUIDANCE.md §4). */
 const stageNope = s => levelRefs(s).length ? "a grade" : nameRefs(s).some(unambiguous) ? "an internal name" : lib.passRefs(s).length ? "an older wording of a review" : null;
 const tableFields = (T, enrich) => lib.stageTableFields(T, stageNope, enrich);
@@ -2180,7 +2238,13 @@ async function unitLanded(now, req, facts) {
 const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.execPath, [file, ...a], { cwd, windowsHide: true }); let o = "", e = "";
   c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => res({ status: s, stdout: o, stderr: e })); c.on("error", x => res({ status: 1, stdout: o, stderr: String(x) })); });
 
-let DIR = null, ROOT = null, MAIN = null, LAY_HINT = null, EV = null, NO_FILL = null;
+let DIR = null, ROOT = null, MAIN = null, LAY_HINT = null, EV = null, NO_FILL = null, CORRECTION = null;
+/* A correction the script refuses is a refusal, not a failure (the user's decision q-99, console/q99-correction-refusal/answer; PROTOCOL.md,
+   the plan-board facts; the admin team's brief, the plan-board row): a retime or a reword whose request the rules refuse writes nothing, and the
+   team replies rejected with the refusal as its reason, raising nothing again and asking no fix. So it is reported apart: apply-event: refused, the
+   reason on the refused line (in --json, the refused field), enrich: no, and exit 3. A failure (exit 1) stays a failure: something the script
+   could not do, for the presenter to fix. */
+const CORRECTION_REFUSED = "a refused correction writes nothing, and no fill writes it: the refusal is the reason of the rejected reply";
 /* why a plan-accepted's facts.verdicts were not written, when the board's check failed with them and the event was applied without them
    (plan/RULES.md §4, "The verdicts at plan acceptance": never a failed event) */
 let VERDICTS_DROPPED = null;
@@ -2322,7 +2386,8 @@ async function main() {
   if (lib.RETIRED_EVENTS.includes(ev)) refuse(`${ev} is retired: a unit's board is laid at its own sized, never ahead of its run`);
   if (!lib.EVENTS.includes(ev)) refuse(`the request names no plan-board event (got ${JSON.stringify(ev || null)}; one of ${lib.EVENTS.join(", ")})`);
   /* a refused plan-stage or late-update leaves the board as it was, and no fill writes the stages either (plan/RULES.md §3: apply-event.js alone) */
-  if (["plan-stage", "late-update"].includes(ev)) NO_FILL = `a ${ev} the fast path refuses writes nothing, and no fill writes the plan stages: the refusal is the run's to read`;
+  if (["retime", "reword"].includes(ev)) CORRECTION = ev;
+  if (["plan-stage", "late-update"].includes(ev)) NO_FILL = `a ${ev} the fast path refuses writes nothing, and no fill writes the ${ev === "late-update" && typeof raw.event === "string" && raw.event.trim() === "implementation-stage" ? "implementation" : "plan"} stages: the refusal is the run's to read`;
   if (ev === "late-update" && opt("at")) refuse(`late-update carries no time and is given none: raised with --at ${opt("at")}, it is refused (raise it with --arrived alone, as every event of the run's)`);
   if (ev === "late-update" && raw.at != null) refuse(`late-update carries no facts.at (got ${JSON.stringify(raw.at)}): a stage passed over is recorded with no time; a stage the run can time is sent as a plan-stage`);
   if (ev === "reseed") {
@@ -2564,6 +2629,12 @@ async function main() {
 }
 
 main().then(() => { say(); process.exit(0); }, e => {
+  /* a retime or reword the rules refuse: a refusal, exit 3, nothing written (CORRECTION_REFUSED, above) */
+  if (CORRECTION && e instanceof Refusal) {
+    S.result = "refused"; S.refused = e.message;
+    try { rollback(); } catch (x) { S.result = "failed"; S.refused = null; S.error = `${e.message}; the rollback failed: ${x.message}`; S.enrich.splice(0, S.enrich.length, "the event was not applied: the presenter applies it"); say(); process.exit(1); }
+    S.enrich.splice(0, S.enrich.length); say(); process.exit(3);
+  }
   S.result = "failed"; S.error = e.message;
   try { S.restored = rollback(); } catch (x) { S.error += `; the rollback failed too: ${x.message}`; }
   /* an unfinished Document step is the run's to report, not a defect for a fill (mergeTasks()) */
