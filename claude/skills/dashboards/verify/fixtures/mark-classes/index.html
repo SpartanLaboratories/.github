@@ -922,6 +922,9 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 .legend i.progk.stale{opacity:.55}
 /* the Context's legend (GUIDANCE.md §2): the encodings its cards draw */
 .context>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
+/* the Context's Ideas Card (plan/RULES.md §2): an idea's kind as a Tag; an idea has no state, so the Tag holds no colour */
+.tag-kind{display:inline-block;font:700 9.5px/1 var(--mono);letter-spacing:.06em;padding:3px 5px;border-radius:3px;border:1px solid var(--ink-2);color:var(--ink-2);background:var(--surface);white-space:nowrap;vertical-align:1px;text-transform:uppercase}
+.idea-card .nm{overflow-wrap:anywhere}
 /* an archived system holds no colour (GUIDANCE.md §1): neutral through --muted, solid, faded */
 .sys-archived{opacity:.6;filter:saturate(.35)}
 </style>

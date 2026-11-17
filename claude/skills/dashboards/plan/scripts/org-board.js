@@ -19,19 +19,34 @@
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const lib = require("./lib.js"), N = require("../../system/scripts/namerefs.js");
-const args = process.argv.slice(2);
-require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node org-board.js [--root <checkout>] [--checkouts <folder>] [--config <repositories.json>] [--live-only]\nRegenerates the org work board's committed snapshot and its live view; --live-only, the live view alone.", valued: ["root", "checkouts", "config"], flags: ["live-only"], max: 0 });
-let root; try { root = lib.repoRoot(args); } catch (e) { console.error(e.message); process.exit(2); }
-const LIVE_ONLY = args.includes("--live-only");
-const SNAP_DIR = path.join(root, "docs", "plans", "org-work-board"), LIVE_DIR = path.join(root, "docs", "plans", ".live", "org-work-board");
-const named = lib.opt(args, "checkouts", null), SIBLINGS = named ? path.resolve(named) : path.dirname(root);
-if (named && !fs.statSync(SIBLINGS, { throwIfNoEntry: false })?.isDirectory()) { console.error(`--checkouts: ${SIBLINGS} is not a folder`); process.exit(2); }
+/* the run's settings, read from its arguments by init() when it runs as a command (a script that requires this file for its exports
+   reads none) */
+let args, root, LIVE_ONLY, SNAP_DIR, LIVE_DIR, named, SIBLINGS, CONFIG;
+function init() {
+  args = process.argv.slice(2);
+  require("../../system/scripts/cliargs.js").strict(args, { usage: "usage: node org-board.js [--root <checkout>] [--checkouts <folder>] [--config <repositories.json>] [--live-only]\nRegenerates the org work board's committed snapshot and its live view; --live-only, the live view alone.", valued: ["root", "checkouts", "config"], flags: ["live-only"], max: 0 });
+  try { root = lib.repoRoot(args); } catch (e) { console.error(e.message); process.exit(2); }
+  LIVE_ONLY = args.includes("--live-only");
+  SNAP_DIR = path.join(root, "docs", "plans", "org-work-board"); LIVE_DIR = path.join(root, "docs", "plans", ".live", "org-work-board");
+  named = lib.opt(args, "checkouts", null); SIBLINGS = named ? path.resolve(named) : path.dirname(root);
+  if (named && !fs.statSync(SIBLINGS, { throwIfNoEntry: false })?.isDirectory()) { console.error(`--checkouts: ${SIBLINGS} is not a folder`); process.exit(2); }
+  CONFIG = lib.opt(args, "config", path.resolve(__dirname, "..", "template", "org-board.repositories.json"));
+}
 /* where the live view finds the checkouts, relative to it (a file URL across drives), only when they are not the root's siblings: never in the committed data */
 const siblingsHref = () => { if (!named || path.relative(path.dirname(root), SIBLINGS) === "") return null; const rel = path.relative(LIVE_DIR, SIBLINGS);
   return (path.isAbsolute(rel) ? require("url").pathToFileURL(SIBLINGS).href : rel.split(path.sep).join("/")).replace(/\/?$/, "/"); };
-const CONFIG = lib.opt(args, "config", path.resolve(__dirname, "..", "template", "org-board.repositories.json"));
 const TEMPLATE = path.resolve(__dirname, "..", "template", "org-board.html");
-const SCHEMA = "org-work-board/1";
+/* org-work-board/2 adds the Ideas Panel's ideas (plan/RULES.md §10); a /1 file reads alike, with none */
+const SCHEMA = "org-work-board/2";
+/* The organization's ideas file beside the committed board (GUIDANCE.md §13, "The ideas files"), as the Ideas Panel shows it: each
+   idea's id, kind, text, concerns and issue (never its source, which names a Whiteboard's element); [] where there is none. A file that
+   does not pass its check stops the generation, as nothing on the board may come from it unchecked. */
+function orgIdeas(privates) {
+  const file = path.join(SNAP_DIR, "ideas.json"); if (!fs.existsSync(file)) return [];
+  const I = require("./ideas.js"), d = I.read(file), P = I.problems(d, { org: true, privates });
+  if (P.length) throw new Error(`docs/plans/org-work-board/ideas.json does not pass its check (${P.slice(0, 3).join("; ")}): nothing written`);
+  return d.ideas.map(i => ({ id: i.id, kind: i.kind, text: i.text, concerns: i.concerns || [], ...(i.issue != null ? { issue: i.issue } : {}) }));
+}
 
 /* GitHub, read only. DASHBOARDS_GH names another gh command (a .js file is run with node; verify/ uses it to stand in for GitHub). */
 const ghBin = process.env.DASHBOARDS_GH || "gh", ghVia = /\.js$/i.test(ghBin);
@@ -110,7 +125,8 @@ function listRepos(cfg) {
    that is a plain word (a repository named Support), which alone reads as the word and is left. Returns the text as written and how many it elided. */
 function elidePrivate(text, privates) {
   const names = [...privates].map(k => k.split("/")), e = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const strong = names.flatMap(([o, n]) => [new RegExp(`(?<![\\w.-])${e(o)}/${e(n)}(?![\\w.-])`, "g"), new RegExp(`(?<![\\w.-])${e(n)}#\\d+`, "g"), ...(/[a-z][A-Z]/.test(n) ? [new RegExp(`\\b${e(n)}\\b`, "g")] : [])]);
+  /* a name's end: no name character after it, a full stop that ends the sentence included ("… owner/name.") */
+  const strong = names.flatMap(([o, n]) => [new RegExp(`(?<![\\w.-])${e(o)}/${e(n)}(?![\\w-]|\\.[\\w-])`, "g"), new RegExp(`(?<![\\w.-])${e(n)}#\\d+`, "g"), ...(/[a-z][A-Z]/.test(n) ? [new RegExp(`\\b${e(n)}\\b`, "g")] : [])]);
   if (!strong.some(re => { re.lastIndex = 0; return re.test(text); })) return { text, n: 0 };
   let s = text, n = 0;
   strong.forEach(re => { s = s.replace(re, () => { n++; return "…"; }); });
@@ -128,7 +144,7 @@ function elideAll(v, privates, seen) {
 function privateRefs(text, privates) {
   const out = [];
   privates.forEach(key => { const [owner, name] = key.split("/"), e = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const forms = [`(?<![\\w.-])${e(owner)}/${e(name)}(?![\\w.-])`, `(?<![\\w.-])${e(name)}#\\d`, `"(?:repo|repository|name)":\\s*"${e(name)}"`];
+    const forms = [`(?<![\\w.-])${e(owner)}/${e(name)}(?![\\w-]|\\.[\\w-])`, `(?<![\\w.-])${e(name)}#\\d`, `"(?:repo|repository|name)":\\s*"${e(name)}"`];
     if (/[a-z][A-Z]/.test(name)) forms.push(`\\b${e(name)}\\b`);
     if (new RegExp(forms.join("|")).test(text)) out.push(key); });
   return out;
@@ -153,6 +169,7 @@ function writeBoard(dir, data) {
 }
 
 function main() {
+  init();
   const cfg = JSON.parse(fs.readFileSync(CONFIG, "utf8")), generated = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   /* who is on GitHub first, so a private repository is known before any board is read */
   const listed = listRepos(cfg), privates = new Set(listed.filter(x => x.visibility !== "PUBLIC").map(x => x.nameWithOwner));
@@ -165,7 +182,7 @@ function main() {
   pub.filter(x => x.isArchived).forEach(x => notShown.push(entry(x, "archived")));
   pub.filter(x => !x.isArchived && refOnly.has(x.nameWithOwner.split("/")[1])).forEach(x => notShown.push(entry(x, "reference only")));
   const unaccounted = pub.filter(x => !shown.has(x.nameWithOwner) && !notShown.some(e => e.repository === x.nameWithOwner)).map(x => x.nameWithOwner);
-  const board = { schema: SCHEMA, organization: cfg.owner, url: cfg.url, generated, repositories, organizations, notShown };
+  const board = { schema: SCHEMA, organization: cfg.owner, url: cfg.url, generated, repositories, organizations, notShown, ideas: orgIdeas(privates) };
   /* nothing is written until the whole board reads clean of the private repositories */
   const sib = siblingsHref(), liveBoard = { ...board, live: true, ...(sib ? { siblings: sib } : {}) }, hits = privateRefs(JSON.stringify(liveBoard), privates);
   if (hits.length) throw new Error(`the board would name a private repository (${hits.length}): nothing written; find where the data names it`);
@@ -180,5 +197,6 @@ function main() {
     notShown: notShown.map(x => x.repository), unaccounted, check: checked }, null, 2));
   process.exit(checked.some(c => c.status !== 0) ? 1 : 0);
 }
+/* the exports are set before main() runs: the ideas check it calls reads privateRefs() from this file (companions/scripts/wblib.js) */
+module.exports = { repoPath, localPath, privateRefs, elidePrivate, SCHEMA };
 if (require.main === module) { try { main(); } catch (e) { console.error(`org-board: ${e.message}`); process.exit(1); } }
-module.exports = { repoPath, localPath, privateRefs, elidePrivate };

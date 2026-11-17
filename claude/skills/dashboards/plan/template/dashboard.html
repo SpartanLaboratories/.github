@@ -923,6 +923,9 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 .legend i.progk.stale{opacity:.55}
 /* the Context's legend (GUIDANCE.md §2): the encodings its cards draw */
 .context>.legend{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;margin-top:10px}
+/* the Context's Ideas Card (plan/RULES.md §2): an idea's kind as a Tag; an idea has no state, so the Tag holds no colour */
+.tag-kind{display:inline-block;font:700 9.5px/1 var(--mono);letter-spacing:.06em;padding:3px 5px;border-radius:3px;border:1px solid var(--ink-2);color:var(--ink-2);background:var(--surface);white-space:nowrap;vertical-align:1px;text-transform:uppercase}
+.idea-card .nm{overflow-wrap:anywhere}
 /* an archived system holds no colour (GUIDANCE.md §1): neutral through --muted, solid, faded */
 .sys-archived{opacity:.6;filter:saturate(.35)}
 </style>
@@ -3084,6 +3087,10 @@ function renderContext(){
   else cards.push(`<div class="card"><h3>Roadmap</h3><p class="lede">No roadmap item claims #${esc(PLAN.issue)}: it has no tracking parent. The ${wbLink("repository work board")} and the ${linkOr(sharedLink("repoBoard"),"repository state board")} show the roadmap.</p></div>`);
   const fu=PLAN.followUps||[];
   cards.push(`<div class="card"><h3>Follow-ups and related issues <small>${fu.length}</small></h3>${fu.length?`<ul class="issues">${fu.map(f=>(f.issue?`<li><span class="nm">${f.title?`${pair(f.issue,f.title,f.repo,1)}${f.note?` — ${rich(f.note)}`:""}`:`${ilink(f.issue,f.repo)}${boardOf(f.issue,f.repo)?` ${ghlink(f.issue,f.repo)}`:""}${f.note?` — ${rich(f.note)}`:""}`}</span></li>`:`<li><span class="nm"><code>${esc(f.name||"")}</code> <small>not filed</small> — ${rich(f.note||"")}</span></li>`)).join("")}</ul>`:`<p class="lede">None recorded.</p>`}</div>`);
+  /* the Ideas Card (plan/RULES.md §2): the repository's ideas that name this issue, each with its kind as a Tag, its text in its sender's
+     words and the parts it concerns; no state, owner, date or priority; no Card where none names it */
+  const ideas=Array.isArray(PLAN.ideas)?PLAN.ideas:[];
+  if(ideas.length) cards.push(`<div class="card idea-card"><h3>Ideas <small>${plural(ideas.length,"idea")} naming #${esc(PLAN.issue)}</small></h3><ul class="issues">${ideas.map(i=>`<li><span class="nm"><span class="tag-kind">${esc(i.kind)}</span> ${esc(i.text)}${(i.concerns||[]).length?` <small>concerns ${(i.concerns||[]).map(c=>`<code>${esc(c)}</code>`).join(", ")}</small>`:""}</span></li>`).join("")}</ul></div>`);
   /* a stretch when the run was not running is mentioned nowhere: the trail entry an older run-restarted wrote ("Run not
      running for …, not counted") stays in the data and is not drawn */
   const events=[...(PLAN.milestones||[]).map(m=>({date:m.date,phase:m.column,text:`<b>${esc(m.label)}</b>${m.note?` — ${rich(m.note)}`:""}${m.ref?` · ${refHtml(m.ref)}`:""}`})),...(PLAN.trail||[]).filter(t=>!(t&&/^Run not running for /.test(String(t.label||"")))).map(t=>({date:t.date,phase:t.column||"",text:`${rich(t.label||"")}${t.ref?` · ${refHtml(t.ref)}`:""}`}))].map((e,i)=>({...e,i})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))||a.i-b.i);
@@ -3099,6 +3106,7 @@ function renderContext(){
   const cx=$("#context"), ck=[];
   const sws=[...new Set([...cx.querySelectorAll(".sw[data-sys]")].map(e=>e.dataset.sys))]; if(sws.length) ck.push(sysKey(sws));
   if(TRACKING){ const units=ROWS.filter(r=>r.unit); [...new Set(units.map(stateOf))].forEach(k=>ck.push(`<span>${badge(k)} ${esc(STATES[k].desc)}</span>`)); ck.push(runKeys(units)); if(NEXT_ROW&&units.includes(NEXT_ROW)) ck.push(`<span>${TAG_NEXT} the next unit, not started</span>`); }
+  { const KIND={fix:"a proposed fix",improvement:"an improvement",feature:"a feature",exploration:"something to explore",future:"for the future"}; [...new Set(ideas.map(i=>i.kind))].filter(k=>KIND[k]).forEach(k=>ck.push(`<span><span class="tag-kind">${esc(k)}</span> an idea's kind: ${esc(KIND[k])}</span>`)); }
   let kk=document.getElementById("context-key"); const kh=ck.filter(Boolean).join(""); if(!kh){ if(kk) kk.remove(); } else { if(!kk){ kk=document.createElement("div"); kk.className="legend"; kk.id="context-key"; cx.parentElement.appendChild(kk); } kk.innerHTML=kh; paint(kk); }
   /* the footer (GUIDANCE.md §3): what the board corresponds to, what is authoritative, and the columns' rule; nothing more */
   $("#footer").innerHTML=`Corresponds to <code>${esc(FOLDER)}/plan.json</code>. Code and the Markdown beside this board are authoritative on any conflict. Columns 1 to 3 are written once; column 4 records every difference.`;

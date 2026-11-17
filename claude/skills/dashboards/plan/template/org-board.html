@@ -281,6 +281,12 @@ pre.src{margin:0;background:var(--surface-2);border:1px solid var(--line);border
 .card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
 .card h3{font-size:13px;margin:0 0 8px}
 .card h3 small{font-weight:400;color:var(--muted);font-family:var(--mono);font-size:11px}
+/* the Ideas Panel (plan/RULES.md §10): one idea Card per idea of the organization's ideas file, its kind as a Tag; no state, so no colour */
+.ideas-panel{margin-top:18px;border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--surface)}
+.ideas-panel>.repo-head h3{margin:0 0 8px}
+.idea-card p{margin:0;overflow-wrap:anywhere}
+.idea-card p+p{margin-top:6px;font-size:12px;color:var(--ink-2)}
+.tag-kind{display:inline-block;font:700 9.5px/1 var(--mono);letter-spacing:.06em;padding:3px 5px;border-radius:3px;border:1px solid var(--ink-2);color:var(--ink-2);background:var(--surface);white-space:nowrap;vertical-align:1px;text-transform:uppercase}
 .issues{list-style:none;margin:0;padding:0;font-size:12.5px}
 .issues li{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding:5px 0;border-top:1px solid var(--hair);align-items:start}
 .issues span.nm>a:first-of-type,.tbl .t>a:first-child,.grp>th>a:first-child{font-family:var(--mono);color:var(--ink-2)}
@@ -343,6 +349,11 @@ footer code{color:var(--ink-2)}
   <p class="lede" id="repos-lede"></p>
   <div id="repos"></div>
   <div class="legend" id="repos-key"></div>
+  <section class="ideas-panel" id="ideas" aria-labelledby="ideas-h">
+    <div class="repo-head"><h3 id="ideas-h">Ideas <small id="ideas-count"></small></h3></div>
+    <div class="cards" id="ideas-cards"></div>
+    <div class="legend" id="ideas-key"></div>
+  </section>
 </section>
 <section class="view" role="tabpanel" id="p-source" aria-labelledby="t-source" hidden>
   <h2>board.json <small>this board's data, embedded verbatim</small></h2>
@@ -612,6 +623,14 @@ function render(){
   /* the repository Panels, then each sub-organization's Panel */
   $("#repos-key").innerHTML=`<span>Each repository Panel's colours are its own registry's: read a colour inside its Panel, by the Legend at its foot</span>`;
   const treeFocused=treeFocus(); $("#repos").innerHTML=`<p class="repos-lede">${esc(org)} · ${plural((B.repositories||[]).length,"repository","repositories")}</p>${(B.repositories||[]).map(r=>repoPanel(r,3)).join("")}${orgs.map(orgPanel).join("")}`; treeRefocus(treeFocused);
+  /* the Ideas Panel (plan/RULES.md §10): the organization's ideas file, one idea Card each, its kind as a Tag, its text in its sender's words, the
+     repositories or parts it concerns and the issue it names (opening the GitHub issue); no state, owner, date or priority */
+  { const ideas=Array.isArray(B.ideas)?B.ideas:[], KIND={fix:"a proposed fix",improvement:"an improvement",feature:"a feature",exploration:"something to explore",future:"for the future"};
+    const issueLink=s=>{ const m=/^([^/\s]+\/[^#\s]+)#(\d+)$/.exec(String(s||"")); return m?ext(`https://github.com/${m[1]}/issues/${m[2]}`,esc(s)):esc(s||""); };
+    $("#ideas-count").textContent=ideas.length?plural(ideas.length,"idea"):"";
+    $("#ideas-cards").innerHTML=ideas.length?ideas.map(i=>`<div class="card idea-card"><p><span class="tag-kind">${esc(i.kind)}</span> ${esc(i.text)}</p>${(i.concerns||[]).length||i.issue?`<p>${(i.concerns||[]).length?`concerns ${(i.concerns||[]).map(c=>`<code>${esc(c)}</code>`).join(", ")}`:""}${(i.concerns||[]).length&&i.issue?" · ":""}${i.issue?`names ${issueLink(i.issue)}`:""}</p>`:""}</div>`).join(""):`<p class="lede">No idea that spans repositories is recorded.</p>`;
+    const kinds=[...new Set(ideas.map(i=>i.kind))].filter(k=>KIND[k]);
+    $("#ideas-key").innerHTML=kinds.length?kinds.map(k=>`<span><span class="tag-kind">${esc(k)}</span> ${esc(KIND[k])}</span>`).join(""):`<span>the organization's ideas file, docs/plans/org-work-board/ideas.json</span>`; }
   /* the Context (GUIDANCE.md §5): the roadmap and the unscheduled issues of every repository, the boards and documents, the repositories not shown */
   enter(null); const cards=[];
   const perRepo=f=>withData.map(r=>{ enter(r); const body=f(r); enter(null); return body?`<li class="rp"><b>${esc(r.name)}</b><ul class="issues">${body}</ul></li>`:""; }).join("");

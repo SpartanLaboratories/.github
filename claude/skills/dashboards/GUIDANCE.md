@@ -4,7 +4,8 @@
 These rules apply to every board the presenter makes: a system board, a supersystem or
 repository state board, an issue board, a tracking board, the repository work board, the org work board. A
 ruleset (`system/RULES.md`, `plan/RULES.md`) adds to them and never loosens
-them. A change to any of them is weighed for every dashboard type (§11).
+them. A change to any of them is weighed for every dashboard type (§11). The boards' companions, which are
+not boards — the Whiteboards, the ideas files and the published copies — follow §13.
 
 **Dashboards and boards.** The board terms (the umbrella "dashboard", its two groups, each board's name, "board"
 and never "page", the kind ids `plan-board`, `work-board` and `org-work-board`) are in
@@ -324,7 +325,8 @@ carries (`TEST SET BY NUMBER`).
 
 **No internal names** (dashboards-skill/33). Nothing a board shows or its data carries — its text, its Labels, its data blocks, its
 comments, the fixed text of its template — names the pipeline's agents, sessions or roles, refers to the approval flow or states a
-grade (above), as [`nomenclature/internal-names.md`](../../nomenclature/internal-names.md) lists them with what is fine. Say what
+grade (above), as [`nomenclature/internal-names.md`](../../nomenclature/internal-names.md) lists them with what is fine, and
+neither does anything a board hands out of its repository (§13, "What leaves a repository"). Say what
 happened instead: "accepted", "a plan re-pass", "the fixes", "the land is accepted and being merged". Fine on a board as well are the
 steps' own names (research, architecture, plan) and a halt's "waiting on you". How a name the list bars is found, and what only
 resembles one, is the baseline's, [`nomenclature/finding.md`](../../nomenclature/finding.md) ("Matching a term"), which the board
@@ -426,7 +428,8 @@ unit Row is the example: `1. #61 Shared build logic`, where `#61` opens issue 61
 chain node, a "blocked by #n" Pill, a deferred Badge, the "part of #n" Chip — the `#n` opens the
 issue's board when one exists and the GitHub issue while none does. A small "GitHub ↗" link
 sits beside such a lone `#n` only where the board offers no other way to reach the issue, on an issue board (a system board has none, §7). A link
-never points at a file that is not there (`plan/RULES.md` §1).
+never points at a file that is not there (`plan/RULES.md` §1), nor at a private claude.ai page, a Whiteboard or a published copy, which
+no reader but its owner can open (§13).
 
 **Links to the shared boards, and the live views first.** The template-fixed links of every board — the repository work board, the repository state board
 `docs/dashboards/index.html`, a system's board, `docs/plans/README.md` — point only at files that exist: an issue board and the repository work board
@@ -595,7 +598,8 @@ rule that seems wrong is proposed in the report, not changed.
 ## 10. Hygiene
 
 Nothing committed carries a credential, a machine-local path, a user name or personal data.
-Dashboards live in public repositories.
+Dashboards live in public repositories. Nothing the presenter hands out of a repository carries one either:
+a published copy, a Whiteboard's generated part, what a harvest writes (§13).
 
 ## 11. One change, every dashboard type
 
@@ -1043,6 +1047,22 @@ for every type:
   no Verdict column (one Row per run, copied from the boards at each regeneration), nor to the state boards, which are as-is and cite no
   plan.
 
+**The decisions of hook-85** (the user's decisions of 2026-11-14: the Whiteboards, the ideas files and the published copies, §13), weighed for every type:
+
+- **A Whiteboard over the as-built state**: a system Whiteboard beside each system board, a supersystem Whiteboard beside each supersystem board,
+  a repository Whiteboard beside the repository state board, each drawn from the same registry and DSL, and the org Whiteboard beside the org work
+  board, drawn from its data. No board changes for it: a state board stays as-is and names no idea and no Whiteboard (§5), and nothing committed links
+  one. Not to issue boards, tracking boards or the repository work board, which get no Whiteboard of their own: a run's state reaches the Whiteboards
+  as their section in progress, read from its issue board, and the landed state at the landing's refresh.
+- **The ideas files and where they show**: the issue boards and the tracking boards (a tracking issue is an issue an idea may name) show the ideas
+  naming their issue in an Ideas Card in their Context, never in the four columns (`plan/RULES.md` §2); the org work board shows the organization's
+  ideas file as its Ideas Panel (`plan/RULES.md` §10). Not to the system, supersystem and repository state boards: an idea is not the as-built state,
+  and the user's decision placed none on them (the Whiteboards draw the ideas over them instead). Not to the repository work board: no placement was
+  decided for it, and its Rows are runs. Not to a closed work board, which is never re-rendered (`~/.claude/agents/admin-team/presenter.md`,
+  "Closed work boards"): it keeps the Context it closed with.
+- **The published copies**: every type, as committed, a closed work board as it closed; never a live view, whose links are machine-local.
+- **What leaves a repository keeps the boards' rules** (§4, §10): every type's published copy, and every Whiteboard's generated part.
+
 ## 12. Elements — one name per function
 
 Every visible element on a board takes its name from the UI vocabulary,
@@ -1066,3 +1086,172 @@ type word each class carries (`boards.md`, "Board UI"). An option's signature (`
 **CodeBlock** beneath the option's name (`code.codeblock`). A step's files nested by their folders (`plan/RULES.md` §2, "A step's files") draw each file as a CodeLabel and their
 folder lines as plain text; until `ui.md` has terms for the nesting and its folder toggles these rules name them only by what they are. A Row's name, an option's and a title taken from either draw their `` `code` `` spans as CodeLabels wherever they are
 drawn, never as literal backticks; an attribute (an `aria-label`, a `title`) takes the text with its backticks dropped.
+
+## 13. Beside the boards: the Whiteboards, the ideas files and the published copies
+
+Three companions of the boards, none of them a board ([`nomenclature/boards.md`](../../nomenclature/boards.md), "Companions of the boards"):
+the **Whiteboards**, the **ideas files** and the **published copies**. When each is written is the admin team's (its brief, Service: dashboards,
+"Whiteboards", "Ideas files", "Published copies"), how the presenter writes it is its brief's (its whiteboards, ideas and publish modes), and what
+each holds is here. They exist only for the repositories on the org work board (`plan/RULES.md` §10, "What is left out"): no Whiteboard, ideas
+file or published copy for a private, reference-only, archived or `.github` repository. Their scripts are `companions/scripts/` (`whiteboard.js`,
+`publish.js` and `wblib.js`, which both share) and `plan/scripts/ideas.js`.
+
+**What leaves a repository.** §4 (no grade, no internal name) and §10 (no credential, machine-local path, user name or personal data) bind what
+the presenter hands out of a repository as they bind what it commits: a published copy, a Whiteboard's generated part, its section in progress
+included, and what a harvest writes ([`CLAUDE.md`](../../CLAUDE.md), "No internal names in committed content"). A private repository is named on
+none of them, as on the org work board, and none carries a private claude.ai link. The commit scan reads only what is committed, so the writers
+apply these rules on the way out, through one rule, `wblib.js` `textProblems()`: the Whiteboard generator passes every text it draws through
+`cleanText()`, which rewords an internal name or a grade where a safe rewording exists (`namerefs.js`, `levelrefs.js`, as `board.js` does),
+elides a private repository's name and leaves out, naming it, a text that would still break a rule; the ideas writer refuses a text that breaks
+one and never rewords it. Both read the organizations' private repositories from GitHub at each run, and write nothing where they cannot; a published copy is a committed board, which the commit scan has read. No picture of a Whiteboard goes on a committed
+board until a session can export one and the user decides how it meets these rules, so nothing reaches a repository unscanned.
+
+**Links stay on this machine.** A Whiteboard's link and a published copy's are private claude.ai URLs: no committed board, document, data file,
+issue or commit carries one (§5). The admin team keeps both in its state. The presenter lists a repository's Whiteboards in the git-ignored
+`docs/plans/.live/whiteboards.json` of its main checkout, which nothing committed reads: `{"schema": "whiteboards/1", "repo", "whiteboards":
+[{"scope", "title", "link", "lastWrite": {"at", "sha"}}]}`, kept by `whiteboard.js links` (one scope's entry set or removed, the file replaced
+whole, the `.git/info/exclude` line added if it is missing). A published copy's link is not in it.
+
+### The Whiteboards
+
+One private Claude Whiteboard per system in a repository's registry (`docs/dashboards/systems.json`), one per supersystem in it, one per
+repository and one for the organization: the **system**, **supersystem**, **repository** and **org Whiteboard**. Each is made from the account's
+Whiteboard type with `Artifact`, and written and read element by element with `ArtifactData`. A Whiteboard is a view, never a record: nothing
+committed is read from one save a harvest, no step of a run reads one, and a write that fails fails nothing else.
+
+**Its generated part** is the presenter's, and nothing else on it is. `whiteboard.js generate` makes it, reading the repository's files from git
+at the commit (`git show`, `git ls-tree`; never a working tree):
+
+| Whiteboard | Its generated part |
+|---|---|
+| system | the system's parts: its containers and components in its own `workspace.dsl` (else in the repository's, where the system is a container), a container with components drawn as a section; its neighbours, what it works with (a person, another system, a sibling container); and the relationships that touch it |
+| supersystem | its systems, one section each holding that system's parts (a system with no model of its parts, one block with its function), its neighbours, and how they interact, from the supersystem's `workspace.dsl`, each end taken to its system's section |
+| repository | its top-level supersystems, each a section holding its systems, and its top-level systems, each a section holding its parts; its neighbours; and how they interact, from the repository's `workspace.dsl` |
+| org | one section per organization of the org work board, one per repository inside it with its runs in progress, its roadmap and its unscheduled issues, from the board's `board.json`; and a section titled "Ideas across repositories: your space", the free area, whose contents are the user's |
+
+Each generated part carries its **heading**, the Whiteboard's title in the type's title size, and under it its **stamp**, "as-is at `<branch>` @
+`<sha>`" (the org Whiteboard's, "as of" the org work board's date and the commit it was read at), with a line saying that what the user adds
+around it is theirs. A Whiteboard's title, on the board and on its page, is `<repository> · <system or supersystem>`, the repository's name, or the
+organization's. Each carries a **Legend**, a section headed "Legend (generated)" with one sample block for each look it drew (§2). And it carries
+its **notes**: the open issues of the repository work board's data at the commit (`docs/plans/board.json`: its open Rows, its unscheduled issues
+and its open roadmap items), each placed by the system that board gives it; the open follow-ups and known gaps of the landed issues'
+`consequences.md` (or `impact.md`): a list item under a heading that names follow-ups or known gaps, only those under a label that says open where
+the section sorts its items under labels, never one that says it is closed, placed by the systems the issue's board names; and the ideas of the
+ideas file that concern it, each with an arrow to every part it concerns that is drawn. An idea harvested from a note still on that Whiteboard
+gets no note: the user's own stands for it. A note names its issue where it has one, and carries no owner, due date, priority or state. At most
+150 notes are drawn; one more counts the rest.
+
+**The looks**, one mark for each kind of generated part, the type's named colours only, and no colour that stands for a state: a part of what
+the Whiteboard is about, a blue block (on the org Whiteboard, a repository's runs in progress); a neighbour, a white block (on the org Whiteboard,
+a roadmap or the unscheduled issues); a note, a white block outlined in terracotta (people's notes are the type's yellow, a generated note never
+is); a **planned** part, a hollow block, its text opening "planned · ", and a planned relationship a dashed arrow (only an arrow can be dashed
+on a Whiteboard); an archived system, a white block opening "archived · ". A system takes no colour of its own on a Whiteboard: its section's
+title names it.
+
+**The run in progress.** A refresh at a run's event adds, for that run, a section titled "#n `<title>` — in progress as of `<time>`", kept apart
+from the as-is stamp: a block with its step and its detail, and one block per Row (at most 24) with its state, read from the run's issue board in
+its worktree, once, through the rules above. It is drawn on the repository's Whiteboard and on those of the systems the issue names and of the
+supersystems that hold them, one section per run in flight, and leaves when the run lands (the landing's refresh draws the as-built part) or is
+cancelled. A run with no issue board has none; a board that cannot be read twice is left out of this refresh and said.
+
+**The user's part** is everything else: notes, arrows, sketches, sections, and on the org Whiteboard the free area for the ideas that span
+repositories. Nothing generated is laid over it.
+
+**A refresh writes only what it wrote.** `whiteboard.js plan` takes the generated part and the board as read (`ArtifactData` `get` `board/meta`
+and `list` `elements`, each with `out_dir`, into one folder) and writes the batches that bring the board's generated part to it:
+
+- Every generated element's id is the generator's: `gen-` and a stable key from what it draws: `el.<DSL id>`, `sys.<slug>`,
+  `repo.<owner>.<name>`, `org.<owner>`, `issue-<n>`, `fu-<n>-<hash>` and `gap-<n>-<hash>` (a follow-up's and a known gap's, by their text),
+  `idea-<id>`, `run-<n>`, `rel.<from>><to>`, `about.<note>><part>`, `legend`, `title`, `stamp`. A key past the type's 40 characters, or with a
+  character its ids do not take, keeps a readable head and a hash of the whole key, so the id stays the same from refresh to refresh. A refresh
+  finds its own elements by their ids and nothing else: every other element is the user's.
+- It adds, updates, stubs and removes generated elements only. It keeps a generated element's place and size where they stand, since the user
+  may have moved it, and changes only its text, colour, outline and connections (hook-85/P2). What it adds goes where its section now stands,
+  and anything new that would land on a user's element goes, with all that is new, below everything on the board.
+- A generated part that leaves the as-built view while a user's arrow points at it stays as a stub, a white block reading "`<what it was>` —
+  removed at `<sha>`"; with no user's arrow on it, it is removed.
+- It never moves, changes, marks or removes a user's element.
+- `board/meta`: a new Whiteboard's is set (`{v: 1, title, order}`); an existing one's order is merged (the user's elements kept in theirs, a removed
+  one dropped, a new section behind all but the sections, anything else new on top) and written with its title under `if_version`.
+- Every write to an element that exists carries its version as `if_version`, and a creation none. The batches hold at most 50 writes and 1 MiB
+  each, the type's limits a call: sections created first, then what they hold, the arrows, the updates, the removals, and `board/meta` last. On a
+  refused write the presenter reads the board and plans once more, and reports a second refusal.
+- It reads the repository's files from git at its commit, each run's board once as its worktree holds it, and writes only Whiteboards and the
+  links list, replaced whole, so it may run beside any other job of its repository. Two refreshes of one Whiteboard at once are kept apart
+  only by the versions they pin: they are not run together.
+- A session with no viewer on the board claims no ground (`board/claim-…`) and leaves `comments/` and every other `board/` document alone.
+
+How a document reads back from `ArtifactData` (its version beside its fields, or its fields under `data`) is not yet established by a session:
+`wblib.js` `readBoard()` takes either, and the first Whiteboards settle it.
+
+**Before a write.** `whiteboard.js plan` runs the batch check on what it plans, and `whiteboard.js check` runs it alone, with no browser: every
+write is to `elements/gen-…` or `board/meta`, its id 1 to 40 of the type's characters and written once a batch; `if_version` on every element
+that exists and none on a creation; each element a type the type draws, never a note or a sticker (people's), in the colours the type takes for
+it, dashed only if it is an arrow; every text through the rules of "What leaves a repository"; each element at most 200 KB, and the board as the
+batches leave it at most 800 elements and 2 MB, every generated arrow's ends on it. A plan that fails is not written.
+
+**When** (in which job and lane, and at which commit, is the admin team's brief's, Service: dashboards, Presenter lanes and Whiteboards). Every
+refresh is a `whiteboards` job of its own, riding no other job. After every landing in a repository on the org work board, once it has ended, at
+its merge commit: the landed repository's, and those of the systems the landing changed and of the supersystems that hold them; the org
+Whiteboard after every landing in `OrganizationPage`, the org work board's own included. After every event of a run, at the head of the default
+branch: the repository's, and those of the systems the issue names and of the supersystems that hold them. And on request, at the head of the
+default branch. A refresh still queued takes in a later one: the Whiteboards of both, the later commit, and every run's section in progress. A
+supersystem's Whiteboard is refreshed whenever a system it holds is.
+
+**A removed system or supersystem.** One that leaves the registry is no longer refreshed: `whiteboard.js orphans` lists the links list's
+Whiteboards whose system or supersystem is no longer in the registry at the commit. Its Whiteboard is deleted only once the user has confirmed it
+at the team's console, with `Artifact`'s delete, which the user confirms once more in the app (the call waits on that answer: about four minutes
+in the trial of 2026-11-14), and its entry then leaves the links list (`whiteboard.js links --remove`). Sharing a Whiteboard, and deleting any
+other, is the user's, from its page.
+
+### The ideas files
+
+Each repository on the org work board keeps one, `docs/plans/ideas.json`, and `OrganizationPage` one more for the ideas that span repositories,
+`docs/plans/org-work-board/ideas.json`. They are committed, each change on a landing of its own, and no other committed file holds ideas.
+
+| Field | Holds |
+|---|---|
+| `schema` | `ideas/1` |
+| `next` | the next idea's id |
+| `ideas` | the ideas, oldest first, each with the fields below |
+| `id` | a number, unique in the file and never reused |
+| `kind` | `fix` (a proposed fix), `improvement`, `feature`, `exploration` or `future` |
+| `text` | the idea in its sender's words, or the note's, verbatim |
+| `concerns` | the parts it concerns, possibly none: registry slugs or DSL element ids; in the org file, repositories (`owner/repo`) or a repository's part (`owner/repo:<slug>`) |
+| `issue` | optional: the issue it names, `n` (in the org file, `owner/repo#n`) |
+| `noted` | when it was written, a UTC stamp, `YYYY-MM-DDTHH:MM:SSZ` (§6, "Times") |
+| `source` | a harvested idea's only: `{scope, element}`, the Whiteboard's scope (`system:<slug>`, `supersystem:<slug>`, `repository`, `org`) and the note's element id, never the Whiteboard's link |
+
+An idea has no owner, due date, priority or state. A filed idea leaves the file: it is dropped, the change's title naming its issue, which is its
+home from then on.
+
+**The writer**, `plan/scripts/ideas.js` (`add`, `drop`, `harvest`), is the files' only writer; it writes a file whole, written beside it and then
+renamed. It refuses, naming the field and the rule, a text that breaks the rules of "What leaves a repository", and never rewords one. It reads
+the organizations' private repositories from GitHub at each write, so that no idea names one, and writes nothing where it cannot. A harvest reads
+the Whiteboard as read into a folder (as a refresh reads it) and takes every element that is not generated and carries text, a block, a text or a
+note, with its element id as its source; as its concerns, the generated parts its arrows point at (read from their ids, or from the generator's
+`parts` where an id was shortened); and the kind its words say (a fix where they speak of a bug, a break or a failure; an exploration where of
+exploring, trying or researching; future where of later or someday; a feature where of adding or supporting; else an improvement). It leaves out,
+naming the words and the reason, a note that breaks the rules, one that carries an owner (a person named or addressed as the one to do it: an
+`@name`, an "owner:" or "assigned to", a name that "will" or "should" do it) or a due date (a "due", "by" or "deadline" with a day, or any date),
+and one already in the file by its element id; the presenter's report names the kind each was given, and the user corrects one by having it
+dropped and added again. `ideas.js check` and `check.js <ideas.json>` check a file: its schema, unique ids under `next`, no field the schema does
+not have, each field's form, and the rules above; the commit scan reads it like every file under `docs/`.
+
+**Where the ideas show**: on the Whiteboards, as notes (above); an idea that names an issue, on that issue's board, in its Context's Ideas Card
+(`plan/RULES.md` §2), never above a state board's Context; the organization's ideas, on the org work board's Ideas Panel (`plan/RULES.md` §10).
+Nowhere else.
+
+### The published copies
+
+Every committed board of a repository on the org work board, of every type (a closed work board as it closed), is also published as a private
+claude.ai page with `Artifact`: one page per board, updated in place at each later publish. What is published is the board as committed at the
+commit named, read from git: never a live view, a view copy, a worktree's copy or anything under `docs/plans/.live/`, whose links are
+machine-local. `companions/scripts/publish.js` prepares a publish: the boards it takes (`--all`, every board committed at the commit, for a first
+publish; `--changed <from>..<to>`, the boards a landing added or changed; `--board`, the named ones, each committed), each read from the commit's
+`docs/` folder unpacked from git outside the checkout, checked there with its `--auto` checker (a board the checker gives a browser pass gets
+one), and the file to publish; a board that fails is not published. A published copy is not live: it polls nothing and reads "not live · as of"
+its data's last update (`plan/RULES.md` §3, "Live updates"). It is published unchanged, as committed: no link on it is rewritten, so its relative
+links (to another board, a Markdown document or any other file of the repository) do not resolve on the page, and the title the page carries is
+the board's own `<title>`, since the publish tool names a page by its title tag first. A first publish publishes every board once. A publish
+declares no runtime capabilities and changes no sharing. A repository publishes nothing until its first publish, at the user's word.

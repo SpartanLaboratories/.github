@@ -50,6 +50,8 @@ if(v===undefined)process.exit(1);process.stdout.write(typeof v==="string"?v:JSON
   const cfg = wr(path.join(sc, "repos.json"), JSON.stringify({ owner: "acme", url: "https://github.com/acme", repositories: ["widgets", "secret-vault", "empty-repo"], organizations: [{ owner: "acme-games", parent: "acme", url: "https://github.com/acme-games", repositories: ["engine"] }], referenceOnly: ["reference-only"] }));
   const env = { ...process.env, DASHBOARDS_GH: stub };
   cp.spawnSync("git", ["init", "-q", root], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+  /* the organization's ideas file beside the committed board (GUIDANCE.md §13): the Ideas Panel's source */
+  wr(path.join(root, "docs", "plans", "org-work-board", "ideas.json"), js({ schema: "ideas/1", next: 2, ideas: [{ id: 1, kind: "improvement", text: "One release checklist for every library.", concerns: ["acme/widgets"], issue: "acme/widgets#7", noted: "2026-11-17T01:00:00Z", source: { scope: "org", element: "e4" } }] }));
   const R = run(GEN, ["--root", root, "--config", cfg], { env });
   const snap = path.join(root, "docs", "plans", "org-work-board"), liv = path.join(root, "docs", "plans", ".live", "org-work-board");
   const S = (() => { try { return JSON.parse(R.stdout); } catch (e) { return { parseError: (R.stderr || R.stdout || "").slice(0, 400) }; } })();
@@ -58,7 +60,8 @@ if(v===undefined)process.exit(1);process.stdout.write(typeof v==="string"?v:JSON
 
   guard("the generator writes the committed snapshot and the live view from one reading (plan/scripts/org-board.js)", c => {
     c.push(["it exits 0 and reports both forms", R.status === 0 && S.snapshot === snap && S.live === liv, `exit ${R.status} ${(R.stderr || "").slice(0, 240)} ${S.parseError || ""}`]);
-    c.push(["the schema is org-work-board/1 and only the live view says live", a.j.schema === "org-work-board/1" && b.j.schema === "org-work-board/1" && !a.j.live && b.j.live === true, js({ a: a.j.live, b: b.j.live })]);
+    c.push(["the schema is org-work-board/2 and only the live view says live", a.j.schema === "org-work-board/2" && b.j.schema === "org-work-board/2" && !a.j.live && b.j.live === true, js({ a: a.j.live, b: b.j.live })]);
+    c.push(["the organization's ideas file is copied into both forms as the Ideas Panel shows it: id, kind, text, concerns and issue, never noted or source", [a.j, b.j].every(j => Array.isArray(j.ideas) && j.ideas.length === 1 && JSON.stringify(Object.keys(j.ideas[0]).sort()) === JSON.stringify(["concerns", "id", "issue", "kind", "text"])), js({ a: a.j.ideas, b: b.j.ideas })]);
     c.push(["each form is the template plus its board.json verbatim", !!a.html && lib.readBlock(a.html, "board").trim() === rd(path.join(snap, "board.json")).trim() && !!b.html && lib.readBlock(b.html, "board").trim() === rd(path.join(liv, "board.json")).trim(), "the data block differs from board.json"]);
     c.push(["neither form has a sidecar beside it (no board.js)", !fs.existsSync(path.join(snap, "board.js")) && !fs.existsSync(path.join(liv, "board.js")), "a board.js exists"]);
     c.push(["the live view names itself in docs/plans/.live/org-work-board/index.js", /orgBoard="index\.html"/.test(fs.existsSync(path.join(liv, "index.js")) ? rd(path.join(liv, "index.js")) : ""), "no marker"]);

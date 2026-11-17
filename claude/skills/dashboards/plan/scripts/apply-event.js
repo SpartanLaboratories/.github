@@ -1832,6 +1832,8 @@ function writeBoard(dir, data, eol, enrich, label) {
   if (VIEWING) { const made = []; for (let d = to; !fs.existsSync(d); d = path.dirname(d)) made.unshift(d); made.forEach(d => { fs.mkdirSync(d); madeDirs.push(d); }); }
   const rel = path.relative(VIEWING ? MAIN : ROOT, path.join(to, "dashboard.html")).split(path.sep).join("/");
   lib.setViewLinks(VIEWING, MAIN); try { lib.resolveBoard(data, dir); } finally { lib.setViewLinks(false); }
+  /* the Context's Ideas Card, from the repository's ideas file (embed.js refreshIdeas(); plan/RULES.md §2): at every event, never on a closed board */
+  require("./embed.js").refreshIdeas(data, dir);
   const json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol);
   const closed = ["built", "abandoned"].includes(data.status) || ["landed", "cancelled"].includes((data.wip || {}).step);
   /* a board that closed before this event (written by a seeding, a reseed or a retime; never by the landed, cancelled or unit-landed that

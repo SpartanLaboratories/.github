@@ -59,7 +59,7 @@ const { cleanWritten, nameRefs, unambiguous } = require(path.resolve(__dirname, 
 /* why a brief of the plan's stage table cannot be shown (apply-event.js stageNope()), or null */
 const stageNope = s => levelRefs(s).length ? "a grade" : nameRefs(s).some(unambiguous) ? "an internal name" : lib.passRefs(s).length ? "an older wording of a review" : null;
 
-const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links"];
+const OWNED = ["wip", "trail", "status", "sized", "branch", "asBuilt", "kind", "schema", "repo", "issue", "slug", "folder", "foundation", "links", "ideas"];
 const IDENTITY = ["id", "slug", "issue", "class", "question", "pass", "n"];
 const LEVELS = new Set(["level", "proposedLevel", "grade", "proposedGrade"]);   // level and proposedLevel, a sizing's old keys, are never written either (levels.js)
 const WIP_KEYS = ["stages", "questions", "interview", "asked", "qa", "current", "waitingOn", "detail", "open", "document"];

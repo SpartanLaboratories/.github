@@ -173,7 +173,7 @@ function boardWarnings(where, data, html, G) {
   if (!g) return notFound(glossaryFiles());
   const skipOf = d => { const t = titleSkip(d); return at => t(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at); };
   const problems = g.problems.map(p => `TERM GLOSSARY: ${p}`);
-  if (data && data.schema === "org-work-board/1") {
+  if (data && /^org-work-board\/[12]$/.test(String(data.schema))) {
     const { repositories, organizations, ...top } = data, T = boardTerms(top, html, skipOf(top), g);
     [...(repositories || []), ...(organizations || []).flatMap(o => o.repositories || [])].forEach(r => { if (!r.board) return; const R = boardTerms(r.board, "", skipOf(r.board), g);
       T.banned.push(...R.banned.map(h => ({ ...h, at: `${r.name}: ${h.at}` }))); T.unknown.push(...R.unknown.map(h => ({ ...h, at: `${r.name}: ${h.at}` }))); });

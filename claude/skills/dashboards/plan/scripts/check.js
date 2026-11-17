@@ -2,7 +2,8 @@
 // Check an issue board or the repository work board against plan/RULES.md §8, then (with --browser) in headless Chrome.
 //   node check.js <plan-folder>          plan.json keeps the rules and dashboard.html embeds it verbatim
 //   node check.js docs/plans             the repository work board: board.json and index.html
-//   node check.js docs/plans/org-work-board   the org work board (schema org-work-board/1; docs/plans/.live/org-work-board/ too): board.json, index.html, no sidecar
+//   node check.js docs/plans/org-work-board   the org work board (schema org-work-board/2, an older /1 read alike; docs/plans/.live/org-work-board/ too): board.json, index.html, no sidecar
+//   node check.js docs/plans/ideas.json      an ideas file (GUIDANCE.md §13), docs/plans/org-work-board/ideas.json too: plan/scripts/ideas.js's check
 //   options: --root <repo> (default: found above the folder, the first one holding docs/plans)
 //            --browser [--out <dir>]     also run system/scripts/check-board.js: light, dark, 520 px, a 390 px frame and 1920 x 1080
 //            --auto [--out <dir>]        the usual mode (GUIDANCE.md §8): the data and the embed as always, then the browser pass
@@ -635,6 +636,16 @@ function checkPlan(plan, dir, root) {
   if (tracking) unitLandings(plan, dir).forEach(x => { if (JSON.stringify(x.have) !== JSON.stringify(x.want)) warn(`rows(${x.row.id}).unit.landing (#${x.unit.issue}) ${x.want ? (x.have ? "differs from its board's landing" : "is missing: its board has landed") : "is a mirror embed.js would clear (no board of the unit in this tree, or it has not landed)"}: run embed.js on this folder, or on the sub-issue's, which re-embeds this one`); });
   if (plan.roadmap && typeof plan.roadmap === "object") (plan.roadmap.items || []).forEach((x, i) => reasonCheck(x, `roadmap.items[${i}]`));
   (plan.followUps || []).forEach((f, i) => { if (!posInt(f.issue) && !str(f.name)) fail(`followUps[${i}] needs an issue number or, for an unfiled follow-up, a name`); });
+  /* the Context's Ideas Card (plan/RULES.md §2): the repository's ideas that name this issue, as embed.js copies them ({id, kind, text, concerns}) */
+  if (plan.ideas !== undefined) {
+    const I = require("./ideas.js");
+    if (!Array.isArray(plan.ideas) || !plan.ideas.length) fail("ideas, where present, lists the ideas naming this issue (embed.js leaves the field out where none does)");
+    else plan.ideas.forEach((x, i) => { const at = `ideas[${i}]`;
+      if (!x || typeof x !== "object") { fail(`${at} is not an object`); return; }
+      Object.keys(x).filter(k => !["id", "kind", "text", "concerns"].includes(k)).forEach(k => fail(`${at} carries ${k}: the Card shows an idea's id, kind, text and concerns, and no state, owner, date or priority`));
+      if (!posInt(x.id) || !I.KINDS.includes(x.kind) || !str(x.text) || !Array.isArray(x.concerns)) fail(`${at} needs id, kind (${I.KINDS.join(", ")}), text and concerns`);
+      else require(path.resolve(__dirname, "..", "..", "companions", "scripts", "wblib.js")).textProblems(x.text).forEach(p => fail(`${at}.text carries ${p.rule} (${p.hit})`)); });
+  }
   (plan.documents || []).forEach((d, i) => { if (!str(d.label) && !str(d.path)) fail(`documents[${i}] needs a label or a path`); checkLink(dir, d.path, `documents[${i}].path`); });
 
   const left = placeholders(plan, "", []);
@@ -1305,9 +1316,19 @@ function browser(page, outDir, modes) {
 
 /* The org work board (plan/scripts/org-board.js; plan/template/org-board.html): an organization's repositories, each with its work-board data; no sidecar (the
    committed snapshot embeds its data; the live view re-reads each sibling checkout itself). A repository is public: a private one is on no list. */
+const ORG_SCHEMAS = ["org-work-board/1", "org-work-board/2"];
 function checkOrgBoard(dir) {
   const b = JSON.parse(fs.readFileSync(path.join(dir, "board.json"), "utf8"));
-  if (b.schema !== "org-work-board/1") fail(`board.json schema must be "org-work-board/1" (got ${JSON.stringify(b.schema)})`);
+  if (!ORG_SCHEMAS.includes(b.schema)) fail(`board.json schema must be "org-work-board/2" (or an older "org-work-board/1"; got ${JSON.stringify(b.schema)})`);
+  /* the Ideas Panel's ideas (org-work-board/2; plan/RULES.md §10): the organization's ideas file as copied, each with no source (it names a
+     Whiteboard's element) and nothing the ideas file may not hold; a /1 board has none */
+  if (b.schema === "org-work-board/1" && b.ideas !== undefined) fail("an org-work-board/1 board.json carries no ideas: its Ideas Panel came with org-work-board/2");
+  if (b.schema === "org-work-board/2") {
+    if (!Array.isArray(b.ideas)) fail("board.json needs ideas, the organization's ideas file as the Ideas Panel shows it ([] where it has none)");
+    else { const I = require("./ideas.js"), copy = { schema: I.SCHEMA, next: 1 + b.ideas.reduce((m, x) => Math.max(m, x && Number.isInteger(x.id) ? x.id : 0), 0), ideas: b.ideas.map(x => ({ ...x, noted: "2000-01-01T00:00:00Z" })) };
+      b.ideas.forEach((x, i) => { if (x && (x.source !== undefined || x.noted !== undefined)) fail(`ideas[${i}] carries ${x.source !== undefined ? "source" : "noted"}: the board copies an idea's id, kind, text, concerns and issue only`); });
+      I.problems(copy, { org: true }).forEach(p => fail(`board.json ${p}`)); }
+  }
   ["organization", "url", "generated"].forEach(k => { if (!str(b[k])) fail(`board.json needs ${k}`); });
   if (!Array.isArray(b.repositories) || !Array.isArray(b.organizations)) fail("board.json needs repositories and organizations");
   const orgs = b.organizations || [], repos = [...(b.repositories || []), ...orgs.flatMap(o => o.repositories || [])];
@@ -1339,7 +1360,14 @@ function findRoot(dir, args) {
 function run(dir, args) {
   args = args || [];
   const root = findRoot(dir, args), isBoard = fs.existsSync(path.join(dir, "board.json"));
-  let isOrg = false; if (isBoard) { try { isOrg = JSON.parse(fs.readFileSync(path.join(dir, "board.json"), "utf8")).schema === "org-work-board/1"; } catch (e) { /* checkBoard reports it */ } }
+  /* an ideas file (GUIDANCE.md §13, "The ideas files"): its own check, plan/scripts/ideas.js */
+  if (/(?:^|[\\/])ideas\.json$/.test(dir) && fs.existsSync(dir) && fs.statSync(dir).isFile()) {
+    const I = require("./ideas.js"); let d; try { d = I.read(dir); } catch (e) { fail(e.message); return report(); }
+    const P = I.problems(d, { org: /(?:^|[\\/])org-work-board[\\/]ideas\.json$/.test(dir) }); P.forEach(p => fail(`ideas file: ${p}`));
+    if (!P.length) ok(`ideas file: ${d.ideas.length} idea${d.ideas.length === 1 ? "" : "s"}, ids under ${d.next}`);
+    return report();
+  }
+  let isOrg = false; if (isBoard) { try { isOrg = ORG_SCHEMAS.includes(JSON.parse(fs.readFileSync(path.join(dir, "board.json"), "utf8")).schema); } catch (e) { /* checkBoard reports it */ } }
   if (isOrg) checkOrgBoard(dir);
   else if (isBoard) checkBoard(dir);
   else {

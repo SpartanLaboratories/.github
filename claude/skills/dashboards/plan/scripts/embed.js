@@ -42,6 +42,19 @@ function same(dir) {
   if (side.error) return { t, same: false, reason: `the sidecar ${path.basename(t.js)} is ${side.error}` };
   return { t, same: JSON.stringify(side.data) === JSON.stringify(file), reason: `the sidecar ${path.basename(t.js)} differs` };
 }
+/* The Context's Ideas Card (plan/RULES.md §2; GUIDANCE.md §13, "The ideas files"): plan.json ideas, the ideas of the repository's ideas file
+   (docs/plans/ideas.json, as the board's tree holds it) that name this board's issue, refreshed at every embed, so at every event; none
+   leaves the field out. A closed board (landed or cancelled) is not re-rendered: it keeps the ideas it closed with, or none. Returns the
+   change's line, or null when nothing changed. */
+function refreshIdeas(data, dir) {
+  if (!data || !Number.isInteger(data.issue) || require("./levels.js").boardClosed(data)) return null;
+  const root = treeRoot(path.resolve(dir)); if (!root) return null;
+  const want = require("./ideas.js").ideasFor(path.join(root, "docs", "plans", "ideas.json"), data.issue);
+  const had = Array.isArray(data.ideas) ? data.ideas : [];
+  if (JSON.stringify(had) === JSON.stringify(want)) return null;
+  if (want.length) data.ideas = want; else delete data.ideas;
+  return `ideas: ${want.length} naming #${data.issue} (was ${had.length})`;
+}
 /* An issue board's issue links and its units' runs are resolved from the folders on disk before it is embedded (lib.js
    linkIssueBoards); plan.json is rewritten first, keeping its line endings, so the board still embeds the committed file verbatim. */
 function embedOne(dir, opts) {
@@ -53,6 +66,7 @@ function embedOne(dir, opts) {
   const data = JSON.parse(json); // refuse to embed a file that does not parse
   setViewLinks(src !== dir, src !== dir ? require("./lib.js").viewParts(dir).root : null);
   let linked; try { linked = t.id === "plan" ? resolveBoard(data, src, { refresh: !!(opts && opts.refresh) }) : []; } finally { setViewLinks(false); }
+  if (t.id === "plan") { const k = refreshIdeas(data, src); if (k) linked.push(k); }
   if (linked.length) { const eol = /\r\n/.test(json) ? "\r\n" : "\n"; json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol); atomicWrite(t.json, json); }
   let html = writeBlock(fs.readFileSync(t.html, "utf8"), t.id, json);
   if (src !== dir) html = withViewBase(html, dir, src);
@@ -97,4 +111,4 @@ if (require.main === module) {
     if (r.parent) { r.parent.linked.forEach(l => console.log(`tracking board ${r.parent.dir}: ${l}`)); console.log(`re-embedded the parent's tracking board in ${r.parent.dir}${r.parent.linked.length ? "" : " (unchanged)"}`); }
   } catch (e) { console.error("embed failed: " + e.message); process.exit(1); }
 }
-module.exports = { embed, embedOne, same, target };
+module.exports = { embed, embedOne, same, target, refreshIdeas };
