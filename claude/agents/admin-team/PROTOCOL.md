@@ -57,7 +57,7 @@ one fenced ```json block:
 | `grade` | `setup-branch`, `prepare-landing`, `state-boards`, `land`; optional on a `plan-board` `sized` | The grade, 1–4. On a `plan-board` `sized` it is read and never written. |
 | `branch` | per action | The topic branch. |
 | `worktree` | per action | Where the branch is checked out. The main checkout unless allocated. |
-| `paths` | `commit`, `land`, `mirror-sync` | Exact paths to commit (or, for `land`, the change set). A `mirror-sync`'s paths are of two kinds: a `~/.claude` path, written as a plain string, and a working-copy file of S, P or D with its path in the organization repository, written as an object `{"file": "<the working copy, absolute, forward slashes>", "path": "<its path in the organization repository>"}`. |
+| `paths` | `commit`, `prepare-landing`, `land`, `mirror-sync` | Exact paths to commit (or, for `prepare-landing`, the run's change set, of which it commits what is not yet committed; for `land`, the change set). A `mirror-sync`'s paths are of two kinds: a `~/.claude` path, written as a plain string, and a working-copy file of S, P or D with its path in the organization repository, written as an object `{"file": "<the working copy, absolute, forward slashes>", "path": "<its path in the organization repository>"}`. |
 | `plan`, `docs`, `dashboards` | `land` | The plan document; every `.md` created or updated this run; the dashboard paths, if any, the run wants refreshed. The state boards are built by the team on the run's `state-boards` request in its Document step, not by the run. |
 | `qa` | `prepare-landing`, `land` | The run's last qa verdict: `PASS`; `MINOR-FIXED` when it was `CHANGES REQUESTED` with every fix minor and fixed on the spot (the `resolve-issue` skill, step 5); or `NONE` for grades that run no qa. |
 | `head` | `state-boards`, `land` | The code-landing commit `prepare-landing` reported. |
@@ -129,8 +129,11 @@ branch with its base (merge, the repo's way; a clean merge proceeds, whatever fi
 the branch both touch; a conflict the team cannot resolve itself comes back `needs-rework`, below,
 with `result.overlap`: the run re-verifies with the change's own tests and resends
 the same `id` with `attempt + 1` and a fresh `qa`) and commits the version bump the grade calls
-for; `done` carries `result.head`, the **code-landing commit**. From then on only documents change
-on the branch, and the Dokka configuration a level-2 documentation finding needs.
+for; `done` carries `result.head`, the **code-landing commit**, and `result.versions`, the reply's
+only account of the bump: one `<module>:<version>` entry per module the bump moved, the module
+named by its artifactId where it is published and by its Gradle project name otherwise, and an
+empty list when no version moved. From then on only documents change on the branch, and the Dokka
+configuration a level-2 documentation finding needs.
 
 **`state-boards`.** In the Document step, after the code-landing commit: the team builds the state
 boards on the branch (the changed systems' boards as built, the supersystem and repository boards,

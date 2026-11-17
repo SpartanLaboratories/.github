@@ -138,8 +138,11 @@ A landing in executor mode is three requests, each its own spawn:
   calls for (the Work grades table; its own `build:` commit; none at grades 1
   and 4). Report the branch's head sha under
   **Head** — it is the run's **code-landing commit**, and every state board is
-  stamped at it — and the version you bumped to, if any (the run files its
-  CHANGELOG entry under it). When the base changed files the branch also
+  stamped at it — and under **Versions** each module the bump moved, as
+  `<module>:<version>`, the module named by its artifactId where it is
+  published and by its Gradle project name otherwise, or `none` (the team
+  replies them as `result.versions`, and the run files its CHANGELOG entry
+  under them). When the base changed files the branch also
   touches and the merge came out clean, go on and report the paths under
   **Overlap**, as information; a conflict stops you at the sync (**Conflicts
   at a sync**, below). No
@@ -612,6 +615,10 @@ which commit type a change that moves no version takes:
 
 ## Head   (executor mode, `prepare-landing`, `commit` and a confirm-only `setup-branch`)
 - <branch> @ <sha>   (`prepare-landing`: the code-landing commit; `commit`: the commit it made, the document-landing commit or a commit of a run's build; a confirm-only `setup-branch`: the branch's head, with its base)
+
+## Versions   (executor mode, `prepare-landing`; each module the bump moved)
+- <module>:<version>, …
+- none
 
 ## Overlap   (executor mode, `prepare-landing` or `land`; the files the base changed that the branch also touches, as information: a clean merge goes on; a file in a conflict is marked `conflict`, and the team replies `needs-rework` unless it resolves the conflict itself)
 - <path> — <what the base changed there>

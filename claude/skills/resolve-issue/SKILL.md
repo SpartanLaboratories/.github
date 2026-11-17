@@ -692,12 +692,14 @@ boards (task 6):
    **grade**, the branch and worktree, the change set (`paths`), the `qa`
    verdict as the `qa` field of `~/.claude/agents/admin-team/PROTOCOL.md` writes it
    (`NONE` for grade 4), `publish` (true only if the user asked for a publish
-   this run) and the versions. The team's executor commits the change
-   set, syncs the branch with its base (a merge, the repository's way), decides
+   this run). The team's executor commits the change set,
+   syncs the branch with its base (a merge, the repository's way), decides
    and commits the version bump the grade calls for (none at grades 1 and 4),
-   and replies `done` with the head sha — the **code-landing commit** — and the
-   version it bumped to, if any. Carry both forward: every state board is
-   stamped at the sha, and task 5 files the CHANGELOG entry under the version.
+   and replies `done` with the head sha, `result.head` — the **code-landing
+   commit** — and `result.versions`, one `<module>:<version>` entry per module
+   the bump moved, empty when no version moved. Carry both forward: every
+   state board is stamped at the sha, and task 5 files the CHANGELOG entry
+   under the versions.
    A `needs-rework` reply with `result.overlap` means a conflict the team
    cannot resolve itself, in the files it names: re-verify with the change's
    own tests (the test-inspector's run), and `qa` if the conflict touches
@@ -751,10 +753,10 @@ boards (task 6):
    the project's external shape as it was), and a CHANGELOG entry in the Keep a
    Changelog layout (`### Added` / `### Changed` / `### Fixed` / `### Removed`
    / `### Deprecated` / `### Security`) — under `## [X.Y.Z] - <date>` when
-   `prepare-landing` bumped a version (pass `rookie-dev` the version from its
-   `done` reply), else under `## [Unreleased]` — creating `CHANGELOG.md` if the
-   repository has none. **Grade 1** updates the README only, no CHANGELOG
-   entry.
+   `prepare-landing` bumped a version (pass `rookie-dev` the entries of its
+   `done` reply's `result.versions`), else under `## [Unreleased]` — creating
+   `CHANGELOG.md` if the repository has none. **Grade 1** updates the README
+   only, no CHANGELOG entry.
 6. **State boards — `admin team`: `state-boards`.** Send a `state-boards`
    request with the issue, the **grade**, the branch and worktree, the
    systems the change touched and the code-landing sha. The team's presenter
@@ -887,8 +889,8 @@ in any landing.
 Under `--confirm-before-land`, the run has already halted once before the
 document-landing commit ("Prompt flags"). The change set is already committed: the code-landing commit (step 6, task 0)
 and the document-landing commit (end of step 6). Send the admin team a `land`
-request with the **grade**, the branch and worktree, the code-landing and
-document-landing shas, the `qa` verdict as for `prepare-landing` (step 6,
+request with the **grade**, the branch and worktree, the code-landing sha
+(`head`), the `qa` verdict as for `prepare-landing` (step 6,
 task 0), the plan or architecture document, every `.md` file created or
 updated this run (for the resolution comment's links), and `publish: true`
 only if **the user asked for a
