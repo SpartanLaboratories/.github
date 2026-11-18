@@ -236,7 +236,7 @@ N.grades.forEach(r => r.words.forEach(w => {
   const d = path.join(dir, "vocab"); fs.mkdirSync(d, { recursive: true });
   const say = fs.readFileSync(path.join(live, "internal-names.md"), "utf8").replace(/\r\n/g, "\n")
     .replace("| Name | Aliases | What it is | Allowed when |\n|------|---------|------------|--------------|", "| Name | Aliases | What it is | Allowed when | Say instead |\n|---|---|---|---|---|")
-    .replace(new RegExp(`(\\| \\*\\*${one.name}\\*\\* \\|[^\\n]*\\| never \\|)`), "$1 the fixture wording |");
+    .replace(new RegExp(`(\\| \\*\\*${one.name}\\*\\* \\|[^\\n]*\\| (?:never|as section 4's markers say) \\|)`), "$1 the fixture wording |");
   fs.writeFileSync(path.join(d, "internal-names.md"), say);
   fs.writeFileSync(path.join(d, "finding.md"), fs.readFileSync(path.join(live, "finding.md"), "utf8"));
   fs.writeFileSync(path.join(d, "vocabulary.md"), ["| Term | X |", "|---|---|", "| **Card** | c |", "", "```",

@@ -42,7 +42,7 @@ known aliases. The aliases are what the scan matches, as [`finding.md`](finding.
 | Name | Aliases | What it is | Allowed when |
 |------|---------|------------|--------------|
 | **AdminTeam** | **admin team** | The long-lived session every other session sends requests to: version control, the boards, publishing and direction. | never |
-| **Planner** | **planner** | The agent that designs a feature or a fix, scaled to its grade. | never |
+| **Planner** | **planner** | The agent that designs a feature or a fix, scaled to its grade. | as section 4's markers say |
 | **PlanWriter** | **plan-writer** | The agent that turns one system of a settled architecture into an implementation plan. | never |
 | **Architect** | **architect** | The agent that produces the grand design for a piece of work. | never |
 | **Researcher** | **researcher** | The agent that answers one research question and writes its findings file. | never |
@@ -104,5 +104,6 @@ is read in code form stays the user's, as does every term, wording and other exc
 | Word | Markers | Markers after | In code form |
 |------|---------|---------------|--------------|
 | **executor** | `backed`, `Caffeine`, `common-pool`, `daemon`, `dispatch`, `dispatcher`, `keepalive`, `library-created`, `liveness`, `maintenance`, `probe`, `retransmit`, `same-thread`, `shut-down`, `shutdown`, `single-thread`, `single-threaded`, `sweep`, `tick` | none | no find |
-| **publisher** | `API`, `key` | `API`, `key` | no find |
+| **planner** | `build` | none | a find |
+| **publisher** | `API`, `key` | `API`, `key`, `Pro` | no find |
 | **grade** | `carrier` | none | a find |

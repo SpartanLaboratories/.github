@@ -133,7 +133,7 @@ function toolCopy(tag, internal) {
   ok(r.code === 2 && /a list cannot be read: .*internal-names\.md:\d+: the table has no "Aliases" column/.test(r.err), "exit 2: a list that cannot be parsed, naming its file and line", JSON.stringify(r));
   const withSay = toolCopy("say", liveText
     .replace("| Name | Aliases | What it is | Allowed when |\n|------|---------|------------|--------------|", "| Name | Aliases | What it is | Allowed when | Say instead |\n|---|---|---|---|---|")
-    .replace(new RegExp(`(\\| \\*\\*${role.name}\\*\\* \\|[^\\n]*\\| never \\|)`), "$1 the fixture wording |"));
+    .replace(new RegExp(`(\\| \\*\\*${role.name}\\*\\* \\|[^\\n]*\\| (?:never|as section 4's markers say) \\|)`), "$1 the fixture wording |"));
   const s = run([...REPO, "docs/find.md"], "", withSay);
   ok(s.code === 1 && /say instead: "the fixture wording"$/.test(s.out.trim()), "the row's wording printed when the list has its column", JSON.stringify(s));
   const j = JSON.parse(run([...REPO, "--json", "docs/find.md"], "", withSay).out);

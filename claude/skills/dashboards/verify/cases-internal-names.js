@@ -16,7 +16,8 @@
 //    the table reads it so; finding.md, "A technical sense by its marker"), and a find beside it.
 // 3. Every form of the size word §3 names found by the boards' scrub (levelrefs.js).
 // 3a. §4's markers, row by row of the live table: no find before, joined or (a marker after) directly after, a find elsewhere, the code-form cell held; the boards' scripts
-//    as the tool.
+//    (nameRefs(), nameSpans(), levelRefs()) as the tool. A marker that stands only after its word ("Publisher Pro") is checked on its own probes: no
+//    find directly after, a find before it, joined before it, or a word away; scrubNames() leaves a word in its technical sense as written.
 // 4. namerefs.js's header points at the list, the baseline and the tool.
 // Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
@@ -123,6 +124,7 @@ module.exports = function casesInternalNames(X) {
        "the publisher and the key" and "publisher keys" are */
     const strict = [["the planner reconciled it", true], ["a single-thread executor drains the queue", false], ["the event publisher emits", true], ["the bytecode verifier rejects it", true], ["runs on an `Executor`", false],
       ["the executor stops", true], ["the executor drains the queue", true], ["runs on the executor beside `pool()`", true], ["publisher key", false], ["the Publisher API", false], ["the publisher and the key", true], ["publisher keys", true], ["the dispatch loop's executor", true],
+      ["the build planner", false], ["the Build Planner", false], ["the planner build", true], ["the build, then the planner", true], ["Publisher Pro", false], ["the publisher and Pro", true], ["the Pro publisher", true],
       ["the `Planner` type", true], ["the archivist's hook", true], ["two archivists", true], ["the solution architect", true], ["Presenters", true],
       ["uses OkHttp's `RoutePlanner`", false], ["an `ExecutorService`", false], ["RoutePlanner picks a route", false], ["plannerConfig", false], ["planner_id", false]].filter(([t, w]) => (N.nameRefs(t).length > 0) !== w);
     c.push(["every name a whole word wherever it stands, in backticks too, save a word in its technical sense (a marker before it, or in code where the list reads it so); a longer word that contains one is not a find", !strict.length, js(strict.map(([t, w]) => [t, w, N.nameRefs(t)]))]);
@@ -183,10 +185,14 @@ module.exports = function casesInternalNames(X) {
   guard("§4's markers: a word in its technical sense no find, the same word elsewhere a find; the boards' scripts as the tool", c => {
     if (!L) { c.push(["the list is read", false, readError]); return; }
     const ms = L.markers || [], LR = require(sk("system/scripts/levelrefs.js")), F = require(path.join(T, "match.js"));
-    c.push(["the markers' table is read: each row a word with its markers and its code-form cell", ms.length > 0 && ms.every(m => m.word && m.markers.length && typeof m.codeForm === "boolean"), js(ms.map(m => [m.word, m.markers, m.codeForm]))]);
+    c.push(["the markers' table is read: each row a word with its markers (before, after or both) and its code-form cell", ms.length > 0 && ms.every(m => m.word && (m.markers.length || (m.after || []).length) && Array.isArray(m.after) && typeof m.codeForm === "boolean"), js(ms.map(m => [m.word, m.markers, m.after, m.codeForm]))]);
     const isGrade = w => L.grades.some(r => r.words.some(x => x.toLowerCase() === w.toLowerCase())), bad = [];
+    /* a marker that stands only after its word: those of the live table */
+    const afterOnly = m => (m.after || []).filter(a => !m.markers.some(k => k.toLowerCase() === a.toLowerCase()));
     ms.forEach(m => {
-      const w = m.word, g = isGrade(w), board = t => (g ? LR.levelRefs(t) : N.nameRefs(t)).length > 0, tool = t => (g ? F.gradeRefs(t) : F.nameRefs(t)).length > 0;
+      const w = m.word, g = isGrade(w), tool = t => (g ? F.gradeRefs(t) : F.nameRefs(t)).length > 0;
+      /* the board's finds: levelRefs() for a grade's word; nameRefs() and nameSpans() for a name, which must agree */
+      const board = t => g ? LR.levelRefs(t).length > 0 : (N.nameRefs(t).length > 0 && N.nameSpans(t).length > 0 ? true : N.nameRefs(t).length || N.nameSpans(t).length ? "disagree" : false);
       const probes = [[`runs on a \`${w}\``, !m.codeForm], ["```\nval " + w + " = x()\n```", !m.codeForm], [`the ${w} beside \`x()\``, true], [`the ${w} stops`, true]];
       /* a marker after (the row's "after" cell) clears the word directly after it too, with a space or a line break between, any case; no
          marker clears it with another word between, and a longer word is no marker ("publisher keys") */
@@ -194,9 +200,19 @@ module.exports = function casesInternalNames(X) {
         probes.push([`the ${k} ${w}`, false], [`the ${k}-${w}`, false], [`the ${k.toUpperCase()} ${w}`, false], [`the ${k}'s ${w}`, false], [`the \`${k}\` ${w}`, false],
           [`the ${w}-${k}`, false], [`the ${k}, then the ${w}`, true], [`the ${w} ${k}`, !after], [`the ${w} and the ${k}`, true]);
         if (after) probes.push([`the ${w}\n${k}`, false], [`the ${w} ${k.toUpperCase()}`, false], [`the ${w} ${k}s`, true]); });
+      /* a marker after only (no marker before): no find directly after the word, with a space, a line break or a hyphen between, any case,
+         its possessive; a find where it stands before the word, joined before it by a hyphen, a word away, or as a longer word */
+      afterOnly(m).forEach(k => probes.push([`the ${w} ${k}`, false], [`the ${w}\n${k}`, false], [`the ${w}-${k}`, false], [`the ${w} ${k.toUpperCase()}`, false],
+        [`the ${w} ${k}'s plan`, false], [`the ${k} ${w}`, true], [`the ${k}-${w}`, true], [`the ${w} and ${k}`, true], [`the ${w} ${k}s`, true], [`the ${k}, then the ${w}`, true]));
       probes.forEach(([t, want]) => { const b = board(t), o = tool(t); if (b !== want || o !== want) bad.push(`"${t}": want ${want ? "a find" : "none"}, board ${b}, tool ${o}`); });
     });
-    c.push([`every marker of every row (${ms.reduce((n, m) => n + m.markers.length, 0)}): no find before or joined, a find elsewhere; the code-form cell held in a backtick span and a fenced block; the boards' scripts and the tool agree`, !bad.length, js(bad.slice(0, 8))]);
+    const nAfter = ms.reduce((n, m) => n + afterOnly(m).length, 0);
+    c.push([`every marker of every row (${ms.reduce((n, m) => n + m.markers.length, 0)} before, ${nAfter} after only): no find before, joined or after as the row says, a find elsewhere; the code-form cell held in a backtick span and a fenced block; the boards' scripts and the tool agree`, !bad.length, js(bad.slice(0, 8))]);
+    /* the rewording (scrubNames()) leaves a word in its technical sense as written, and rewords the same word where it is a find */
+    const names = ms.filter(m => !isGrade(m.word)), keep = [];
+    names.forEach(m => [...m.markers.map(k => `the ${k} ${m.word}`), ...(m.after || []).map(k => `the ${m.word} ${k}`)].forEach(t => { const r = N.scrubNames(t); if (r.text !== t || r.left.length) keep.push([t, r]); }));
+    const pr = N.scrubNames("the planner re-pass"), bpr = N.scrubNames("the build planner re-pass");
+    c.push(["scrubNames(): every marked name of the table left as written; \"the planner re-pass\" reworded, \"the build planner re-pass\" left", !keep.length && pr.text === "the plan re-pass" && bpr.text === "the build planner re-pass" && !bpr.left.length, js({ keep, pr, bpr })]);
     /* a quote elides a find where it stands (levelrefs.js levelSpans(), elideSpans(); namerefs.js nameSpans()), never the same letters
        elsewhere in their technical sense */
     const nt = "the executor stops; the dispatch executor drains it", gt = "grade 3 work over the carrier-grade link";
