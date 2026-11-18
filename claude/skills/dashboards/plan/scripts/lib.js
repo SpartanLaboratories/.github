@@ -21,17 +21,30 @@ function repoRoot(args) {
    event applied while a fill read the same board fail now and then (KotlinBottools #24, p25; verify/cases-atomic-write.js). The longer one makes
    that rarer, never impossible: a reader that reopens the file every few milliseconds can hold off a replace for longer than any budget, and
    moving the old file aside first, which would carry the write through, lets a reader without the boards' lock find no file for a moment, so
-   renameInto() does not do it (p25). Returns the retries it took. */
-const RENAME_CODES = ["EPERM", "EBUSY", "EACCES"], RENAME_BUDGET_MS = 15000;
+   renameInto() does not do it (p25). Returns the retries it took.
+   The pause alone did not keep a reader out (dashboards verify-flake): on Windows a sleeping process wakes on the system's timer tick (about
+   15.6 ms by default), whatever the pause asked for, so a writer and a reader that polls the file every few milliseconds wake on the same tick,
+   and the writer's every retry lands while the reader holds the file; the jitter, in whole milliseconds, moves no retry off that tick. About one
+   write in twenty-five against such a reader was starved for the whole budget. So after each pause the rename is tried again and again for a few
+   milliseconds without sleeping (a busy wait in fractions of a millisecond, process.hrtime), which reaches the part of the tick when the reader
+   has let go. */
+const RENAME_CODES = ["EPERM", "EBUSY", "EACCES"], RENAME_BUDGET_MS = 15000, RENAME_PROBE_MS = 6;
 const renameBudget = () => { const v = Number(process.env.DASHBOARDS_RENAME_BUDGET_MS); return Number.isFinite(v) && v > 0 ? v : RENAME_BUDGET_MS; };
+const hrMs = () => Number(process.hrtime.bigint()) / 1e6;
 function renameInto(tmp, file) {
   const budget = renameBudget(), t0 = Date.now();
   for (let i = 0; ; i++) {
-    try { fs.renameSync(tmp, file); return i; }
-    catch (e) {
-      if (!RENAME_CODES.includes(e.code) || Date.now() - t0 >= budget) { try { fs.unlinkSync(tmp); } catch (x) { /* gone */ } throw e; }
-      sleepMs(Math.max(1, Math.round(Math.min(200, 5 * Math.pow(1.5, Math.min(i, 12))) * (0.5 + Math.random()))));
+    /* the first try alone; after each pause, a probe: a try every 0.2 to 0.5 ms for a random 2 to RENAME_PROBE_MS ms, off the timer's tick */
+    const until = i === 0 ? 0 : hrMs() + 2 + Math.random() * (RENAME_PROBE_MS - 2);
+    for (;;) {
+      try { fs.renameSync(tmp, file); return i; }
+      catch (e) {
+        if (!RENAME_CODES.includes(e.code) || Date.now() - t0 >= budget) { try { fs.unlinkSync(tmp); } catch (x) { /* gone */ } throw e; }
+        if (hrMs() >= until) break;
+        const gap = hrMs() + 0.2 + Math.random() * 0.3; while (hrMs() < gap) { /* a busy wait: a sleep would wake on the tick again */ }
+      }
     }
+    sleepMs(Math.max(1, Math.round(Math.min(200, 5 * Math.pow(1.5, Math.min(i, 12))) * (0.5 + Math.random()))));
   }
 }
 const sleepMs = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);

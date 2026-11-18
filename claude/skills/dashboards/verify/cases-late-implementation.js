@@ -110,7 +110,7 @@ module.exports = function casesLateImplementation(X) {
 
   guard("late-update of an implementation stage: accepted while halted to resume at implementation; refused, nothing written, where the rule says", c => {
     const H = paused("late-halted", false), a = late(H.ev, "S1", states("done", "current", "todo"), "S1 is in place.");
-    c.push(["while the run is halted to resume at implementation: applied, the board kept halted, its FullPulse as the halt left it", a.a.status === 0 && a.p.wip.step === "halted" && stage(a.p, "S1").late === true && js(a.p.wip.current) === js(H.h.p.wip.current), js([a.a.status, a.p.wip.step, a.p.wip.current, a.S.error])]);
+    c.push(["while the run is halted to resume at implementation: applied, the board kept halted, its FullPulse as the halt left it", a.a.status === 0 && a.p.wip.step === "halted" && stage(a.p, "S1").late === true && js(a.p.wip.current) === js(H.h.p.wip.current), js([a.a.status, a.p.wip.step, a.p.wip.current, a.S.error, a.S.check, a.S.kept])]);
     const P = paused("late-refused"), ev = P.ev, f0 = files(P.T);
     const no = (name, r, re, kind) => c.push([name, r.a.status === 1 && r.S.result === "failed" && re.test(r.S.error || "") && files(P.T) === f0 && (r.S.why || []).some(x => new RegExp(`no fill writes the ${kind || "implementation"} stages`).test(x)), js([r.a.status, r.S.error, r.S.why])]);
     no("a stage the board does not hold", late(ev, "S9", states("done", "current", "todo"), "x"), /"S9" is no implementation stage of this board/);

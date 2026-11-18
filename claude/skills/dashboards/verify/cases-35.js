@@ -196,7 +196,7 @@ module.exports = function cases35(X) {
     git(main, "add", "-A"); git(main, "commit", "-q", "-m", "the merge"); const M = (git(main, "rev-parse", "HEAD").stdout || "").trim();
     const lq = wr(path.join(sc, "seed-landed.json"), JSON.stringify({ v: 1, action: "plan-board", github: sub.repo, issue: 47, event: "landed", folder: sub.folder, facts: { pr: 90, sha: M, merge: M, date: "2026-10-26", mergedAt: "2026-10-26T09:22:00Z" } }));
     const lv = run(APPLY, ["--event", lq, "--worktree", main, "--main", main, "--no-gh", "--no-live", "--view", "--at", "2026-10-26T09:30:00Z", "--json"]);
-    c.push(["the post-merge refresh's landed writes the view copies", lv.status === 0 && fs.existsSync(path.join(main, "docs", "plans", ".live", "view", "55-http-client-stack", "47-java-23-bytecode", "plan.json")), (lv.stdout || lv.stderr).slice(0, 300)]);
+    c.push(["the post-merge refresh's landed writes the view copies", lv.status === 0 && fs.existsSync(path.join(main, "docs", "plans", ".live", "view", "55-http-client-stack", "47-java-23-bytecode", "plan.json")), (() => { let s = {}; try { s = JSON.parse(lv.stdout); } catch (e) { return (lv.stdout || lv.stderr).slice(0, 600); } return js([lv.status, s.result, s.error, s.check, s.kept, s.view]); })()]);
     if (git(main, "worktree", "add", "-q", "-b", "feat/62", wt).status !== 0) { c.push(["git worktree add", false, "failed"]); return; }
     const nd = path.join(wt, "docs", "plans", "55-http-client-stack", "62-http-core"), nu = copy(LIVE);
     Object.assign(nu, { issue: 62, slug: "62-http-core", folder: "docs/plans/55-http-client-stack/62-http-core", parent: { issue: 55 }, issueTitle: "Verification case #62", status: "planned" });
@@ -236,7 +236,7 @@ module.exports = function cases35(X) {
     const lq = wr(path.join(sc, "seedn-landed.json"), js({ v: 1, action: "plan-board", github: sub.repo, issue: 47, event: "landed", folder: sub.folder, facts: { pr: 90, sha: M, merge: M, date: "2026-10-26", mergedAt: "2026-10-26T09:22:00Z" } }));
     const lv = run(APPLY, ["--event", lq, "--worktree", main, "--main", main, "--no-gh", "--no-live", "--view", "--at", "2026-10-26T09:30:00Z", "--json"]);
     const copyAt = path.join(main, "docs", "plans", ".live", "view", "55-http-client-stack", "47-java-23-bytecode", "plan.json");
-    c.push(["the post-merge refresh wrote the view copies", lv.status === 0 && fs.existsSync(copyAt), (lv.stdout || lv.stderr).slice(0, 300)]);
+    c.push(["the post-merge refresh wrote the view copies", lv.status === 0 && fs.existsSync(copyAt), (() => { let s = {}; try { s = JSON.parse(lv.stdout); } catch (e) { return (lv.stdout || lv.stderr).slice(0, 600); } return js([lv.status, s.result, s.error, s.check, s.kept, s.view]); })()]);
     const sized = wr(path.join(sc, "seedn-sized.json"), js({ v: 1, action: "plan-board", github: sub.repo, issue: 62, event: "sized", folder, repo: main, facts: { step: "plan" } }));
     const go = root => { const a = run(APPLY, ["--event", sized, "--worktree", root, "--no-gh", "--no-live", "--at", "2026-10-26T10:00:00Z", "--json"]); let S = {}; try { S = JSON.parse(a.stdout); } catch (e) { /* below */ } return { a, S, sub: JSON.parse(rd(path.join(root, "docs", "plans", "55-http-client-stack", "47-java-23-bytecode", "plan.json"))), trk: JSON.parse(rd(path.join(root, "docs", "plans", "55-http-client-stack", "plan.json"))) }; };
     /* a worktree: the board is laid afterwards, the main checkout is left alone */

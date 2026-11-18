@@ -2490,7 +2490,9 @@ targets.forEach(t => {
   if (!hist.some(v => v.sha256 === sha(tpl))) { const hb = path.basename(t.file, ".html"), hf = `${hb}/${sha(tpl).slice(0, 12)}.html`; fs.mkdirSync(path.join(path.dirname(file), "history", hb), { recursive: true }); fs.writeFileSync(path.join(path.dirname(file), "history", ...hf.split("/")), norm(tpl)); hist.push({ sha256: sha(tpl), verified: today, file: hf }); }
   rec.templates[key] = { sha256: sha(tpl), verified: today, fixtures: [...new Set(results.map(r => r.fixture))], modes: MODES.map(m => m.join(" ") || "light"), history: hist };
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(rec, null, 2) + "\n");
+  /* through a temporary file and a rename (lib.js atomicWrite()): an event or a check reading the record meanwhile (deviation.js verified())
+     never reads half of it and takes the template for unverified */
+  require(path.join(SKILL, "plan", "scripts", "lib.js")).atomicWrite(file, JSON.stringify(rec, null, 2) + "\n");
 });
 if (devFailures) console.log(`\ndeviation.js failed its cases on ${devFailures} template(s): fix system/scripts/deviation.js`);
 console.log(failures ? `\n${failures} template(s) failed: not recorded; fix them and run again` : BROWSER ? `\nall templates verified; screenshots in ${out}`

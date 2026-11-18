@@ -158,7 +158,7 @@ const say = () => {
   const L = [["apply-event", S.result], ["refused", S.refused], ["event", S.event], ["arrival", S.arrival], ["issue", S.issue != null ? "#" + S.issue : null], ["board", S.board], ["laid", S.laid],
     ["applied", S.applied.join("; ") || "nothing"], ["verdicts", S.verdicts ? verdictsLine(S.verdicts) : null], ["unread", S.unread.length ? `${S.unread.map(k => "facts." + k).join(", ")} (carried by the event and not read by it: nothing on the board came from ${S.unread.length === 1 ? "it" : "them"})` : null], ["enrich", enrich], ["why", S.enrich.length ? S.enrich.join("; ") : noWork],
     ["rerendered", S.rerendered.join(", ") || "none"], ["wrote", S.wrote.join(", ") || "nothing"], ["view", VIEWING ? S.view.join(", ") || "nothing" : null], ["seeded", S.seeded.length ? S.seeded.join(", ") : null], ["parent", S.parent || "none"], ["live", S.live || "untouched"],
-    ["check", S.check || "not run"], ["warnings", S.warnings.length ? S.warnings.map(w => "warn " + w).join(" | ") : null], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["unfinished", S.unfinished ? S.unfinished.join(", ") : null], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
+    ["check", S.check || "not run"], ["warnings", S.warnings.length ? S.warnings.map(w => "warn " + w).join(" | ") : null], ["issue defects", S.defects.length ? S.defects.join(" | ") : null], ["error", S.error], ["kept", S.kept || null], ["unfinished", S.unfinished ? S.unfinished.join(", ") : null], ["restored", S.error ? `${S.restored} file${S.restored === 1 ? "" : "s"}, as they were` : null], ["time", `${S.ms} ms`]];
   L.filter(([, v]) => v != null).forEach(([k, v]) => console.log(`${k}: ${v}`));
 };
 class Refusal extends Error {}
@@ -2156,7 +2156,7 @@ async function seed(now, req, facts) {
     return;
   }
   const cks = await Promise.all(written.map(d => run(path.join(__dirname, "check.js"), [d], ROOT)));
-  if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${cks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 6).join(" | ") || (cks.find(c => c.status !== 0).stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on a board the seed would write"); }
+  if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${cks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 6).join(" | ") || errLine(cks.find(c => c.status !== 0).stderr)}`; throw new Error("check.js failed on a board the seed would write"); }
   ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(ROOT, "docs", "plans", f)));
   const wb = await run(path.join(__dirname, "board.js"), ["--refresh-template", "--root", ROOT, ...(flag("no-gh") ? ["--no-gh"] : [])], ROOT);
   if (wb.status !== 0) throw new Error(`board.js (the committed repository work board, after seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
@@ -2221,8 +2221,8 @@ async function unitLanded(now, req, facts) {
   /* the tracking board landed with this unit, and sits inside another: its unit landed there too (plan/RULES.md §3, "A sub-issue lands") */
   const above = P.plan.status === "built" && pp.status !== "built" ? landUpward(dir, P.plan, now) : [];
   const [ck, ...aks] = await Promise.all([dir, ...above].map(d => run(path.join(__dirname, "check.js"), [lib.viewDirOf(d, MAIN), "--root", ROOT], ROOT)));
-  if (ck.status !== 0) { S.check = `FAIL: ${ck.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || (ck.stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on the tracking board's view copy"); }
-  if (aks.some(c => c.status !== 0)) { S.check = `FAIL (above the tracking board): ${aks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 6).join(" | ") || (aks.find(c => c.status !== 0).stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on the view copy of the tracking board above it"); }
+  if (ck.status !== 0) { S.check = `FAIL: ${ck.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || errLine(ck.stderr)}`; throw new Error("check.js failed on the tracking board's view copy"); }
+  if (aks.some(c => c.status !== 0)) { S.check = `FAIL (above the tracking board): ${aks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 6).join(" | ") || errLine(aks.find(c => c.status !== 0).stderr)}`; throw new Error("check.js failed on the view copy of the tracking board above it"); }
   S.check = `pass (tracking board: ${plural((ck.stdout.match(/^warn/gm) || []).length, "warning")}${above.length ? `; above it: ${plural(aks.reduce((n, c) => n + (c.stdout.match(/^warn/gm) || []).length, 0), "warning")}` : ""})`;
   S.defects = [...new Set([ck, ...aks].flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A GRADE: #[\d?]+)/) || [])[1]).filter(Boolean)))];
   if (flag("no-live")) S.live = "skipped (--no-live)";
@@ -2236,9 +2236,35 @@ async function unitLanded(now, req, facts) {
   }
   S.result = "ok";
 }
-/* A child process, as a promise of { status, stdout, stderr }. */
+/* A child process, as a promise of { status, stdout, stderr }; each one's whole output kept in CHILD_RUNS for keepFailure(). */
+const CHILD_RUNS = [];
 const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.execPath, [file, ...a], { cwd, windowsHide: true }); let o = "", e = "";
-  c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => res({ status: s, stdout: o, stderr: e })); c.on("error", x => res({ status: 1, stdout: o, stderr: String(x) })); });
+  const done = r => { CHILD_RUNS.push({ script: path.basename(file), args: a, cwd: cwd || null, ...r }); res(r); };
+  c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => done({ status: s, stdout: o, stderr: e })); c.on("error", x => done({ status: 1, stdout: o, stderr: String(x) })); });
+/* the line of a child's stderr that says what went wrong: an uncaught error's message, not the location Node prints first */
+const errLine = t => { const L = String(t || "").trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean); return L.find(l => /^([A-Z]\w*Error|Error)\b|^[A-Z]{2,}\w*:/.test(l)) || L[0] || ""; };
+/* Under the verification (DASHBOARDS_VERIFY_FAILURES, which verify/scratch.js sets to its scratch's failures/ folder): a failed event that is no
+   refusal keeps, before the rollback puts the files back, what tells why it failed: the command and its request, the summary with the error's
+   stack, every child's whole output (check.js's FAIL lines in full, a crash's stack), and every file the event wrote as it would have stood.
+   Outside the verification nothing is kept. Never fails the event's own report. */
+function keepFailure(e) {
+  const base = process.env.DASHBOARDS_VERIFY_FAILURES; if (!base || e instanceof Refusal) return null;
+  try {
+    const rq = opt("event") || "request", tag = `${path.basename(path.dirname(path.resolve(rq)))}-${path.basename(rq, ".json")}`.replace(/[^\w.-]+/g, "_");
+    fs.mkdirSync(base, { recursive: true }); const d = fs.mkdtempSync(path.join(base, `apply-event-${tag}-`));
+    let request = null; try { request = fs.readFileSync(path.resolve(rq), "utf8"); } catch (x) { /* unread */ }
+    const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^DASHBOARDS_|^(TEMP|TMP|TMPDIR)$/.test(k)));
+    fs.writeFileSync(path.join(d, "command.json"), JSON.stringify({ argv: [process.execPath, ...process.argv.slice(1)], cwd: process.cwd(), env, request }, null, 2) + "\n");
+    fs.writeFileSync(path.join(d, "summary.json"), JSON.stringify({ ...S, stack: String(e && e.stack || e) }, null, 2) + "\n");
+    fs.writeFileSync(path.join(d, "children.txt"), CHILD_RUNS.map(c => `=== node ${c.script} ${c.args.join(" ")} (cwd ${c.cwd}) → exit ${c.status}\n--- stdout\n${c.stdout}\n--- stderr\n${c.stderr}\n`).join("\n") || "no child ran\n");
+    for (const [file] of staged) {
+      if (!fs.existsSync(file) || !fs.statSync(file).isFile()) continue;
+      const rel = ROOT && !path.relative(ROOT, file).startsWith("..") ? path.join("tree", path.relative(ROOT, file)) : path.join("outside", file.replace(/^([A-Za-z]):/, "$1").replace(/^[\\/]+/, ""));
+      fs.mkdirSync(path.dirname(path.join(d, rel)), { recursive: true }); fs.copyFileSync(file, path.join(d, rel));
+    }
+    return d;
+  } catch (x) { return null; }
+}
 
 let DIR = null, ROOT = null, MAIN = null, LAY_HINT = null, EV = null, NO_FILL = null, CORRECTION = null;
 /* A correction the script refuses is a refusal, not a failure (the user's decision q-99, console/q99-correction-refusal/answer; PROTOCOL.md,
@@ -2593,7 +2619,7 @@ async function main() {
        land with one still open; the summary says what to do */
     if (fails.some(l => /OPEN POINT AT THE LAND/.test(l))) S.enrich.push("an open point is still open at the land: resolve it (facts.open, each with resolved) and raise the event again; nothing is committed open");
     if (fails.some(l => /GAP UNWRITTEN|FOUNDATION NOT FILLED/.test(l))) S.enrich.push("the board's foundation is not filled: write what it reads as being written from the documents (the function, the rows with their Gap) and raise the event again");
-    if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${fails.slice(0, 6).join(" | ") || (cks.find(c => c.status !== 0).stderr || "").trim().split(/\r?\n/)[0]}`; throw new Error("check.js failed on the board it would write"); }
+    if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${fails.slice(0, 6).join(" | ") || errLine(cks.find(c => c.status !== 0).stderr)}`; throw new Error("check.js failed on the board it would write"); }
     if (sks.some(c => c.status !== 0)) { S.check = `FAIL (a seeded board): ${sks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 4).join(" | ")}`; throw new Error("check.js failed on a board seeded from the live view"); }
     if (wb && wb.status !== 0) throw new Error(`board.js (the committed repository work board, after seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
     if (wb) S.wrote.push("the repository work board: docs/plans/board.json, index.html, board.js (regenerated after seeding)");
@@ -2638,6 +2664,7 @@ main().then(() => { say(); process.exit(0); }, e => {
     S.enrich.splice(0, S.enrich.length); say(); process.exit(3);
   }
   S.result = "failed"; S.error = e.message;
+  const kept = keepFailure(e); if (kept) S.kept = kept;
   try { S.restored = rollback(); } catch (x) { S.error += `; the rollback failed too: ${x.message}`; }
   /* an unfinished Document step is the run's to report, not a defect for a fill (mergeTasks()) */
   /* a refused plan-stage or late-update leaves nothing for a fill to write (NO_FILL): enrich is emptied and the refusal is the whole message; any other

@@ -18,9 +18,18 @@ function open(name, opts = {}) {
   /* no fixture starts a progress notes' watcher (plan/scripts/progress-index.js), as under verify-templates.js: one would outlive the run
      with its working folder in tmp/, so the scratch could not be removed; the case that tests it turns it on for its own spawns */
   if (process.env.DASHBOARDS_NO_WATCHER === undefined) process.env.DASHBOARDS_NO_WATCHER = "1";
+  /* a failed event that is no refusal keeps why it failed here (plan/scripts/apply-event.js keepFailure()): its command and request, its
+     summary with the error's stack, every child's whole output and the files it would have written, one folder per failure */
+  const failures = path.join(run, "failures");
+  if (process.env.DASHBOARDS_VERIFY_FAILURES === undefined) process.env.DASHBOARDS_VERIFY_FAILURES = failures;
   const keep = !!opts.keep || process.argv.includes("--keep") || process.env.DASHBOARDS_VERIFY_KEEP === "1";
   process.on("exit", code => {
-    if (keep || code === 1) { console.log(`scratch kept for inspection${keep ? "" : " (a check failed)"}: ${run}`); return; }
+    if (keep || code === 1) {
+      console.log(`scratch kept for inspection${keep ? "" : " (a check failed)"}: ${run}`);
+      let n = 0; try { n = fs.readdirSync(failures).length; } catch (e) { /* none */ }
+      if (n) console.log(`  failed events kept with their reasons (expected refusals and failures among them): ${n} in ${failures}`);
+      return;
+    }
     try { fs.rmSync(run, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); }
     catch (e) { console.log(`scratch not removed (${e.code || e.message}): ${run}`); }
   });

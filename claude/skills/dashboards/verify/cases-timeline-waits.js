@@ -88,7 +88,7 @@ module.exports = function casesTimelineWaits(X) {
     c.push(["a board already at qa when the question was put: the wait recorded in qa, no qa visit of no time frozen, qa's since the answer", r2.a.status === 0 && js(r2.p.wip.waits) === js([{ step: "qa", since: "2026-11-01T22:37:24Z", ended: "2026-11-01T23:43:35Z", by: "open-points" }]) && !(r2.p.wip.history.qa || []).length && r2.p.wip.since === "2026-11-01T23:43:35Z", js([r2.p.wip.waits, r2.p.wip.history.qa, r2.p.wip.since])]);
     /* no stop and no open point: no wait is guessed */
     const plain = copy(plan); plain.wip.open = []; const B3 = lay("no-wait", plain), r3 = apply(B3, plain, "resumed", { step: "implementation" }, "2026-11-01T22:40:00Z");
-    c.push(["a resumed with neither a stop before it nor an open point: no wait recorded, the visit runs on", r3.a.status === 0 && !(r3.p.wip.waits || []).length && r3.p.wip.since === "2026-11-01T21:31:35Z", js([r3.p.wip.waits, r3.p.wip.since])]);
+    c.push(["a resumed with neither a stop before it nor an open point: no wait recorded, the visit runs on", r3.a.status === 0 && !(r3.p.wip.waits || []).length && r3.p.wip.since === "2026-11-01T21:31:35Z", js([r3.a.status, r3.p.wip.waits, r3.p.wip.since, r3.S.result, r3.S.error, r3.S.check, r3.S.kept, (r3.a.stderr || "").slice(-400)])]);
     const B4 = lay("bad-step", plan), r4 = apply(B4, plan, "qa-pass", { step: "building it", qa: { pass: 1, verdict: "approved" } }, "2026-11-01T22:10:00Z");
     c.push(["a facts.step that names no step is warned on (STEP UNKNOWN), never dropped silently", r4.a.status === 0 && (r4.S.warnings || []).some(w => /^STEP UNKNOWN: facts\.step "building it"/.test(w)), js(r4.S.warnings)]);
     const ck = run(CHECK, [B.dir]);
