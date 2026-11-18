@@ -59,9 +59,12 @@ function placeholders(v, at, found) {
    summaries draws as prose. check.js warns on it (UNQUOTED PATH), never fails, so a landed board's data stands as it landed; the writer sets
    it in backticks. A token is path-shaped when it ends in a file extension, with an optional ":line" or ":line-line", and holds a "/" or a
    line suffix, or ends in an extension no word of prose ends in (.kt, .kts, .gradle, .md, .json, .toml, .properties, .yml, .yaml, .xml): so
-   "Node.js" or a version is no path. A code span, a URL and a Markdown link's target are left alone. Returns the tokens, in order. */
+   "Node.js" or a version is no path. A token that runs on into a longer dotted name, its extension followed by "." and a word character, is
+   part of that name and no path: "org.gradle" in the attribute org.gradle.jvm.version, or a package such as com.acme.json.Parser (KotlinBottools #3's
+   verdict statements); a sentence's full stop after a path still ends it. A code span, a URL and a Markdown link's target are left alone. Returns the
+   tokens, in order. */
 const PATH_EXT = "kt|kts|java|scala|groovy|gradle|js|mjs|cjs|ts|tsx|jsx|json|md|xml|ya?ml|toml|properties|html|css|sh|py|txt|sql|proto|cfg|conf|ini|dsl";
-const PATH_TOKEN = new RegExp(String.raw`(?<![\w./@-])((?:[\w.-]+/)*[\w-][\w.-]*\.(?:${PATH_EXT}))(:\d+(?:-\d+)?)?(?![\w/-])`, "g");
+const PATH_TOKEN = new RegExp(String.raw`(?<![\w./@-])((?:[\w.-]+/)*[\w-][\w.-]*\.(?:${PATH_EXT}))(:\d+(?:-\d+)?)?(?![\w/-]|\.\w)`, "g");
 const PATH_PLAIN_EXT = /\.(?:kt|kts|gradle|md|json|toml|properties|ya?ml|xml)$/i;
 function unquotedPaths(s) {
   if (typeof s !== "string" || !s) return [];

@@ -34,7 +34,8 @@
 //   "wip": { "stages": [{ id, rows }], "questions": [{ question, rows }], "interview": [{ text, answer }], "asked": [{ text, step?, answer }], "qa": [{ pass, note }],
 //            "current": { "step": "<the step this glow is for>", "cells": ["<row-id>.<column>"] }, "waitingOn": "<what waits on the user>", "detail": "<the WIP line, reworded>",
 //            "open": [{ text, resolved }], "document": [{ id, started?, finished?, reason }] }
-//   sets only those fields of the items it names, an item the board does not hold named and skipped, and the glow only while the board's step is still that step. Any
+//   sets only those fields of the items it names, an item the board does not hold named and skipped, and the glow only while the board is still at that step: the
+//   step it shows, or on a halted or escalated board either its wip.step ("halted", "escalated") or the step it stopped in (wip.resume), whose glow it keeps. Any
 //   other wip key is refused. wip.open corrects the time an open point already resolved was recorded at (a factual correction, plan/RULES.md §2: the fill also
 //   writes its notes.corrections entry), on every snapshot that holds the point with the same time; an open point not resolved yet is refused (resolving is the events'),
 //   and so is a time that is no UTC ISO time or is after wip.updated.
@@ -50,7 +51,7 @@
 //   wip.waitingOn is the text the fast path left out or wrote in its stead (plan/RULES.md §4, its rewording of a sizing in the facts): while the board
 //   is halted or escalated it is written, and the stop's own trail entry and a detail that quoted the old text follow it, so the record reads alike;
 //   once an event has taken the board out of the stop, the last stop's trail entry alone takes it, and a waitingOn and resume left standing are cleared.
-// It catches up the plan's stage table on a board whose stages carry none of it (lib.js catchUpStageTable()), and keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues (and at implementation, from the rows a fill names for the current stage, when it sets no glow itself), and a unit's
+// It catches up the plan's stage table on a board whose stages carry none of it (lib.js catchUpStageTable()), and keeps up what follows from new rows: a tracking board's wip.next once its unit rows first appear, the glow at research and at sub-issues (and at implementation, a board halted or escalated in it included, from the rows a fill names for the current stage, when it sets no glow itself), and a unit's
 // blocker named by unit number ({ "unit": k }, plan/RULES.md §3, unit.blockedBy) written as its issue number once that unit is filed; and a row it brings onto a
 // planned board with no asBuilt is laid pending ({ "state": "pending" }), as every part of a planned board is.
 // Exit 0 when merged (the summary's check line says what still warns or fails), 1 when the fill would add a failure to the board (every file as it was), 2 on a usage error or a refused field.
@@ -285,12 +286,17 @@ function mergeFill(board, fields, planDir) {
       fix(w.open); Object.values(isObj(w.history) ? w.history : {}).forEach(vs => (Array.isArray(vs) ? vs : []).forEach(v => isObj(v) && fix(v.open)));
       merged.push(`wip.open resolved ${old} → ${x.resolved} (${n} record${n === 1 ? "" : "s"})`); });
     if (F.wip.document !== undefined) correctTaskTimes(plan, w, F.wip.document, merged);
+    /* the glow for the step the board is at: the step it shows, or on a halted or escalated board its wip.step too, since a stopped board keeps
+       the glow of the step it stopped in (wip.resume; plan/RULES.md §3) and its plan.json reads "halted" (KotlinBottools #3, a halt at implementation) */
     if (isObj(F.wip.current)) { const C = F.wip.current, cells = Array.isArray(C.cells) ? C.cells.map(String) : [];
       if (typeof C.step !== "string") throw new Refused("wip.current names the step its glow is for ({ step, cells })");
-      if (lib.shownStep(w) === C.step) { w.current = cells; merged.push(`wip.current at ${C.step}`); } else notes.push(`wip.current was for ${C.step}; the board has moved on to ${lib.shownStep(w)}: left as the event set it`); }
+      const shown = lib.shownStep(w), stopped = ["halted", "escalated"].includes(w.step);
+      if (shown === C.step || (stopped && w.step === C.step)) { w.current = cells; merged.push(`wip.current at ${C.step}${stopped ? ` (${w.step} in ${shown || "a step not recorded"})` : ""}`); }
+      else notes.push(`wip.current was for ${C.step}, but the board is at ${stopped ? `${w.step}, stopped in ${shown || "a step not recorded"}, whose glow it keeps (name either)` : shown}: left as the event set it`); }
     /* the stages' rows named at implementation, with no glow of the fill's own: the glow follows the map (lib.js glowFor()'s issue-board rule),
-       the As built cells of the rows the current stage touches, or the whole column when it touches none (KotlinBottools #24's branch-cut) */
-    if (Array.isArray(F.wip.stages) && !isObj(F.wip.current) && plan.kind !== "tracking" && w.step === "implementation") {
+       the As built cells of the rows the current stage touches, or the whole column when it touches none (KotlinBottools #24's branch-cut); a board
+       halted or escalated in implementation alike, whose glow is that step's (KotlinBottools #3) */
+    if (Array.isArray(F.wip.stages) && !isObj(F.wip.current) && plan.kind !== "tracking" && lib.shownStep(w) === "implementation") {
       const cs = (Array.isArray(w.stages) ? w.stages : []).find(x => isObj(x) && x.state === "current");
       const own = cs ? ownRows(cs.rows).map(id => id + ".built") : [], g = own.length ? own : ["built"];
       if (cs && JSON.stringify(g) !== JSON.stringify(w.current || [])) { w.current = g; merged.push(`wip.current, the rows stage ${cs.id} touches`); } }

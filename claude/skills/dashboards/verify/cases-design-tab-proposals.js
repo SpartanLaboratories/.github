@@ -136,6 +136,10 @@ module.exports = function casesDesignTabProposals(X) {
       ["(src/main/x.ts)", ["src/main/x.ts"]], ["Node.js, 1.2.3, e.g. x", []], ["https://x.y/a/b.kt and [x](docs/a.md)", []], ["the docs/ folder", []], ["`common/HttpTransport.kt:29`", []]];
     const bad = want.filter(([s, w]) => js(C.unquotedPaths(s)) !== js(w));
     c.push(["unquotedPaths(): a path with a folder or a line, or a file of an extension prose has no word in; never a code span, a URL, a link's target, \"Node.js\" or a version", !bad.length, js(bad.map(([s, w]) => [s, C.unquotedPaths(s), w]))]);
+    /* a dotted attribute's or package's name is no path (KotlinBottools #3: "org.gradle" read from org.gradle.jvm.version in a verdict statement) */
+    const dotted = [["the Kotlin jvmTarget, -Xjdk-release and the published org.gradle.jvm.version attribute.", []], ["com.acme.json.Parser reads it", []], ["see build.gradle. Then plan.md:3.", ["build.gradle", "plan.md:3"]], ["settings.gradle.kts", ["settings.gradle.kts"]]];
+    const badD = dotted.filter(([s, w]) => js(C.unquotedPaths(s)) !== js(w));
+    c.push(["unquotedPaths(): a token running on into a longer dotted name (an attribute's, a package's) is no path; a full stop after a path still ends it", !badD.length, js(badD.map(([s, w]) => [s, C.unquotedPaths(s), w]))]);
     const r = { gap: { summary: "a/b.kt", evidence: ["c/d.kt:1", "`e/f.kt:2`"] }, options: [{ summary: "x.md" }], verdict: { statements: [{ text: "g/h.kt" }] }, asBuilt: { summary: "i/j.kt", statements: [{ text: "ok" }] } };
     const sites = C.rowPathTexts(r, "rows[0] (x)").filter(([s]) => C.unquotedPaths(s).length).map(([, w]) => w);
     c.push(["it reads the gap's summary and evidence, each option's summary, the verdict's and the as-built statements and summaries", js(sites) === js(["rows[0] (x).gap.summary", "rows[0] (x).gap.evidence[0]", "rows[0] (x).options[0].summary", "rows[0] (x).asBuilt.summary", "rows[0] (x).verdict.statements[0].text"].sort((a, b) => sites.indexOf(a) - sites.indexOf(b))) && sites.length === 5, js(sites)]);

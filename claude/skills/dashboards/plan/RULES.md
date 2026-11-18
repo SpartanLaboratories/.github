@@ -2082,7 +2082,9 @@ never "L2"); a C4 level keeps its label, and the old test levels a quoted landed
 A path written outside a `` `code` `` span in a Row's evidence, statements or summaries draws as prose; `check.js` warns on it
 (`UNQUOTED PATH`, dashboards-skill/53), never fails, and the writer sets it in backticks.
 It reads a token as a path when it ends in a file extension, with an optional `:line` or `:line-line`, and holds a "/" or a line suffix,
-or ends in an extension no word of prose ends in (`.kt`, `.kts`, `.gradle`, `.md`, `.json`, …); a code span, a URL and a link's target
+or ends in an extension no word of prose ends in (`.kt`, `.kts`, `.gradle`, `.md`, `.json`, …); a token that runs on into a longer
+dotted name (its extension followed by "." and a letter or digit: `org.gradle` in the attribute `org.gradle.jvm.version`, a package's
+name) is part of that name and no path, while a sentence's full stop after a path still ends it; a code span, a URL and a link's target
 are left alone. The board itself guesses no path in prose.
 
 ## 8. What `check.js` enforces

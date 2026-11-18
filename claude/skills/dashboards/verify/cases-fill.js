@@ -84,7 +84,7 @@ module.exports = function casesFill(X) {
     c.push(["wip.stages[].rows by id: the stage's rows, an off-board row left out, an unknown stage named; its state stays the event's", st.a.status === 0 && js(pw.wip.stages[0].rows) === js(["a"]) && pw.wip.stages[0].state === "current" && (st.S.notes || []).some(x => /S9/.test(x)), js([pw.wip.stages, st.S.notes])]);
     c.push(["wip.current for the step the board is at", js(pw.wip.current) === js(["a.built"]), js(pw.wip.current)]);
     const stale = fill(Bw, { wip: { current: { step: "research", cells: ["b.considered"] } } });
-    c.push(["wip.current for a step the board has left: left as the event set it, and said", stale.a.status === 0 && js(P(Bw).wip.current) === js(["a.built"]) && (stale.S.notes || []).some(x => /moved on/.test(x)), js([P(Bw).wip.current, stale.S.notes])]);
+    c.push(["wip.current for a step the board has left: left as the event set it, and said", stale.a.status === 0 && js(P(Bw).wip.current) === js(["a.built"]) && (stale.S.notes || []).some(x => /^wip\.current was for research, but the board is at implementation: left as the event set it$/.test(x)), js([P(Bw).wip.current, stale.S.notes])]);
 
     /* wip.waitingOn, while the board waits on the user: the text the fast path left out (an internal name in the run's own), the stop's trail entry and a detail quoting it with it */
     { const { mergeFill: mf } = require(FILL), old = "The design is ready.", neu = "sign-off of the design";
@@ -192,6 +192,31 @@ const reader = async () => { while (!stop) { for (const f of ["plan.json"]) { tr
     at(["built"], S("done", "done")); const p0 = P(B); p0.wip.step = "qa"; wr(path.join(B.dir, "plan.json"), JSON.stringify(p0, null, 2) + "\n");
     const f4 = fill(B, { wip: { stages: [{ id: "S1", rows: ["a"] }] } });
     c.push(["past implementation the glow stays the event's", f4.a.status === 0 && js(P(B).wip.current) === js(["built"]), js(P(B).wip.current)]);
+  });
+
+  guard("a board halted or escalated in implementation: the fill's glow and the stages' FullPulse as at implementation (KotlinBottools #3)", c => {
+    const B = laid(); fill(B, { function: "F.", rows: [ROW("a", "Gap a."), ROW("b", "Gap b.")] });
+    const at = (step, cur, rows) => { const p = P(B); Object.assign(p.wip, { step, resume: "implementation", waitingOn: "an answer on the toolchain", current: cur,
+      stages: [{ id: "S1", name: "One", state: "current", rows: rows ? ["a"] : [] }, { id: "S2", name: "Two", state: "todo", rows: rows ? ["b"] : [] }] });
+      wr(path.join(B.dir, "plan.json"), JSON.stringify(p, null, 2) + "\n"); };
+    at("halted", ["built"], false);
+    const f1 = fill(B, { wip: { stages: [{ id: "S1", rows: ["a"] }, { id: "S2", rows: ["b"] }] } });
+    c.push(["halted: the stages' rows named re-derive the glow, the current stage's As built cells, as at implementation", f1.a.status === 0 && js(P(B).wip.current) === js(["a.built"]) && /^pass \(\d+ warnings?\)$/.test(f1.S.check || "") && !run(CHECK, [B.dir], { env }).stdout.split(/\r?\n/).some(l => /wip\.current .* does not match/.test(l)), js([f1.S.merged, P(B).wip.current, f1.S.check])]);
+    at("halted", ["built"], true);
+    const f2 = fill(B, { wip: { current: { step: "halted", cells: ["b.built"] } } });
+    c.push(["halted: a glow named for \"halted\", the board's wip.step, is written", f2.a.status === 0 && js(P(B).wip.current) === js(["b.built"]) && (f2.S.merged || []).some(x => /^wip\.current at halted \(halted in implementation\)$/.test(x)), js([f2.S.merged, f2.S.notes, P(B).wip.current])]);
+    at("halted", ["built"], true);
+    const f3 = fill(B, { wip: { current: { step: "implementation", cells: ["a.built"] } } });
+    c.push(["halted: a glow named for the step it stopped in is written too", f3.a.status === 0 && js(P(B).wip.current) === js(["a.built"]), js([f3.S.merged, P(B).wip.current])]);
+    at("halted", ["a.built"], true);
+    const f4 = fill(B, { wip: { current: { step: "qa", cells: ["b.built"] } } });
+    c.push(["halted: a glow for another step is left out, the note saying where the board is", f4.a.status === 0 && js(P(B).wip.current) === js(["a.built"]) && (f4.S.notes || []).some(x => /^wip\.current was for qa, but the board is at halted, stopped in implementation, whose glow it keeps \(name either\): left as the event set it$/.test(x)), js([f4.S.notes, P(B).wip.current])]);
+    at("escalated", ["built"], false);
+    const f5 = fill(B, { wip: { stages: [{ id: "S1", rows: ["b"] }] } });
+    c.push(["escalated in implementation: the stages' rows named re-derive the glow too", f5.a.status === 0 && js(P(B).wip.current) === js(["b.built"]), js([f5.S.merged, P(B).wip.current])]);
+    at("escalated", ["a.built"], true);
+    const f6 = fill(B, { wip: { current: { step: "halted", cells: ["b.built"] } } });
+    c.push(["escalated: a glow named for \"halted\", which the board is not, is left out", f6.a.status === 0 && js(P(B).wip.current) === js(["a.built"]) && (f6.S.notes || []).some(x => /but the board is at escalated, stopped in implementation/.test(x)), js([f6.S.notes, P(B).wip.current])]);
   });
 
   guard("wip.qa: a Quality Review's note reaches the snapshots that hold the same pass (KotlinBottools #40: the board had moved on to the Document step before the fill)", c => {
