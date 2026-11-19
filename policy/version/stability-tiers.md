@@ -1,5 +1,5 @@
 # Stability tiers
-<!-- {"name":"Stability tiers","code":"P-V-ST","id":131} -->
+<!-- {"name":"Stability tiers","code":"P-V-ST","id":131,"pointerMark":1} -->
 
 ## Three tiers
 <!-- {"name":"Three tiers","code":"P-V-ST-TT","id":1073} -->

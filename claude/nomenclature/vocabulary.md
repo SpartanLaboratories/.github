@@ -14,7 +14,7 @@ means and holds none of those rules (R-1000 (Single source) [1000-T2]).
 The size of an issue's work: one of four, numbered 1 to 4 from the smallest to the largest. An
 issue is graded when it is given its grade, and re-graded when that grade changes. A grade is
 always written out, as in "grade 3". What each grade is, what it decides, and who records it where
-are in [`CLAUDE.md`](../CLAUDE.md), "Work grades"; the forms committed content never carries are in
+are in R-143 (Work grades) [143-T5]; the forms committed content never carries are in
 [`internal-names.md`](internal-names.md), section 3.
 
 ```jsonl
@@ -36,7 +36,7 @@ page, R-1028 (The four levels) [1028-T1]. Neither the size of work nor a group o
 {"name":"set","code":"G-N-VO-W-3","id":10025}
 A named group of tests of one kind. A set is called by its name, never by a number. The sets and
 their folders are on the organization's testing page, R-1026 (The seven sets) [1026-T1] and R-1027 (Separate
-each set by folder / package) [1027-T1], and in [`CLAUDE.md`](../CLAUDE.md), "Testing — Named Test Sets".
+each set by folder / package) [1027-T1].
 "Set" in its everyday sense (a set of files) names no group of tests.
 
 ```jsonl

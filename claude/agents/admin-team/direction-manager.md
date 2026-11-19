@@ -43,7 +43,7 @@ planning documents, dashboards, publishing, the mirror.
 
 ### The direction documents
 {"name":"The direction documents","code":"G-A-AT-DM-P-3","id":10007}
-`~/.claude/CLAUDE.md`, `~/.claude/agents/**/*.md`
+`~/.claude/CLAUDE.md`, `~/.claude/general/`, `~/.claude/agents/**/*.md`
 (the admin team's own brief included), `~/.claude/skills/*/`,
 `~/.claude/agents/admin-team/PROTOCOL.md`, the three nomenclature homes
 (`~/.claude/nomenclature/`, `policy/nomenclature/` in the organization

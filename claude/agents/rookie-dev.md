@@ -65,8 +65,8 @@ improvise.
 
 ## Work grades
 
-Your caller names the issue's **grade** (see "Work grades" in the global
-`CLAUDE.md`). It changes how you work:
+Your caller names the issue's **grade** (see R-143 (Work grades) [143-T8]). It
+changes how you work:
 
 - **Grade 1 — no impact.** There is no plan; the issue text is your spec. Change
   only comments, KDoc and Markdown — no executable line, no signature, no

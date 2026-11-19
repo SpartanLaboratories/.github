@@ -1100,7 +1100,7 @@ file or published copy for a private, reference-only, archived or `.github` repo
 
 **What leaves a repository.** §4 (no grade, no internal name) and §10 (no credential, machine-local path, user name or personal data) bind what
 the presenter hands out of a repository as they bind what it commits: a published copy, a Whiteboard's generated part, its section in progress
-included, and what a harvest writes ([`CLAUDE.md`](../../CLAUDE.md), "No internal names in committed content"). A private repository is named on
+included, and what a harvest writes (R-126 (Internal names — what committed content never names) [126-T9]). A private repository is named on
 none of them, as on the org work board, and none carries a private claude.ai link. The commit scan reads only what is committed, so the writers
 apply these rules on the way out, through one rule, `wblib.js` `textProblems()`: the Whiteboard generator passes every text it draws through
 `cleanText()`, which rewords an internal name or a grade where a safe rewording exists (`namerefs.js`, `levelrefs.js`, as `board.js` does),

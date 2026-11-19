@@ -1,6 +1,6 @@
 // Sizing references on a board (GUIDANCE.md §4, its rule against them): the dashboards never show an issue's sizing (the size of its
-// work, 1 to 4: ~/.claude/nomenclature/vocabulary.md and CLAUDE.md define it), in any form. What this file keeps is the board's part
-// only. The finding is the finding tool's, ../../../../tools/finding/match.js (the same path in ~/.claude and in the .github mirror's
+// work, 1 to 4: ~/.claude/nomenclature/vocabulary.md and R-143 (Work grades) define it), in any form. What this file keeps is the board's
+// part only. The finding is the finding tool's, ../../../../tools/finding/match.js (the same path in ~/.claude and in the .github mirror's
 // claude/): it reads the forms from the list, ~/.claude/nomenclature/internal-names.md §3, where it stands, and finds them as the
 // baseline, ~/.claude/nomenclature/finding.md, says. This file holds no form of the word and no rule of how one is found.
 // A board keeps no sizing as data: an older closed board's plan.json "level", unit.level and wip.proposedLevel are numbers, not text,
@@ -45,7 +45,7 @@ const TEST_LEVEL_NAMES = ["gating", "component", "integration", "deterministic",
 const TEST_WORD = `${anyCase("tests")}|${anyCase("test")}`;
 const AFTER_TEST = `\\s*(?:[·:—–-]\\s*)?(?:[\\w-]+\\s+){0,2}(?:${TEST_WORD})\\b`;
 const BEFORE_TEST = `\\b(?:${TEST_WORD})\\s*[(:·—–-]?\\s*`;
-/* each old short form's set (vocabulary.md, "set"; CLAUDE.md, "Testing — Named Test Sets"): L4 alone is the three project-wide sets */
+/* each old short form's set (vocabulary.md, "set"; R-12 (Testing — Named Test Sets)): L4 alone is the three project-wide sets */
 const TEST_LEVEL_SHORT = { 1: "gating", 2: "component", 3: "integration", 4: "project-wide", "4a": "deterministic", "4b": "e2e", "4c": "nonfunctional", 5: "uat" };
 const SCOPE_WORDS = "inside|within|outside|beyond";
 /* A pipeline fact's sizing reworded: the scope phrase ("inside <word> 3") becomes the unit's or the issue's scope, "escalated to <word> 4" reads "escalated", "at its own <word>" "on its own", "re-<word>d" "re-sized", "<word>d" "sized",
@@ -78,7 +78,7 @@ function scrubGrades(s, scope) {
   s = s.replace(new RegExp(`${NB}(grades?)${NA}(?![ \\t]*:?[ \\t]*[1-4]\\b)`, "gi"), (m, g) => caseOf(m, /s$/i.test(g) ? "sizings" : "sizing"));
   return s;
 }
-/* Slugs: a plan folder's name, <number>-<slug> (CLAUDE.md, "Planning documents"), is
+/* Slugs: a plan folder's name, <number>-<slug> (R-138 (Planning documents)), is
    made from its issue's title, so the sizing check skips it as it skips the title (below), wherever it stands as a folder or a slug: the
    board's slug, the plan folder, a board's path, a link to a board or into a folder, a report's copy, a path a text cites. It counts where
    a path puts it: a folder, ended by a "/" ("55-slug/62-slug/dashboard.html", "see 62-slug/plan.md"); the last folder of a path under

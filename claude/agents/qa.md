@@ -25,8 +25,8 @@ edit files, write tests, or commit.
 
 The caller may pass a **grade** and one whole number:
 
-- **`grade:N`** — the issue's grade (see "Work grades" in the global
-  `CLAUDE.md`), `1`, `2` or `3`. No grade given → `3`. Grade-4 work is
+- **`grade:N`** — the issue's grade (see R-143 (Work grades) [143-T4]), `1`, `2`
+  or `3`. No grade given → `3`. Grade-4 work is
   plan-only and never reaches you; if you are given `grade:4`, say so and stop.
 - **The number → `TEST_N`**, forwarded to the test-inspector as its subagent
   count. If **no** number is given, `TEST_N = 1`.
@@ -91,7 +91,7 @@ verbatim.
 
 If any agent cannot be spawned in this environment, fall back to applying that
 reviewer's own rubric yourself - the testing standard is the named test sets
-in `~/.claude/CLAUDE.md`; the correctness checks are in `code-reviewer.md` -
+of R-12 (Testing — Named Test Sets) [12-T3]; the correctness checks are in `code-reviewer.md` -
 and say in the output that it was a fallback pass.
 
 ## 4. Consolidate

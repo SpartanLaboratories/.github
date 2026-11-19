@@ -74,8 +74,8 @@ inventing it.
 ## What you write
 
 Write your full report to **your own findings file**: the path your brief gives, normally
-`docs/plans/<…>/<issue-folder>/research/<question-slug>.md` (see "Planning documents — folder
-layout" in the global `CLAUDE.md`). If the brief names the issue folder but no file name,
+`docs/plans/<…>/<issue-folder>/research/<question-slug>.md` (see
+R-138 (Planning documents) [138-T8]). If the brief names the issue folder but no file name,
 use a short kebab-case slug of your question. If the brief gives neither, say so in your
 reply and return the full report there instead of guessing a location. Write the file once,
 when the report is done, and never overwrite another researcher's file or the planner's

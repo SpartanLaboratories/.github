@@ -7,17 +7,19 @@ architecture, `consequences.md`, `final-implementation.md`, every board, and the
 texts that land on one) and the comments in source code among it, and what a board hands out of
 its repository (a board's published copy, a Whiteboard's generated part). The list does not reach
 the mirror's copies of the direction documents, the files under `claude/` in
-`SpartanLaboratories/.github`: the briefs, skills and rules there name the pipeline by design. The rule that
-applies the list and what a find blocks is in [`CLAUDE.md`](../CLAUDE.md), "No internal names in
-committed content". Committed content describes the work in the project's own terms; the process
-lives in the briefs and in the reports.
+`SpartanLaboratories/.github`: the briefs, skills and rules there name the pipeline by design. Committed
+content describes the work in the project's own terms; the process lives in the briefs and in the
+reports.
 
-The list is read by the admin team's internal-names scan, which blocks a commit that carries a
-find, and by the dashboards skill's
+The list is read by the admin team's internal-names scan and by the dashboards skill's
 [`namerefs.js`](../skills/dashboards/system/scripts/namerefs.js) (the names and the approval
 flow) and [`levelrefs.js`](../skills/dashboards/system/scripts/levelrefs.js) (the grades),
-which keep them off the boards. What the commit scan reads, how each scan finds a term, and what
-only resembles one, is in [`finding.md`](finding.md).
+which keep them off the boards. A find of the scan blocks the `commit`, `prepare-landing` or
+`land` that carries it: the admin team commits nothing and names each `file:line` with the list's
+wording to say instead, or that it has none, and the requester rewords the find, by hand where
+there is no wording, and resends, or resends asking for an exception (below); a find in a board
+the admin team generates is the team's to fix. What the commit scan reads, how each scan finds a
+term, and what only resembles one, is in [`finding.md`](finding.md).
 
 Only the user decides adding, changing or removing a term in this file; the admin team's
 Communication Clarity Officer makes the edit, and brings to the user the terms it proposes. A case
@@ -78,7 +80,7 @@ player", "the caller").
 
 | Term | What it is | Allowed when |
 |------|------------|--------------|
-| **"grade 3"** | A grade stated by its number ([`CLAUDE.md`](../CLAUDE.md), "Work grades"). | never |
+| **"grade 3"** | A grade stated by its number (R-143 (Work grades) [143-T10]). | never |
 | **"a grade-4 tracking issue"** | A grade stated of an issue or a unit. | never |
 | **"the recorded grade"** | The word in any other form: "grade", "grades", "graded", "re-grade", "work grade", and a hyphenated compound that holds it. | as section 4's markers say |
 

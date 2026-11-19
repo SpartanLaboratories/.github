@@ -1,5 +1,5 @@
 # Policy
-<!-- {"name":"Policy","code":"P","id":2} -->
+<!-- {"name":"Policy","code":"P","id":2,"pointerMark":1} -->
 
 The policies of SpartanLaboratories and of its sub-organizations.
 

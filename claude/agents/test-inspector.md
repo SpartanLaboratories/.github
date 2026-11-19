@@ -2,7 +2,7 @@
 name: test-inspector
 description: >-
   Read-only auditor that checks a set of changes against the user's named
-  test sets (in ~/.claude/CLAUDE.md). It fans out to five independent
+  test sets. It fans out to five independent
   inspectors — one each for the gating, component and integration sets, the
   three project-wide sets (deterministic, e2e, nonfunctional), and uat — then
   merges their results into one consolidated compliance report. The caller may pass a whole
@@ -43,7 +43,7 @@ inspector subagents to spawn. Call it `N`.
 - You will partition the set rubrics across `N` agents in step 3.
 
 The caller may also pass a **rubric subset**, e.g.
-`rubrics: gating, component` (`qa` does this for grade-2 work — see "Work grades" in the global `CLAUDE.md`).
+`rubrics: gating, component` (`qa` does this for grade-2 work — see R-143 (Work grades) [143-T9]).
 Then only those rubrics are inspected, `N` is clamped to the subset's size, and
 every other set is reported as "not inspected at this grade". No subset
 means all seven. The full-suite run (§5) happens either way.
@@ -64,7 +64,7 @@ means all seven. The full-suite run (§5) happens either way.
 ## 2. Load the rules
 
 Read the target repo's `CLAUDE.md` and `AGENTS.md` if
-present, and the **Testing** section of `~/.claude/CLAUDE.md`. The set →
+present, and R-12 (Testing — Named Test Sets) [12-T4]. The set →
 package → folder mapping is:
 
 | Set           | Package segment         | Folder                         |
@@ -202,8 +202,9 @@ they came out. Both results are reported, neither overrides the other.
 
 ### 5.1 Run the change's tests once
 
-- Run only the tests that exercise the change (see "Testing" in the global
-  `CLAUDE.md`): the full test task of each module whose code the change
+- Run only the tests that exercise the change, as
+  R-1025 (Run only the tests that exercise the change) [1025-T3] says: the full
+  test task of each module whose code the change
   alters, and of each in-repo module that depends on that code — e.g.
   `./gradlew :<module>:test` per module (Gradle), or the equivalent for
   `mvn`, `npm`, `pytest`, `cargo`. Use each module's task that runs **every**

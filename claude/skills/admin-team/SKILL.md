@@ -84,6 +84,7 @@ A pipeline's steps map to actions like this:
 | A defect or concern found in a Spartan Labs repo | `file-issue` against the repo the fix belongs in, with `title`, `body` and `surfacedIn`; tell the user what was filed. Never for comment resolution (a code comment or KDoc that needs rewording): fix it on the spot, in your current change, or, with no change in hand in that repository, `commit` the fix on a new docs branch, then `land` it with no `issue` and a `title` for the PR. A `done` that names wording it dropped from your request leaves that wording yours to fix the same way |
 | A comment or label on an issue | `comment`, `label` |
 | A change to anything the `.github` mirror covers | `mirror-sync` with the `~/.claude` paths |
+| No checkout of the organization repository, or of another repository a pointer needs (`SPARTAN_ORG_POLICIES` unset, or the fetch script exits 2 naming a missing checkout) | `policies-checkout`, naming the repository in `github` and your repository's main checkout in `repo`, with no `repo` when your session has no repository of its own (the `done` reply carries `result.path`) |
 | A mirror push or force-push from a workspace mirror | `push-mirror`. Every action from here to `replace-clone` carries the plan's `procedure`, `inputs` and `checks`; verify each write by reading GitHub or the checkout before your next step |
 | A repository's creation, settings, rename or archiving | `create-repo`, `repo-settings`, `rename-repo`, `archive-repo` |
 | A repository's visibility or security settings | `repo-visibility`, `repo-security` |

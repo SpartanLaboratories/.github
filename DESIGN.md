@@ -1,5 +1,5 @@
 # Design Manifesto
-<!-- {"name":"Design Manifesto","code":"D","id":3} -->
+<!-- {"name":"Design Manifesto","code":"D","id":3,"pointerMark":1} -->
 
 What Spartan Labs code aims to be. A principle here is followed unless there is a reason not to.
 A departure is stated, with its reason, where the work is recorded: it is a recorded choice, not

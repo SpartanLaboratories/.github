@@ -50,7 +50,7 @@ one fenced ```json block:
 | `id` | yes | Unique per sender: `<sender>/<issue>/<n>`. A retry keeps the `id` and raises `attempt`. |
 | `attempt` | yes | Starts at 1. A reply carries an `attempt` the requester did not send in one case only: the team's rerun of a request from its ledger when it starts again after the restart a temporary allow line needs (the `admin-team` agent brief, Gates and standing grants, Temporary permissions, **Allow lines**), with the same `id` and `attempt + 1`. |
 | `from` | yes | The sender's session name, as `ListAgents` shows it. The reply goes here. |
-| `repo` | yes (not `status`, `file-issue` or `log-hook`); optional on a GitHub-only action, one with no local checkout, such as `create-repo`, `transfer-issue` or `rename-repo` | Absolute path of the main checkout. Forward slashes. |
+| `repo` | yes (not `status`, `file-issue` or `log-hook`); optional on a GitHub-only action, one with no local checkout, such as `create-repo`, `transfer-issue` or `rename-repo`, and on a `policies-checkout` from a session with no repository of its own | Absolute path of the main checkout. Forward slashes. |
 | `github` | yes (not `status` or `log-hook`) | `owner/repo`; also the lane key, unless the request has a `target` that differs from it, when the `target` is the lane key, so each repository has one writer at a time. `SpartanLaboratories/.github` for `mirror-sync`; for `file-issue`, the repo the fix belongs in; for `idea`, the repository whose ideas file takes it, `SpartanLaboratories/OrganizationPage` for an idea that spans repositories. |
 | `action` | yes | One of the actions below. |
 | `issue` | per action | The issue number. Omit it on a `land` of a branch that resolves no issue (a docs or config branch): then give `title` for the PR, and the landing has no closing keyword and no resolution comment. |
@@ -89,11 +89,11 @@ one fenced ```json block:
 The `admin-team` agent brief (Request groups) says what each group holds, the actions below included.
 
 Version control: `setup-branch` · `allocate-worktree` · `commit` · `sync-branch` · `prepare-landing` ·
-`land` · `file-sub-issues` · `file-issue` · `comment` · `label` · `mirror-sync` · `status` · `cancel` ·
-`push-mirror` · `create-repo` · `repo-settings` · `rename-repo` · `archive-repo` · `repo-visibility` ·
-`repo-security` · `transfer-issue` · `placeholder-issue` · `link-issues` · `edit-issue-body` ·
-`realign-checkout` · `replace-clone` · `create-label` · `create-milestone` · `create-issue` ·
-`close-issue` · `reopen-issue` · `fixture-pull-request`
+`land` · `file-sub-issues` · `file-issue` · `comment` · `label` · `mirror-sync` · `policies-checkout` ·
+`status` · `cancel` · `push-mirror` · `create-repo` · `repo-settings` · `rename-repo` · `archive-repo` ·
+`repo-visibility` · `repo-security` · `transfer-issue` · `placeholder-issue` · `link-issues` ·
+`edit-issue-body` · `realign-checkout` · `replace-clone` · `create-label` · `create-milestone` ·
+`create-issue` · `close-issue` · `reopen-issue` · `fixture-pull-request`
 
 Dashboards (the work boards and the state boards): `plan-board` · `state-boards` · `dashboards-refresh` ·
 `idea`
@@ -117,6 +117,13 @@ tagged with who would carry the idea out; `done` carries `result.hook`, the hook
 of execution comes later, to the user at the team's console; the sender gets none. A `log-hook`
 never changes a rule, a document or a board: what it asks for waits for the user. It is
 fire-and-forget for the sender.
+
+**`policies-checkout`.** A session with no checkout of the organization repository (`SPARTAN_ORG_POLICIES`
+unset, or the fetch script exiting 2 to say a checkout is missing) asks for one, naming the repository in
+`github`: `SpartanLaboratories/.github`, or another repository that holds a rule file, and in `repo` the
+main checkout of its own repository; a session with no repository of its own sends no `repo`. It has no
+gate. The team clones the repository when this machine has no checkout of it, sets `SPARTAN_ORG_POLICIES`
+for the organization repository's, and replies `done` with `result.path`, the checkout's path.
 
 **`setup-branch`.** A run sends it when it is sized, at every grade, to create its topic branch and
 record its grade, and once more at its Branch step as a confirm-only request: `branch` names the

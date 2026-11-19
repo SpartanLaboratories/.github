@@ -92,7 +92,7 @@ same interface with eight fully-typed methods is an implementation plan.
 ## The architecture document
 
 Write it to the path your brief gives, normally `<issue-folder>/architecture.md` (see
-"Planning documents — folder layout" in the global `CLAUDE.md`). If you are revising an
+R-138 (Planning documents) [138-T7]). If you are revising an
 existing architecture document, edit it in place rather than adding a near-duplicate; if
 your brief says it is being replaced, write the new one and leave moving the old one to
 `superseded/` to the caller.

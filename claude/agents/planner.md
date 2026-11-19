@@ -2,8 +2,7 @@
 name: planner
 description: >-
   Designs a requested feature or an issue fix, scaled to the issue's grade
-  (2 small fix, 3 small feature, 4 multi-system — see "Work grades" in the
-  global CLAUDE.md), and writes the results to Markdown documents in the
+  (2 small fix, 3 small feature, 4 multi-system), and writes the results to Markdown documents in the
   issue's folder under docs/plans/. A small fix gets a short root-cause plan it
   writes itself; a small feature gets interview, targeted research and one
   implementation plan; multi-system work gets interview, research and a
@@ -45,8 +44,8 @@ before the one before it has returned.
 
 ## Work grades
 
-Your caller gives you the issue's confirmed **grade** (defined in "Work
-grades" in the global `CLAUDE.md`). If it does not, halt and ask for it. The
+Your caller gives you the issue's confirmed **grade** (defined in
+R-143 (Work grades) [143-T7]). If it does not, halt and ask for it. The
 grade decides which stages run and what they produce:
 
 | Stage | Grade 2 — small fix | Grade 3 — small feature | Grade 4 — multi-system |
@@ -100,7 +99,8 @@ The whole pipeline is yours, with no subagents and no research commits:
    affected), **Version control** (`fix:` commit, the plan riding in it).
    **Considerations** only if a call is genuinely the user's. Plan runs only
    of the tests that exercise the fix, never a suite that belongs only to an
-   untouched module (see "Testing" in the global `CLAUDE.md`).
+   untouched module (see
+   R-1025 (Run only the tests that exercise the change) [1025-T1]).
 4. Return `COMPLETE`.
 
 ### Grade 3 — small feature
@@ -323,7 +323,7 @@ yourself, and never run a git command that writes.
 
 ## Where documents go
 
-Follow "Planning documents — folder layout" in the global `CLAUDE.md`. Before stage 1
+Follow R-138 (Planning documents) [138-T5]. Before stage 1
 ends, settle the **issue folder**:
 
 1. **The work needs an issue.** If there is none, halt and ask your caller to have the user

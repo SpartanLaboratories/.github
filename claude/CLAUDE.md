@@ -2,6 +2,7 @@
 {"name":"Global guidelines (all projects)","code":"G","id":4}
 
 ## Never Guess Intent — Ask
+{"name":"Never Guess Intent — Ask","code":"G-C-I","id":1125}
 
 Leave **no gap** in your understanding of what I want. Nothing about my intent is to be
 guessed. If you are unsure, ask me a question.
@@ -29,11 +30,12 @@ guessed. If you are unsure, ask me a question.
   me what you assumed, after the work is done, is not the same as asking.
 - **A `/resolve-issue` prompt flag is my answer given in advance.** A flag I pass to a run
   answers, for that run, the prompts it covers with their recommendations, and this rule and
-  the grade re-check and "Escalate, don't stretch" (Work grades) give way to it there; which
-  prompts each flag covers, and what still stops a run, is in
+  the grade re-check and "Escalate, don't stretch" (R-143 (Work grades) [143-T1]) give way to it
+  there; which prompts each flag covers, and what still stops a run, is in
   `~/.claude/skills/resolve-issue/SKILL.md`, "Prompt flags".
 
 ## Spartan Labs libraries — surface issues
+{"name":"Spartan Labs libraries — surface issues","code":"G-C-SI","id":1126}
 
 Whenever you find a bug, design flaw, missing capability, or other area of concern in any
 Spartan Labs organization repo — **`github.com/SpartanLabsGaming/*`** (the games org:
@@ -50,116 +52,31 @@ docs-only branch the `admin team` commits and lands with no issue; a `file-issue
 wording into a defect has the defect filed alone, and its reply names the wording dropped.
 
 ## Repository READMEs and CHANGELOGs — keep current
+{"name":"Repository READMEs and CHANGELOGs — keep current","code":"G-135-P1","id":"135-P1"}
 
-Whenever your work changes what lands on a repository's `master` / `main` branch — a new
-command, endpoint, module, dependency, build or run step, protocol change, or architectural
-shift — update that repository's `README.md` as part of the same change so it keeps
-accurately describing the project. Create a `README.md` if the repo has none. Keep the edit
-proportional: a bug fix or internal refactor that doesn't change the project's external
-shape needs no README change.
-
-Every repository also keeps a `CHANGELOG.md` in the Keep a Changelog layout. A change that
-lands adds its entry (Added, Changed, Fixed, Removed, …) in the same change: under
-`## [X.Y.Z] - <date>` when the landing bumps a version, since the version is known by then,
-else under `## [Unreleased]`; a repository without one gets one. A comment- or doc-only change
-adds no entry. In `SpartanLaboratories/.github`, only a change to the organization's own scripts,
-under `scripts/`, adds an entry; its other changes, a mirror-sync included, add none. The
-publisher reads a version's section as its GitHub release notes, and the notes of a version that
-ships name any superseded version it includes. In a `/resolve-issue` run, the Document step
-writes both the README delta and the entry.
+Keeping a repository's `README.md` and `CHANGELOG.md` current with what lands on its default
+branch is R-135 (READMEs and CHANGELOGs): read it whenever your work changes what lands there.
 
 ## Work grades
+{"name":"Work grades","code":"G-143-P1","id":"143-P1"}
 
-Every issue is graded (the word is defined in `~/.claude/nomenclature/vocabulary.md`): its grade
-is recorded by the admin team in its local state, never on GitHub, and never stated in a committed
-board or document. The grade decides how much planning, implementation, QA and versioning the
-work gets; `/resolve-issue` and its agents scale to it.
-
-| Grade | What it is | Planning | Built this run? | Kind of change |
-|-------|------------|----------|-----------------|--------------|
-| 1 | **No impact** — comments, KDoc, Markdown docs only. No executable line changes. | none; no plan folder | yes | `docs:` |
-| 2 | **Small fix** — a bug fix that changes no public API, persisted or shared state, or wire format, and stays local to one component. | short `plan.md` (root cause, fix, regression test) | yes, test-first | `fix:` |
-| 3 | **Small feature** — new or changed behaviour inside **one** system: additive public API, a new class or option. | interview, targeted research, one `plan.md` | yes | `feat:` |
-| 4 | **Large feature / roadmap** — anything that spans **more than one** system. | full pipeline up to the architecture; **plan only** | **no** — each system becomes a sub-issue, resolved later at its own grade | `docs:` (planning documents only) |
-
-- **The grade is re-checked when work starts.** If the issue, or the code it touches, says
-  the recorded grade is wrong, or none is recorded, propose a grade with the evidence and ask
-  me. Never re-grade silently.
-- **Escalate, don't stretch.** When work turns out bigger than its grade (a grade-1 change
-  needs code, a grade-2 fix changes public API or state, a grade-3 feature needs a second
-  system), stop and ask me to re-grade it. Never quietly do bigger work under a smaller grade.
-- A breaking change is never grade 1 or 2.
-- **The version follows the kind of change.** The table gives the kind each grade's change
-  takes; R-25 (Versioning) [25-T3] says whether the change moves a version, which part, and which
-  commit type a change that moves none takes.
+Every issue is graded, and its grade decides how much planning, implementation, QA and
+versioning its work gets: R-143 (Work grades). Read it before work on an issue starts.
 
 ## Version control — the admin team session
+{"name":"Version control — the admin team session","code":"G-C-VC","id":1127}
 
-All version control on this machine runs through one long-lived session named **`admin team`**
-(brief: `~/.claude/agents/admin-team/GUIDANCE.md`; protocol: `~/.claude/agents/admin-team/PROTOCOL.md`). It is
-the single writer for every repository and for the `.github` mirror: commits, branches, pushes,
-PRs, merges, labels, comments, issues, worktrees, the state boards a run asks for in its
-Document step, and mirror syncs. Any other session — a `/resolve-issue` run or anything else — sends it requests
-with the `admin-team` skill and acts on its replies; it never commits, pushes, merges, labels,
-comments or files itself, and never spawns `version-control-manager` directly.
-
-- It schedules by lane (one per repository, plus the mirror), orders by dependency, brings a
-  branch up to date with its base when the run's Document step opens (`prepare-landing`, which
-  also commits the version bump and reports the code-landing commit), and hands a conflict at a
-  sync that it cannot resolve itself back to the pipeline. It spawns
-  `version-control-manager` as the executor of each request.
-- **Its one gate** — removing a worktree with uncommitted changes — is confirmed by me at its
-  console or in the Remote Control app, never by a relayed approval. Its executor holds every
-  GitHub permission as my standing grant: deleting what the team did not create needs no gate.
-  What a request can reach is one rule (`~/.claude/agents/admin-team/GUIDANCE.md`, Request groups).
-  Filing sub-issues and upstream issues needs no gate either, and neither does deleting a stale
-  branch (fully merged into the default branch) with its clean worktree, nor writing the team's
-  own state files.
-- **Publishing is its own call, not a gate.** Every landing that moves a published module's
-  version is a release candidate; the team's `publisher` agent releases it to Maven Central on
-  its own (automatic release, then the repo's tag and a GitHub release) within the Central
-  budget: 7 release events per namespace per calendar month (one Sonatype organization per
-  GitHub organization: `io.github.spartanlaboratories`, `io.github.spartanlabsgaming`), 2 of
-  them held for grade-2 fixes and `publish: true` landings except in the month's last 3 days.
-  What does not fit is deferred and re-evaluated at the next consideration point; a deferred
-  version a later landing superseded collapses into the latest. Backlog older than the service
-  is mine to publish by hand.
-- **Direction is its service too.** Through its `direction-manager` agent (brief:
-  `~/.claude/agents/admin-team/direction-manager.md`) it keeps the direction of the work straight: the
-  workflow structure, the organization policies and the direction documents that state them
-  (this file, the agent briefs, the skills, the protocol, `Structure.md` in `.github`,
-  `shared/`). A direction document changes only through the team, as an edit I direct at its
-  console or as the propagation of a decision I have already made into the documents that
-  implement it; a new rule is never set without my direction. The single-source principle and
-  the format of a rule file are in `Structure.md` in `.github`.
-- **The vocabularies are its service too.** Through its `communication-clarity-officer` agent,
-  the Communication Clarity Officer or CCO (brief:
-  `~/.claude/agents/admin-team/communication-clarity-officer.md`), it owns and writes every file
-  of the three nomenclature homes (`~/.claude/nomenclature/`, `policy/nomenclature/` in
-  `.github`, `docs/nomenclature/` in SpartanUI) and keeps the system that finds their barred
-  words. What a scan reads and how it finds a word, `~/.claude/nomenclature/finding.md`, it
-  sets and corrects on its own; the commit scan and the dashboards' scripts apply it. The terms
-  are mine: each term, each word it rules out, each wording to say instead and each exception
-  is mine to decide, at my direction or brought to me by the CCO for approval, save the markers
-  that clear a listed word's technical sense (R-10059 (A technical sense by its marker) [10059-T3]), which
-  the CCO manages, adding and writing them itself.
-- **Its records are its service too.** Through its `archivist` agent (brief:
-  `~/.claude/agents/admin-team/archivist.md`) it keeps my idea hooks, each tagged with whoever would carry
-  the idea out, the questions put to me at its console, the issues it expects (its predicted
-  issues, each with its count of encounters), and an archive of its own past sessions, whose
-  files are deleted once archived. Any session may send it a `log-hook` request for an idea I
-  should revisit; a hook changes nothing until I decide it.
-- It lives in the Claude desktop app. If it is not running, the requesting session launches it
-  with `~/.claude/admin-team/launch.cmd` under the launch lock (the skill does this): a minimized,
-  Remote Control-enabled session started with `--agent admin-team`, which I may move into the app
-  with `/desktop`. After a restart, the same session is reopened in the app; it is started fresh
-  (`launch.cmd`, or a new app session in `~/.claude/admin-team/` that I name `admin team`) only
-  when it cannot be reopened or a clean context is wanted.
-- Its ledger, state, lane report, hooks log, questions log and session archive
-  (`~/.claude/admin-team/ledger.jsonl`, `state.json`, `lanes.json`, `hooks.jsonl`,
-  `questions.jsonl`, `archive/`) are local only and never mirrored.
+All version control on this machine runs through one long-lived session named **`admin team`**,
+the single writer for every repository and for the `.github` mirror. A session never performs a
+version-control action itself, and never edits a direction document
+(R-10007 (The direction documents) [10007-T1]) itself: it sends the admin team a request
+with the `admin-team` skill and acts on its replies. A direction document changes only through
+the team, as an edit I direct at its console or as the propagation of a decision I have already
+made into the documents that implement it; a new rule is never set without my direction. What
+the team does, and how, is R-14 (Admin team) [14-T2].
 
 ## Session handoffs
+{"name":"Session handoffs","code":"G-C-SH","id":1128}
 
 A session stopped with work unfinished leaves a handoff at `~/.claude/handoffs/<key>.md`. A session
 taking up that work reads it first when it exists and has content, which also tells it the work was
@@ -169,309 +86,94 @@ team and `<owner>-<repo>-<issue>` for a run (e.g. `SpartanLaboratories-WebTools-
 with no issue has no handoff. Handoffs are local and never mirrored.
 
 A `/resolve-issue` run that finishes leaves a handoff of a second kind only when something it leaves
-cannot be committed. Every follow-up that can be committed goes in its `consequences.md` (Planning
-documents — folder layout); the handoff holds only what cannot be, says the run finished, and
-points at that `consequences.md`, so it tells no session that work was interrupted. Each of its
-items is cleared once a later run or the user acts on it or records it durably, and the file is
-emptied when none is left. Later runs in the repository read it for its follow-ups
-(`~/.claude/skills/resolve-issue/SKILL.md`, step 1, **Follow-ups**).
+cannot be committed. Every follow-up that can be committed goes in its `consequences.md`
+(R-138 (Planning documents) [138-T2]); the handoff holds only what cannot be, says
+the run finished, and points at that `consequences.md`, so it tells no session that work was
+interrupted. Each of its items is cleared once a later run or the user acts on it or records it
+durably, and the file is emptied when none is left. Later runs in the repository read it for its
+follow-ups (`~/.claude/skills/resolve-issue/SKILL.md`, step 1, **Follow-ups**).
 
 ## graphify — the code knowledge graph
+{"name":"graphify — the code knowledge graph","code":"G-144-P1","id":"144-P1"}
 
-A repository with a `graphify-out/graph.json` has a local knowledge graph of its code: god nodes,
-community structure and cross-file relationships. This section applies only there; in a
+Working in a repository with a `graphify-out/graph.json`, read
+R-144 (graphify — the code knowledge graph) before you search or read its code; in a
 repository without one it asks nothing.
 
-- For a codebase question, first run `graphify query "<question>"`; `graphify path "<A>" "<B>"`
-  answers a relationship and `graphify explain "<concept>"` a focused concept. Each returns a
-  scoped subgraph, usually much smaller than `graphify-out/GRAPH_REPORT.md` or raw grep output.
-- When `graphify-out/wiki/index.md` exists, use it for broad navigation instead of browsing the
-  sources. Read `GRAPH_REPORT.md` only for a broad architecture review, or when query, path and
-  explain do not surface enough.
-- After changing code in that checkout, run `graphify update .` to keep the graph current (code
-  only, no API cost). It writes only under the local `graphify-out/`, so it is no
-  version-control action.
-- The graph orients; it does not verify. A fact still rests on the code read or the command run
-  (Never Guess Intent — Ask).
-- **Temporary: the graphify tracker.** While the admin team tracks what the graph costs and
-  saves, every agent of a `/resolve-issue` run in such a repository ends its report with one line:
-  `graphify: <q> queries; replaced <s> searches, <r> file reads`. `<q>` counts the graph queries
-  it ran (`graphify query`, `path` or `explain`), a query that spared nothing included; `<s>` and
-  `<r>` the searches and file reads they spared it. The line stays in the report, out of every
-  committed document and board.
-
 ## Planning documents — folder layout
+{"name":"Planning documents — folder layout","code":"G-138-P1","id":"138-P1"}
 
-Every plan lives under `docs/plans/`, in a folder hierarchy that mirrors the repo's GitHub
-issue hierarchy. Documents that are not plans (roadmaps, protocol specs, decision records,
-asset folders such as `docs/brand/`) stay where they are.
-
-**Hierarchy.** Each issue gets one folder, `<number>-<slug>/`, with a short kebab-case slug
-taken from the issue title (e.g. `49-physics/`). It sits inside its parent tracking issue's
-folder, following the sub-issue chain root-first, e.g.
-`docs/plans/86-phase-1-map-and-space/49-physics/`. An issue with no parent sits directly under
-`docs/plans/`. Find the parent with `gh api graphql -f query='query{repository(owner:"<org>",
-name:"<repo>"){issue(number:<n>){parent{number title}}}}'`. If an issue is re-parented, move
-its folder.
-
-**Folded-in issues.** When one issue is resolved as part of another issue's work, the folded-in
-issue gets its own `<number>-<slug>/` subfolder inside the host issue's folder, as a sub-issue
-would, and its documents go there.
-
-**A fix to an earlier plan's work.** When a grade-2 fix corrects code an earlier issue's plan
-built, the fix's folder goes inside that issue's folder, as a folded-in issue's would, unless the
-fix is a GitHub sub-issue, whose folder follows its own sub-issue chain. Either way, the earlier
-issue's `consequences.md` takes the fix's follow-ups and known gaps, each naming the fix; notes
-what the fix made no longer current, with a link to the fix; and marks closed, with a link, any
-follow-up or known gap the fix closes. These are the only edits a landed document takes.
-Otherwise a grade-2 fix writes a `consequences.md` only when it leaves a follow-up or known gap.
-
-**An issue folder holds only that issue's resolution:**
-- `draft.md`: the draft plan.
-- `architecture.md`: the grand design, when the work has one.
-- `plan.md`, or one `plan-<unit-slug>.md` per unit when the design decomposes into several.
-- `consequences.md`: what the change does to its surroundings and leaves behind: published
-  artifacts, blast radius, adoption, sibling units, neighbouring issues, follow-ups, and the
-  known gaps the build leaves open, with the outcome of the plan's assumptions and follow-ups
-  (each assumption that failed, each follow-up still open) linked back to the plan. Known gaps
-  live only here: a plan or architecture has no Known gaps section; what it could not
-  establish is an Assumption, and work it leaves undone a Non-goal or follow-up. The planner
-  writes it while planning and reconciles it once implementation ends. Issue folders from
-  before this convention keep their `impact.md`, read the same.
-- `final-implementation.md`: the final as-built record: what was actually built, acceptance,
-  measurements, and every deviation from the plan in one section. Each deviation cites the plan
-  section it departs from, gives its reasoning, and links secondarily to what that part of the
-  plan was based on: the research finding, or the parent architecture section (which gets a
-  dated callout when the build changes what it describes). The implementer appends each
-  deviation, with its reasoning, the moment it makes it; the planner reconciles the file into
-  the final as-built once implementation ends. A research claim the build disproved appears as
-  the deviation it caused; one that caused none gets a "did not hold in the build" note in
-  `research/README.md`'s verification results. The file describes the state of the build, not
-  the process that produced it: it names no qa pass, review round, remediation loop or other
-  pipeline step, and a change a review caused is recorded as the as-built state, and as a
-  deviation where it departs from the plan, without saying a review caused it. A review's
-  findings get no record of their own: a finding fixed shows only as the as-built state (and
-  as a deviation where it departs from the plan); one that calls for a plan re-pass lives in
-  the re-passed plan, with the replaced version under `superseded/`, and building to it is no
-  deviation; one accepted rather than fixed is a known gap or follow-up in `consequences.md`.
-- **One home per fact.** `final-implementation.md` and `consequences.md` never restate each
-  other; one links to the other. Neither writes a PR placeholder: the issue's resolution comment
-  links the PR. No open point is committed open, whatever raised it: before
-  the landing each is resolved (by remediation, for a qa finding), or settled as a deviation in
-  `final-implementation.md` or as a follow-up or known gap in `consequences.md`.
-- `research/README.md`: the planner's research questions (one topic-led question per open
-  point the design depends on) and, below them, the verification results and its summary of
-  the findings.
-- `research/<question-slug>.md`: one file per researcher subagent, written by that researcher.
-- `superseded/<name>-<YYYY-MM-DD>.md`: a replaced version of any of the above, with a
-  "superseded by" note at its top and its relative links rewritten, when it is made, to resolve
-  from `superseded/`.
-- Anything else specific to that one issue's resolution, e.g. a UAT record.
-
-**A tracking issue's folder** holds its own documents (a phase plan, an initiative draft, a
-design spanning several of its sub-issues) loose beside its sub-issue folders.
-
-**Grade 1 work has no folder.** A comment- or doc-only change is recorded by its PR and the
-issue's resolution comment alone.
-
-**Plans need an issue.** Before planning new work that has no issue, ask me to file one. An
-existing plan with no issue sits loose in the tracking folder it belongs to, or directly
-under `docs/plans/` if none.
-
-**Committed.** Everything under `docs/plans/` is committed. Research is committed as it is
-written, with a concurrent batch of researchers' findings landing in one commit once the
-whole batch has returned; everything else is committed with the work it plans.
-
-**No internal names in committed content.** Committed documents and boards (plans, research,
-architecture, consequences, final-implementation, every board, and the board-event fact texts that
-land on them) never name the pipeline's agents, sessions or roles (qa only as an agent's name),
-never refer to the approval flow, and never state a grade. The list, with what only
-resembles an entry and is fine and what to say instead, is
-`~/.claude/nomenclature/internal-names.md`, and how a scan finds its words is
-`~/.claude/nomenclature/finding.md`. The list does not reach the mirror's copies of the direction
-documents, under `claude/` in `.github`, as R-126 (Internal names — what committed content never
-names) [126-T5] says. The admin team scans what R-1122 (What the commit scan
-reads) [1122-T1] lists, with the CCO's finding tool. A find blocks the `commit`, `prepare-landing` or `land` that carries it: the admin team commits nothing, names each
-`file:line` with the list's wording to say instead, or that it has none, and the requester rewords
-(by hand where there is no wording) and resends, or resends asking for an exception, which the
-list says goes to me first; a find in a board the admin team generates
-is the team's to fix. What a board hands out of its repository unscanned, a board's published
-copy and a Whiteboard's generated part, keeps the same rule (the dashboards skill).
+Every plan follows R-138 (Planning documents) in the organization repository; before planning
+new work that has no issue, ask me to file one.
 
 ## Dashboards — state boards and work boards
+{"name":"Dashboards — state boards and work boards","code":"G-136-P1","id":"136-P1"}
 
-"Dashboard" is the umbrella for two groups of **boards** that every repository keeps: the
-**state boards** (`docs/dashboards/`), what the code is and does at a named commit, and the
-**work boards** (`docs/plans/`), how the work is going. Each board is defined in
-`policy/nomenclature/boards.md` in `.github`. An issue board is a general representation with
-little code; `plan.md` and `final-implementation.md` keep the details beside it.
+What a repository's boards are, as documentation, is R-136 (Boards as documentation): read it
+when your work reads or changes a board.
 
 ## Global Claude config — keep the `.github` mirror in sync
+{"name":"Global Claude config — keep the `.github` mirror in sync","code":"G-C-M","id":1129}
 
 `SpartanLaboratories/.github` holds a public copy of `~/.claude/` under `claude/`; its
 `claude/README.md` maps each mirrored path to its source. Whenever your work changes anything
 that copy covers — `CLAUDE.md`, `settings.json`, `hooks/`, `agents/`, `skills/` (including
-ones a tool installs, e.g. `graphify`), `nomenclature/`, `shared/`, `tools/`, `rule-index.md`, or
-`admin-team/` (less the local state the README's "Not included" list leaves out) — have the
-copy updated as part of the same change so it matches `~/.claude/` again: send the
-`admin team` session a `mirror-sync` request naming the changed paths (the `admin-team`
+ones a tool installs, e.g. `graphify`), `nomenclature/`, `shared/`, `general/`, `tools/`,
+`rule-index.md`, or `admin-team/` (less the local state the README's "Not included" list leaves
+out) — have the copy updated as part of the same change so it matches `~/.claude/` again: send
+the `admin team` session a `mirror-sync` request naming the changed paths (the `admin-team`
 skill), and it copies, scans and pushes.
 
-- Commit straight to `main`; no branch or PR.
-- Never sync project auto-memory (`projects/*/memory/`): it is not mirrored.
-- Leave out everything in the README's "Not included" list. The repo is public: check every
-  change for secrets before pushing.
-- When a third-party skill's license requires redistributions to carry its license files,
-  ship them beside the skill in the copy (e.g. `skills/graphify/LICENSE`, `NOTICE`). These
-  are the only files allowed to exist in the copy but not in `~/.claude/`.
-- Keep `claude/README.md`'s table current when what the copy holds changes.
+## Following a pointer
+{"name":"Following a pointer","code":"G-C-FP","id":1130}
+
+A pointer reads `R-<id> (Name)`, as R-1008 (Pointers) [1008-T6] says. To read what it points at,
+run the fetch script on it, `node "$SPARTAN_ORG_POLICIES/scripts/rule-fetch.js" R-<id>`: it
+prints the rule, section, file or folder, whichever root holds it. When `SPARTAN_ORG_POLICIES` is
+not set, or the script says a checkout is missing, send the admin team a `policies-checkout`
+request (the `admin-team` skill): the team clones the repository, sets the variable and replies
+with the path.
+
+## Policy
+{"name":"Policy","code":"G-2-P1","id":"2-P1"}
+
+Every repository of the organization and its sub-organizations meets R-2 (Policy): apply it to
+all code generation, refactoring and review.
+
+## Design
+{"name":"Design","code":"G-3-P1","id":"3-P1"}
+
+The organization's code aims for R-3 (Design Manifesto): apply it to all code generation,
+refactoring and review.
 
 ## Library Design — Open-Ended by Default
+{"name":"Library Design — Open-Ended by Default","code":"G-132-P1","id":"132-P1"}
 
-**Scope:** every Spartan Labs repo is in scope. `MyGameTools` (all four modules), `WebTools`
-and `GeneralTools` are libraries outright. `MyGameServer` and `MyGameClient` currently hold
-concrete implementation so they can act as real tests of `MyGameTools`, but they are growing
-toward serving as libraries for game implementations — so design their public shape that way
-too, and weigh the rule proportionally to how much of a given file is genuinely consumable
-surface versus test-bed concretion. A true application may be as closed as it likes.
+A library's public shape follows R-132 (Library Design — Open-Ended by Default): read it before
+you design or change anything a consumer can reach.
 
-**Principle:** ship the *core mechanism*, and leave the *policy* to the consumer. A library
-should give a downstream project everything it needs to do the common thing out of the box,
-and a seam to do the uncommon thing without forking, patching, or copying internals.
+## Stability tiers
+{"name":"Stability tiers","code":"G-131-P1","id":"131-P1"}
 
-### Mechanism — split by layer
-
-Kotlin is final-by-default, so "open to expansion" has to be chosen deliberately. Which tool
-depends on what kind of type it is:
-
-- **Domain / entity types** (`GameObject`, `Actor`, `Alive`, `Buff`, `Projectile`, `Player`
-  and their peers) — **inheritance**. Mark them `open`/`abstract` and let consumers subclass
-  and override. This is the established idiom in these repos and what a game author expects;
-  a game defines its units by extending them. Keep the class's own invariants safe by leaving
-  the methods that maintain them `final` or `internal`.
-- **Systems & infrastructure** (movement strategies, spatial indexes, physics, event bus,
-  loaders, transports) — **interface + supplied default implementation**. Publish the
-  abstraction, ship a good concrete impl, let a consumer substitute. Evolves without the
-  fragile-base-class problem, and substitution is a much narrower contract than "every
-  overridable method."
-
-### In practice
-
-- **Prefer open hierarchies to closed ones** at a genuine extension point. Reach for `sealed`
-  / `final` only where the closed set is part of the contract (a protocol's message kinds, an
-  exhaustive result type) — not merely because today there are only two cases.
-- **Parameterise policy, don't hardcode it.** Numbers, rules, strategies and behaviours a
-  consumer might reasonably disagree with belong behind a constructor parameter, a strategy
-  object, or a registry — with the current behaviour as the default.
-- **Expose hooks.** Events, callbacks and overridable steps let a consumer observe or splice
-  into a flow that it cannot otherwise reach.
-- **Additive and opt-in.** A new capability must leave an existing consumer that ignores it
-  behaving exactly as before. Extension is something a consumer opts into.
-- **Keep extension points supported.** Anything reachable by a consumer is public API: it gets
-  level-1 KDoc contracts (see the documentation levels below) and is governed by the repo's
-  versioning rules.
-
-### Stability — three tiers
-
-More extension surface means more that cannot change without a major bump, so public surface is
-sorted into three named tiers:
-
-- **Stable Core** — the core functionality the library exists to provide. Full semver
-   guarantee; changes only in a major.
-- **Supported Extension** — a seam for a **likely but non-core** need: something a fair number
-   of consumers will want, that is not what the library is fundamentally for. Marked
-   `@SupportedExtension`. It carries the **same semver guarantee as Stable Core** — the tier
-   marks *purpose*, not a weaker promise. Its shipped implementations double as the **worked
-   examples** of how to extend that seam, so write them to be read as examples.
-- **Experimental** — a seam whose shape has not been proven by a real consumer yet. Gate it
-   behind a Kotlin `@RequiresOptIn` marker so use is a deliberate opt-in, and say in its KDoc
-   that it may change in a minor. Graduate it once a consumer has actually built against it,
-   and record the promotion in the CHANGELOG.
-
-**Placing a seam:** if you are confident which tier something belongs in, make the call. If you
-are not confident, ask me — do not default it.
-
-### Retroactive changes to already-closed surfaces
-
-When an existing `sealed`/`final` surface would serve consumers better open, do **not** open it
-opportunistically mid-phase. Weigh, per surface, how much a consumer actually gains against the
-stability and invariant-safety of leaving it shut; record the decision with its reasoning; and
-batch the ones decided "open" into the next major release, where breaking changes already ride.
+The tier a seam sits in, and how an already-closed surface is opened, are R-131 (Stability
+tiers): read it before you place a seam or open a closed surface. Placing a seam: if you are
+confident which tier something belongs in, make the call; if you are not confident, ask me — do
+not default it.
 
 ## API documentation and project sites
+{"name":"API documentation and project sites","code":"G-104-P1","id":"104-P1"}
 
-Every repository of the organization and its sub-organizations follows the standard in
-`policy/documentation/dokka.md` of [`SpartanLaboratories/.github`](https://github.com/SpartanLaboratories/.github/blob/main/policy/documentation/dokka.md):
-a Dokka javadoc jar for libraries, and a project site with a landing page for every repository,
-on GitHub Pages unless it is hosted elsewhere.
+A repository's API reference and project site follow R-104 (Dokka and project sites): read it
+before you change either, or the build that makes them.
 
 ## Commenting & Documentation — Documentation Levels
+{"name":"Commenting & Documentation — Documentation Levels","code":"G-11-P2","id":"11-P2"}
 
-Documentation sits at one of four **levels** (the word is defined in
-`~/.claude/nomenclature/vocabulary.md`). Every repository of the organization and its
-sub-organizations follows the standard in `policy/documentation/README.md` of
-[`SpartanLaboratories/.github`](https://github.com/SpartanLaboratories/.github/blob/main/policy/documentation/README.md):
-the four levels, what sits at each and the order they are written and reviewed in, and what
-documentation in code carries. Apply it to all code generation, refactoring, and review.
-
-The decision making process does not belong in code comments.
+Documentation follows R-11 (Documentation levels): read it before you write, change or review
+code or its documentation. The decision making process does not belong in code comments.
 
 ## Testing — Named Test Sets
+{"name":"Testing — Named Test Sets","code":"G-12-P1","id":"12-P1"}
 
-Structure tests along these **sets** (the word is defined in
-`~/.claude/nomenclature/vocabulary.md`). Earlier sets run first / most often; later sets gate
-release.
-
-**Run only the tests that exercise the change.** Never run a test suite that belongs only to a
-module the change leaves untouched — not to check a change, not to take a baseline, not in a
-QA gate. A module whose code is untouched (say, only its build file moved onto shared build
-logic) is proven unaffected by other means, such as identical published output; the tests of a
-module that depends on the changed code do exercise it and still run.
-
-- **gating — Local Development Gating / Pre-Commit Validation** (active until the WIP is finished)
-   - Validate changes locally before integration to catch regressions.
-   - Covers new and changed classes/functions in the local workspace, before committing.
-
-- **component — Isolated Component Behaviour / Business Logic Validation**
-   - Comprehensive unit tests for related classes; **mock all external calls**.
-   - Functional-group and class-level testing of isolated behavior with no external side effects.
-
-- **integration — Integration & External Interfaces Test**
-   - Boundary conditions and data exchange with actual or simulated external interfaces
-     (API gateways, databases, third-party services).
-   - Validates data flow across system boundaries and component interfaces.
-
-- **The project-wide sets — Comprehensive Project-Wide Testing**, three sets side by side:
-   - **deterministic — Deterministic Logic / Input→Output Mapping**: verify pure, stateless
-     functions where input X always yields output Y with no side effects.
-   - **e2e — End-to-End System Integration**: verify full application flows and data
-     integration across the complete system stack.
-   - **nonfunctional — Non-Functional Validation**: scalability, robustness, security,
-     accessibility (a11y), and performance — beyond functional correctness.
-
-- **uat — User Acceptance (UAT) / Exploratory Evaluation**
-   - Human or AI assessment for product fit and business-value gating.
-   - Interactive testing of mock implementations and full functional environments to
-     determine release readiness.
-
-### Separate each set by folder / package
-
-Keep every set in its own test source folder and package so a set can be run, skipped,
-or gated independently. Under the test source root (`src/test/<lang>/`), place tests in a
-`testing`-rooted package segment per set, mirroring the production package below it:
-
-| Set             | Package segment            | Folder                          |
-|-----------------|----------------------------|---------------------------------|
-| gating          | `testing.gating`           | `.../testing/gating/`           |
-| component       | `testing.component`        | `.../testing/component/`        |
-| integration     | `testing.integration`      | `.../testing/integration/`      |
-| deterministic   | `testing.deterministic`    | `.../testing/deterministic/`    |
-| e2e             | `testing.e2e`              | `.../testing/e2e/`              |
-| nonfunctional   | `testing.nonfunctional`    | `.../testing/nonfunctional/`    |
-| uat             | `testing.uat`              | `.../testing/uat/`              |
-
-Example: `com.acme.order.OrderCalculator` → its component tests live in
-`com.acme.testing.component.order.OrderCalculatorTest`. Do not mix sets in one folder;
-one test class per file still applies. Where a build tool supports it, bind each folder to
-its own test task/tag (e.g. JUnit `@Tag`, a Gradle source set) so CI can run the gating and
-component sets on every commit and reserve the project-wide sets and uat for release gates.
+Tests follow R-12 (Testing — Named Test Sets): read it before you write, change, run or review
+tests.

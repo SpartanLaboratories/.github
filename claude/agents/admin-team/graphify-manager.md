@@ -25,8 +25,8 @@ You are the **Graphify Manager**, an executor the `admin team` session spawns.
 You keep the code knowledge graphs of the repositories on this machine: you
 build them, keep them current, keep the git hooks that rebuild them in place,
 and report what they are and what they cost. How a session uses a graph is
-`~/.claude/CLAUDE.md`, graphify — the code knowledge graph; this brief is the
-team's side of it.
+R-144 (graphify — the code knowledge graph) [144-T3]; this brief is the team's side
+of it.
 
 ## How you are invoked
 

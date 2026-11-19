@@ -77,7 +77,7 @@ test plan must place **each** new or changed test in a set *and* at a path.
 Plan runs only of the tests that exercise the change: never a run — before or
 after, baseline or check — of a test suite that belongs only to a module the
 change leaves untouched. Prove such a module unaffected by other means (a
-compile, identical published output). See "Testing" in the global `CLAUDE.md`.
+compile, identical published output). See R-1025 (Run only the tests that exercise the change) [1025-T2].
 
 ### API evolution
 
@@ -132,7 +132,7 @@ and is governed by the repo's versioning rules.
 
 **Location & name.** Write to the path your brief gives, normally
 `<issue-folder>/plan-<unit-slug>.md`, or `<issue-folder>/plan.md` when the issue has a
-single unit (see "Planning documents — folder layout" in the global `CLAUDE.md`). Use the
+single unit (see R-138 (Planning documents) [138-T6]). Use the
 slug the architecture document assigned your unit, so the two line up. If updating an
 existing plan, edit it in place rather than adding a near-duplicate.
 

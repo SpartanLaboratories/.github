@@ -9,7 +9,7 @@
 const LV = require("./levels.js");
 
 const TEST_LISTS = ["added", "amended", "relevant"];
-/* The named test sets (CLAUDE.md, "Testing — Named Test Sets"; vocabulary.md, "set"), in their order, gating to uat: a board stores each
+/* The named test sets (R-12 (Testing — Named Test Sets); vocabulary.md, "set"), in their order, gating to uat: a board stores each
    class's set by its name, testSet, and keys the other tests' counts by it. */
 const TEST_SETS = ["gating", "component", "integration", "deterministic", "e2e", "nonfunctional", "uat"];
 /* A board written before then stores a set by its old number under testLevel, and keys the counts by that number: a closed board keeps

@@ -1,5 +1,5 @@
 # Boards as documentation
-<!-- {"name":"Boards as documentation","code":"P-D-B","id":136} -->
+<!-- {"name":"Boards as documentation","code":"P-D-B","id":136,"pointerMark":1} -->
 
 Every repository keeps two groups of boards: the state boards and the work boards.
 Each board is defined in

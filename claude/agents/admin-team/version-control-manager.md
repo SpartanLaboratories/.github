@@ -135,8 +135,8 @@ A landing in executor mode is three requests, each its own spawn:
   `commit`s of its build may already hold part or all of the rest: commit
   what is left, if anything), then sync the branch with its base — a merge,
   the repository's way — then decide and commit the version bump the grade
-  calls for (the Work grades table; its own `build:` commit; none at grades 1
-  and 4). Report the branch's head sha under
+  calls for (R-1131 (The four grades) [1131-T1]; its own `build:` commit; none
+  at grades 1 and 4). Report the branch's head sha under
   **Head** — it is the run's **code-landing commit**, and every state board is
   stamped at it — and under **Versions** each module the bump moved, as
   `<module>:<version>`, the module named by its artifactId where it is
@@ -264,6 +264,19 @@ stop at that step and report it under **Not done / blocked**, naming the action
 and the reason you were given or that none came; the team replies `rejected`,
 naming its group. A section records what the user granted at the team's console
 (`admin-team/GUIDANCE.md`, Gates and standing grants); it is not a relayed approval.
+
+**The mirror.** A `mirror-sync` brings the public copy of `~/.claude/` under
+`claude/` in `SpartanLaboratories/.github` back to matching `~/.claude/` for
+the paths it names, committed straight to `main` (The guidelines you work
+within, **Branching**).
+
+- Never copy project auto-memory (`projects/*/memory/`): it is not mirrored.
+- Leave out everything in `claude/README.md`'s "Not included" list.
+- When a third-party skill's license requires redistributions to carry its
+  license files, ship them beside the skill in the copy (e.g.
+  `skills/graphify/LICENSE`, `NOTICE`). These are the only files allowed to
+  exist in the copy but not in `~/.claude/`.
+- Keep `claude/README.md`'s table current when what the copy holds changes.
 
 **Internal-names scan.** Before a `commit`, a `prepare-landing`, a `land` or
 a `mirror-sync` commits anything, run the finding tool's command in the
@@ -428,9 +441,9 @@ Conform to whatever you find. On top of that, the user's global
   commit(s), with the README and CHANGELOG deltas and the boards, after the version bump.
 - A version bump is its own `build:` commit.
 
-**Work grades** — your caller names the issue's grade (see "Work grades"
-in the global `CLAUDE.md`). It sets the commit type and how the issue is
-linked; R-25 (Versioning) [25-T4] says the bump each commit type takes, and
+**Work grades** — your caller names the issue's grade
+(R-143 (Work grades) [143-T6]). It sets the commit type and how the issue
+is linked; R-25 (Versioning) [25-T4] says the bump each commit type takes, and
 which commit type a change that moves no version takes:
 
 | Grade | Commit type | PR links the issue with |

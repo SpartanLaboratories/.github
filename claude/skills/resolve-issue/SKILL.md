@@ -46,7 +46,7 @@ in advance with `--no-signoff` (see "Prompt flags") or when asked. You
 yourself never commit, push, merge, tag, publish, label, or file/comment on an
 issue, and never spawn `version-control-manager`.
 
-The grades are defined in "Work grades" in the global `CLAUDE.md`. This
+The grades are defined in R-143 (Work grades) [143-T2]. This
 skill runs a different pipeline per grade:
 
 | Step | Grade 1 — no impact | Grade 2 — small fix | Grade 3 — small feature | Grade 4 — multi-system |
@@ -327,8 +327,8 @@ every prompt waits on the user as the steps say.
   - a breaking change, or whether one is acceptable;
   - a possible loss of data;
   - a release or publish timing call;
-  - a seam's stability tier its author is not confident of (the global
-    `CLAUDE.md`, "Library Design", **Placing a seam**);
+  - a seam's stability tier its author is not confident of
+    (R-10029 (Placing a seam) [10029-T1]);
   - a recommendation its author holds with low confidence.
 
   The mark is in a report only, never in a document or a board-event fact.
@@ -408,8 +408,7 @@ the issue text, the confirmed **grade**, and the follow-ups the user put
 inside this run (step 1, **Follow-ups**). For grade 2, pass
 `model: "sonnet"`; grades 3 and 4 use the planner's own model. The planner
 scales its pipeline to the grade (see `planner.md`, "Work grades") and writes
-into the issue's folder under `docs/plans/` (see "Planning documents — folder
-layout" in the global `CLAUDE.md`).
+into the issue's folder under `docs/plans/` (see R-138 (Planning documents) [138-T4]).
 
 A **grade-3 sub-issue of a grade-4 plan** gets the planner's detailed re-pass:
 pass the parent issue reference and the path to its `architecture.md`. The

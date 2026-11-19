@@ -96,7 +96,7 @@ function resultBytes(tool, r) {
 }
 const inGraphOut = p => typeof p === 'string' && /(^|[\\/])graphify-out([\\/]|$)/.test(p);
 
-// The self-report line CLAUDE.md's graphify section sets:
+// The self-report line general/graphify.md (R-144) sets:
 //   graphify: <q> queries; replaced <s> searches, <r> file reads
 const SELF = /graphify:\s*(\d+)\s+(?:graph\s+)?quer(?:y|ies)\s*[;,]\s*replaced\s+(\d+)\s+search(?:es)?\s*(?:,|and)\s*(\d+)\s+(?:file\s+)?reads?/i;
 

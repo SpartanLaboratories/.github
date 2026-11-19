@@ -1,5 +1,5 @@
 # Planning documents
-<!-- {"name":"Planning documents","code":"P-D-PD","id":138} -->
+<!-- {"name":"Planning documents","code":"P-D-PD","id":138,"pointerMark":1} -->
 
 Every plan lives under `docs/plans/`, in a folder hierarchy that mirrors the repository's GitHub
 issue hierarchy. Documents that are not plans (roadmaps, protocol specs, decision records, asset

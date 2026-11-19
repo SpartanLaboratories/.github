@@ -1,5 +1,5 @@
 # Dokka and project sites
-<!-- {"name":"Dokka and project sites","code":"P-D-DK","id":104} -->
+<!-- {"name":"Dokka and project sites","code":"P-D-DK","id":104,"pointerMark":1} -->
 
 The SpartanLaboratories standard for API documentation and project websites. It covers every
 repository of the organization and of its sub-organizations, including SpartanLabsGaming.
