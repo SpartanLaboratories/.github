@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":32,"last":"2026-11-19"}
+{"id":"p9","count":36,"last":"2026-11-19"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -266,6 +266,23 @@ The permission system raises the denial.
     a case no entry holds (the entry for the session archive's inability to remove an entry is about entries
     truly left standing, and its resolution is what produced the report); added as "An archive report names
     the running team session's live Remote Control entry as one left standing".
+  - 2026-11-19: in a landing sitting of the rule rework, a member's check of every base hash of the package
+    stopped on two files another member of the same sitting had just placed beside it, a case no entry holds;
+    added as "A member's base check stops on files another member of the same sitting has just placed".
+  - 2026-11-19: in the same sitting, the live rule check gave a pointer the next id, not the approved one, the
+    built register already holding the approved id and the placed file carrying none, a case no entry holds;
+    added as "The live rule check gives a pointer the next id when the built register already holds the
+    approved one and the placed file does not".
+  - 2026-11-19: in the same sitting's mirror-sync, the executor's first rule check failed on a copy of the rule
+    sources holding only the files the register lists, a case no entry holds (the entry for a rule check in a
+    scratch clone is about the other repositories' checkouts and a check that passes, the entry for a
+    read-and-copy into a scratch tree about a refusal); added as "A mirror-sync executor's rule check fails on a
+    copy of the rule sources that holds only the files the register lists".
+  - 2026-11-19: the verification of the rule rework's conversion of `CLAUDE.md` found that the protocol finds
+    the team by an `agent` key its live record, in the desktop app, does not have, a case no entry holds (the
+    entry for a message to the bare name "admin team" is about sending once the team is found, not finding its
+    record); added as "The protocol finds the team by an `agent` key its live record in the desktop app does
+    not have".
 
 ## A count changes in this mirrored file
 
@@ -1249,7 +1266,7 @@ An archive job writes its session summary to a working file under the archive's 
 ## The skill's full verification fails a different group from run to run when run alone
 
 ```json
-{"id":"p77","count":1,"last":"2026-11-18"}
+{"id":"p77","count":2,"last":"2026-11-19"}
 ```
 
 The dashboards skill's full template verification (`verify/verify-templates.js`), run alone, with no overrides and in a private scratch of its own, fails in some runs and not in others, a different group each time, and each group that failed passes when run alone. The cause is not known: the verification's reporter cuts off the summary's `check` field, so the board check's message in the failing cases was not captured. A skill change's landing waits on a clean full run, so each such failure costs a rerun of about 25 minutes. It is not the entry "The skill's verification shares its temp files and stand-in team state with other jobs running beside it", whose failures came with other jobs running beside the verification and which the verification's private scratch answers: here no other job ran beside it and the scratch was private. Nor is it "A board write fails on Windows while another process reads the file", whose failures are a refused rename in the case "event and fill at the same time"; whether a refused rename lies behind these is not checked. Not checked by the Archivist: any of the runs, all of it resting on the Presenter's report.
@@ -1260,9 +1277,14 @@ The dashboards skill's full template verification (`verify/verify-templates.js`)
   - a) Wait for the diagnosis, and fix the cause it finds in the skill or its verification. Recommended.
   - b) Meanwhile, a full run that fails only in groups that each pass when rerun alone, in the same scratch, counts as clean for a landing, the reruns named in the job's report.
   - c) The verification's reporter prints the summary's `check` field in full in every failing case, whatever the diagnosis finds, so a later failure carries its cause.
+- **Fresh prompt (2026-11-19, not answered; options, not a resolution until the user decides):** on the encounter of 2026-11-19 below, a fresh prompt was put to the user with the kept evidence (the failed run's working folder, the board check's process crash):
+  - a) The Presenter diagnoses the crash from the kept folder.
+  - b) A group whose process crashed and that passes when rerun alone counts as clean, the reruns named in the report. Recommended by the Coordinator.
+  - c) Nothing now, the count only.
 - **Predicted:** the admin team, on meeting it, 2026-11-18.
 - **Encounters:**
   - 2026-11-18: a Presenter job building a skill change ran the full verification three times, alone, each run in its own private scratch, over 76 minutes in all, ending about 00:35Z. Run 1: the group cases-timeline-waits, group 2, 8/9, "a resumed with neither a stop before it nor an open point": `apply-event.js` exited non-zero; replaying that event on a copy of the kept board gave result ok. Run 2: cases-35, "the seed does not wait for the foundation", 2/9, the post-merge refresh of `landed` returning result failed, and cases-late-implementation, "accepted while halted", 11/12, "check.js failed on the board it would write". Run 3: exit 0, 442 groups, all five templates recorded. The reporter cut off the summary's `check` field, so the cause was not captured; six parallel standalone runs of the two standalone groups showed no failure. As the Presenter reported it, not re-read by the Archivist.
+  - 2026-11-19, about 23:33Z: a Presenter job making a rule change (four comment edits in two scripts and one link reworded in the skill's `GUIDANCE.md`; no template changed) ran the full verification alone, with no browser. Run 1 was capped at 590 s by the Presenter and stopped (exit 124) before its end, the 170 groups it reached passing: no failure of the verification. Run 2, uncapped: 443 groups passed and one failed, cases-timeline-waits, the case "a halt ends the visit running at the question…", 4/8. New: the cause was kept this time: `check.js` exited with code 3221225477 (0xC0000005, a Windows access violation) and printed nothing on stdout or stderr, so the Node process crashed and the check reported no finding. The group, rerun alone, passed 8/8 twice (exit 0). `verify/verified.json` and `verify/history/` were unchanged after both runs, a run with a failed group recording nothing. The failed run's working folder is kept as evidence, `dashboards-verify-frEcc4` under the machine's temp folder. It held nothing: the checks called for on that change (`node --check` on both scripts, `verify/cases-tests-facts.js`) passed, and no template changed. A fresh prompt was put to the user (above). As the Presenter reported it, not re-read by the Archivist.
 
 ## A board rule placed after boards were committed fails the next event that writes or seeds one
 
@@ -1310,3 +1332,68 @@ A session the Archivist archives can be a copy of the running console session's 
 - **Predicted:** the admin team, on meeting it, 2026-11-19.
 - **Encounters:**
   - 2026-11-19: two archive jobs, each archiving a session that copied the running console session's history (a side-chat fork of the console, and an earlier copy of the console session with no stretch of its own), named the same Remote Control link as left standing; that link is the running session's own. The Coordinator passed the first report on to the user at the console as "Removing it is yours", and corrected it at the console in its next turn, before the user replied. No harm found: the running session's transcript and folder stand, and the user has said nothing of having removed the entry. As the Coordinator reported it, not re-read by the Archivist.
+
+## A member's base check stops on files another member of the same sitting has just placed
+
+```json
+{"id":"p81","count":1,"last":"2026-11-19"}
+```
+
+In a landing sitting where two members place files beside each other, the Coordinator briefs one of them to check, immediately before placing, the base hash of every file of the package, the files the other member places among them. When the other member places first, the check reads those files as changed and, as briefed, stops with nothing placed, though the change is the sitting's own and no base has drifted. It costs a stop and an extra round; nothing wrong is placed. No other entry is about a base check.
+
+- **Proposed resolution:** none decided. Options, the Coordinator's:
+  - a) In a sitting where members place beside each other, each member's base check covers only the files it places itself, and the Coordinator's briefs say so. Recommended by the Coordinator.
+  - b) The members of a sitting place one after another, never beside each other.
+  - c) Nothing, the count only.
+- **Predicted:** the admin team, on meeting it, 2026-11-19.
+- **Encounters:**
+  - 2026-11-19, 22:49 to 22:50Z: the rule rework's landing that converted the global instructions to pointer rules (three members placed 28 files). The Communication Clarity Officer placed its two nomenclature files at 22:49:29Z; the direction manager's check of all 25 base hashes, as its brief from the Coordinator said, then read those two as changed and stopped with nothing placed. The Coordinator verified both live files byte for byte the Communication Clarity Officer's built files, no base drift, and had the direction manager go on in the same job and attempt, its check counting the base hash or the built hash as a pass for those two files, any other mismatch still stopping it. Cost: one stop and one extra round, a few minutes; nothing wrong was placed. Corrected inside the sitting. As the team's ledger records it, read by the Archivist.
+
+## The live rule check gives a pointer the next id when the built register already holds the approved one and the placed file does not
+
+```json
+{"id":"p82","count":1,"last":"2026-11-19"}
+```
+
+A landing package of the rule rework is proved with the rule checker's own `--write`, so its built register (`admin-team/rule-files.json`) records each pointer id the proof gave. When a file of the package is remade at the sitting on the live base and carries a pointer with no id, the plan leaving it to the sitting's one live `rule-check.js --write --defer-policies` to give it, the checker meets a list entry no pointer carries and a pointer with no id: it takes the entry off and gives the pointer the next id. What is live then differs from the diff the user approved. No other entry is about the ids the checker gives.
+
+- **Already done about it:** the direction manager wrote a note into the rule rework's list for the packages still to come: every placed file carries each id a built register holds.
+- **Proposed resolution:** none decided. Options, the Coordinator's:
+  - a) That note is enough. Recommended by the Coordinator.
+  - b) A package's build also asserts it: the build fails when a file to be placed lacks an id its built register holds.
+  - c) Nothing more.
+- **Predicted:** the admin team, on meeting it, 2026-11-19.
+- **Encounters:**
+  - 2026-11-19, about 23:33Z: the same landing. The direction manager had placed the built register, which already recorded `126-T9`; the presenter's file, the dashboards skill's `GUIDANCE.md`, remade on the live base, carried the pointer with no id. The sitting's one `--write --defer-policies` run (exit 0) wrote two files where one was planned: the pointer took `[126-T10]` and the register's list entry went from `126-T9` to `126-T10`, two lines where the approved diff has `126-T9`. The direction manager stopped and reported. The Coordinator had the approved state restored: the presenter placed the built file, which carries `[126-T9]`, the direction manager placed the built register again, and the check run again wrote nothing; what is live differs from the approved diffs in no line. Cost: one stop and two extra rounds. Corrected inside the sitting. As the team's ledger records it, read by the Archivist.
+
+## A mirror-sync executor's rule check fails on a copy of the rule sources that holds only the files the register lists
+
+```json
+{"id":"p83","count":1,"last":"2026-11-19"}
+```
+
+A mirror-sync's executor runs the rule checker over a temporary copy of the global rule sources, which its brief (`agents/admin-team/version-control-manager.md`) says holds `CLAUDE.md`, `rule-index.md`, `admin-team/rule-files.json` "and the folders that register lists, each copied from" the global folder "to its path". The words can be read as the listed files only, each at its path, or as the folders whole. Built from the listed files only, the copy lacks files the check reads, and the `--write` run fails with findings and writes nothing; built from whole folders, it passes. It is not "A mirror-sync's rule check in a scratch clone leaves another repository's files "not checked", and still passes", which is about the other repositories' checkouts and a check that passes, nor "A read-and-copy into a scratch tree, to run the rule checker over it, is refused as destructive", which is about a refusal. Earlier mirror-syncs were briefed with an explicit list of what the copy must hold: the Coordinator's account, not checked by the Archivist. Not checked: which of the 13 findings came from which missing file.
+
+- **Proposed resolution:** none decided. Options, the Coordinator's:
+  - a) The Coordinator's mirror-sync brief always says the copy holds those folders whole: the Coordinator's own practice. Recommended by the Coordinator.
+  - b) The executor's brief says "each copied whole": an edit to a direction document, the user's to direct.
+  - c) Nothing, the count only.
+- **Predicted:** the admin team, on meeting it, 2026-11-19.
+- **Encounters:**
+  - 2026-11-19, ending 23:38Z: the mirror-sync of the same landing, which landed as `542657f` on the organization repository's `main`. The executor's first `--write` run, over a copy holding only the files the register lists, exited 1 with 13 findings and wrote nothing. It rebuilt the copy from whole folders (`agents`, `skills`, `nomenclature`, `hooks`, `general`, `shared`), and the run passed (`OK: 67 file(s), 290 id(s)`). Cost: one failed run, about a minute; nothing committed on it. Corrected inside the sitting. As the team's ledger records it, read by the Archivist, save the brief's words, read in the brief.
+
+## The protocol finds the team by an `agent` key its live record in the desktop app does not have
+
+```json
+{"id":"p84","count":1,"last":"2026-11-19"}
+```
+
+The protocol ("Finding the team", `agents/admin-team/PROTOCOL.md`) says the team is the session whose live record in the sessions folder has `agent` `admin-team`, and the team's brief (`agents/admin-team/GUIDANCE.md`, Service: archive, Sessions) reads the running session's id from the live record whose `agent` is `admin-team`. The team now lives in the desktop app, where its session is reopened rather than started by the launcher with `--agent admin-team`, and its live record has no `agent` key: it is recognisable only by its `name`, "admin team", and its working folder. Read literally, a requesting session finds no team and goes on to the launch step, which would start a second one. The protocol's next bullet, on when to launch, already goes by a row named `admin team`. The archive scripts (`admin-team/archivist/`) find the running session by the same key: on 2026-11-19 they found none running and classed the team's session as held, which keeps it out of every archive and deletion, so nothing of the team's is exposed there; read by the Archivist. Not checked: whether a record the launcher starts still carries the key.
+
+- **Proposed resolution:** none decided (among the gaps put to the user with the verification's result). Options, the Coordinator's:
+  - a) The protocol and the team's brief find the team by the record's `name`, "admin team", when no record has the `agent` key: an edit to direction documents, the user's to approve, which the direction manager would draft with the verification's other gaps. Recommended by the Coordinator for drafting the fixes.
+  - b) The team is always started by the launcher, so its record has the key.
+  - c) Nothing, the count only.
+- **Predicted:** the admin team, on meeting it, 2026-11-19.
+- **Encounters:**
+  - 2026-11-19, about 23:52Z: the verification of the rule rework's conversion of `CLAUDE.md`, a fresh agent standing in for a new session, built a `policies-checkout` request from the skill and the protocol alone and could not find the team's record by the key the protocol gives. The Coordinator read the live records' keys: two live records, neither with an `agent` key, the team's with `name` "admin team"; the Archivist read the same. Sessions still reached the team that day (a run's requests arrived), finding it by its name, and the ledger shows nothing launched twice. Cost: none known; the risk is a second team started by a session that follows the protocol to the letter. As the Coordinator reported it, the live records' keys and the protocol's and the brief's words read by the Archivist.
