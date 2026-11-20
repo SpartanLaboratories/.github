@@ -152,8 +152,8 @@ A landing in executor mode is three requests, each its own spawn:
 - **`commit`** (the document-landing commit, the run's request at the end of
   its Document step) commits the documents the step wrote — the reconciled
   `final-implementation.md` and `consequences.md`, the README and CHANGELOG
-  deltas, the issue's board files (`dashboard.html`, `plan.json`), its
-  tracking board's, the boards the team seeded onto the branch, the
+  deltas, the issue's board files (`dashboard.html`, `plan.json`, `plan.js`),
+  its tracking board's, the boards the team seeded onto the branch, the
   repository work board (in `OrganizationPage`, the org work board too) and
   the state-board files — as
   `docs:` commits split per the guidelines below, and a Dokka configuration
@@ -185,10 +185,10 @@ A landing in executor mode is three requests, each its own spawn:
 resolves it without sending the run back when every conflicted file is one of
 these kinds, alone or mixed:
 
-- a generated work-board file (`plan.json` and `dashboard.html` under
-  `docs/plans/`, the repository work board, `docs/plans/org-work-board/`): the
-  team's `presenter` regenerates them from the merged documents and boards, and
-  you commit the result;
+- a generated work-board file (`plan.json`, `dashboard.html` and the sidecar
+  `plan.js` under `docs/plans/`, the repository work board with its sidecar
+  `board.js`, `docs/plans/org-work-board/`): the team's `presenter` regenerates
+  them from the merged documents and boards, and you commit the result;
 - a state-board file under `docs/dashboards/` (`index.html`, `systems.json`,
   `workspace.dsl`, the system boards, `state.json`): `presenter` rebuilds them
   from the merged code and documents, and you commit the result;

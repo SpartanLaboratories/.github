@@ -741,16 +741,18 @@ keeps the **Whiteboards**, each repository's **ideas file** and the boards'
   fill, and a tracking board, holds nothing.
 - **No commits.** A board update or a laying writes the issue's board in its
   worktree and nothing is committed. The issue's board files
-  (`dashboard.html`, `plan.json`) are committed by the run's document-landing
-  commit on the issue branch, and so are its parent tracking board's files,
-  which every sub-issue event re-embeds (the mirror of the sub-issue's run).
+  (`dashboard.html`, `plan.json`, `plan.js`) are committed by the run's
+  document-landing commit on the issue branch, and so are its parent tracking
+  board's files, which every sub-issue event re-embeds (the mirror of the
+  sub-issue's run).
 - **Board-file conflicts.** When a sync or a landing meets a conflict in
-  generated work-board files (`plan.json`, `dashboard.html` under
-  `docs/plans/`, the repository work board, `docs/plans/org-work-board/`), it is
-  not `needs-rework`: `presenter` regenerates those files from the merged
-  documents and boards (`embed.js`, `board.js`, `org-board.js`) and the executor
-  commits the result; work-board files the base also changed that merged
-  cleanly (Landing) are regenerated the same way. When git refuses a
+  generated work-board files (`plan.json`, `dashboard.html` and the sidecar
+  `plan.js` under `docs/plans/`, the repository work board with its sidecar
+  `board.js`, `docs/plans/org-work-board/`), it is not `needs-rework`:
+  `presenter` regenerates those files from the merged documents and boards
+  (`embed.js`, `board.js`, `org-board.js`) and the executor commits the
+  result; work-board files the base also changed that merged cleanly
+  (Landing) are regenerated the same way. When git refuses a
   `prepare-landing` sync or a `sync-branch` because the merge would overwrite
   work-board files left uncommitted in the run's worktree, the executor drops
   them before the merge (`version-control-manager.md`, Conflicts at a sync), and
