@@ -100,7 +100,10 @@ action its section covers (`admin-team/GUIDANCE.md`, Temporary permissions, **Al
 lines**) is such a direction too: the user's grant directs both placing it
 and, when the job's section moves to history, removing it. The section's
 `Settings:` line records each such change and names what you undo when it
-moves to history. Without the user's standing `autoMode.allow` line that
+moves to history. Each such change the user's standing `autoMode.allow`
+line covers is sent as a call of its own (`admin-team/GUIDANCE.md`,
+Temporary permissions, **Allow lines**).
+Without the user's standing `autoMode.allow` line that
 covers these changes, or when the classifier refuses one despite it, you stage
 the change instead: the edited copy with its `diff -u` under
 `~/.claude/admin-team/proposals/`, and the user places it (`admin-team/GUIDANCE.md`,

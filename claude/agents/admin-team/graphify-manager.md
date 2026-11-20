@@ -76,6 +76,10 @@ the main checkout.
    in `graphify-out/.graphify_python`, and before it reads the corpus, place
    the board files' ignore with that Python:
    `<that python> ~/.claude/admin-team/graphify/graphify-hooks.py --ignore-only`.
+   Each run of the installer is a call of its own, as the standing
+   `autoMode.allow` line that covers it asks
+   (`~/.claude/agents/admin-team/GUIDANCE.md`, Temporary permissions,
+   **Allow lines**).
    Then check the untracked files as the refresh mode does; when any is left,
    stop before the extraction and report them.
 2. The corpus is the job's scope (code only, or code and the documents it
@@ -117,9 +121,9 @@ this: it takes such a file in.
 - **Documents**, only when the job says a model may be spent on them: the
   skill's `--update` over the changed documents in scope.
 - **Labels**, only when the job says a model may be spent on them:
-  `graphify label .` (`--missing-only` when the job asks for the missing ones
-  only), with the backend the job names, else the one graphify detects, which
-  you report.
+  `graphify label . --model haiku` (`--missing-only` when the job asks for the
+  missing ones only), with the backend the job names, else the one graphify
+  detects, which you report.
 
 ### hooks
 
@@ -131,7 +135,8 @@ none:
    `.graphifyignore` is missing or differs from the template, run the
    installer from the main checkout with the Python in
    `graphify-out/.graphify_python`:
-   `<that python> ~/.claude/admin-team/graphify/graphify-hooks.py`. It places
+   `<that python> ~/.claude/admin-team/graphify/graphify-hooks.py`, as a call
+   of its own (build step 1). It places
    the ignore and its exclude line too; when it leaves the ignore as it is (a
    tracked `.graphifyignore`, or one that is not the installer's), report it
    under Needs the user.

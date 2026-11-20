@@ -516,7 +516,9 @@ spanning several, a temporarily-requestable action.
   (`~/.claude/handoffs/admin-team.md`) and end your session. The team is
   brought back as How the team works, **A restart**, says. When
   you start again, you rerun the request from your ledger, with its `id` and
-  `attempt + 1`, and your reply carries the raised attempt.
+  `attempt + 1`, and your reply carries the raised attempt. A step a standing
+  `autoMode.allow` line covers is sent as a call of its own, worded as the
+  line names it, with no other step in the same call.
 - **Written down.** Write the user's answer as one section of
   `~/.claude/admin-team/temp-permissions/<owner>-<repo>.md`: one file per
   repository, one section per job, holding the permissions and the job's scope
