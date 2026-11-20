@@ -639,7 +639,10 @@ The scripts are in `~/.claude/admin-team/archivist/`.
    that with `archive.js record-deletion`, and report the session's Remote
    Control entry as left standing (**What a deletion removes**), by its link
    in `meta.json`, each link `remoteControlLinks` lists, with the session's
-   title and span. When `meta.json` lists no link or has no
+   title and span. A link that is the running session's own (it ends in the
+   `bridgeSessionId` of the running session's live record, **Running, held,
+   kept, older**) is reported as the team's live entry, never as one to
+   remove. When `meta.json` lists no link or has no
    `remoteControlLinks`, and for remains, which hold neither link nor title,
    name it by what `meta.json` holds of its title and span, and say what it
    lacks. When step 4 reported a question or an idea, or your prompt says

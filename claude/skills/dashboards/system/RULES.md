@@ -446,7 +446,9 @@ board for it; the admin team brings it to the user to retitle on GitHub.
 (`PRIVATE REPOSITORY`) a board whose data blocks or page name a private repository of the organizations: a state board's hand-written
 panels, its DSL and registry copies and its links included, landed or not; where the list cannot be read it fails, saying why
 (`PRIVATE REPOSITORIES UNREAD`). `apply-state.js` cuts the name to "…" in the last amendment's title and refuses a state whose other text
-names one, nothing written.
+names one, nothing written. While a sweep of the rule is in its warning stage in the repository (`GUIDANCE.md` §11, "A rule that can fail
+boards"), a text the sweep found already on the board is a warning naming the sweep, in the check and in `apply-state.js`'s notes, and only a
+text it did not find fails or is refused; a sweep lists a state board's finds and fixes none on it.
 
 **No dead board link.** On a system, supersystem or repository state board, `check-board.js` reads the `BOARDS`
 map and fails (`DEAD BOARD LINK`) an entry whose file does not exist relative to the board, and

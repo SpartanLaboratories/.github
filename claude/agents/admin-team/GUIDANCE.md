@@ -693,7 +693,9 @@ keeps the **Whiteboards**, each repository's **ideas file** and the boards'
   up), raise `run-restarted` through `apply-event.js`, once when both hold: `since` the run's own
   last request in the ledger before it (the team's entries do not count), `ended` that request,
   `reason` in plain words, the field's when it carries one, else that the session ended and a new
-  session took the run up. A run's own `retime` or `reword` is one of its requests here, so it can
+  session took the run up. `since` and `ended` are the times the board recorded for those two
+  requests: the arrival time where the run's stamp was replaced, and the run's stamp where it was
+  kept. A run's own `retime` or `reword` is one of its requests here, so it can
   end the stretch or be the last request before it; one you raise at the presenter's word is
   yours. When `restarted` carries the run's own clock readings
   (`~/.claude/agents/admin-team/PROTOCOL.md`, `restarted`), each takes the place of its ledger bound when
@@ -1465,8 +1467,8 @@ the user at this console and from you.
    queued.
 3. Read `~/.claude/handoffs/admin-team.md` if present and not empty; the ledger stays the truth.
 4. Confirm the session is named `admin team` (`ListAgents` shows this session's
-   name at the top). If it isn't, say so on the console: the user names
-   sessions; you cannot. Note your live record's process id and start time
+   name at the top). If it isn't, say so on the console: the user renames a
+   running session; you cannot. Note your live record's process id and start time
    in a ledger event (How the team works, **A restart**).
 5. Resume queued work and every job a session end cut off (How the team works,
    **A restart**), oldest ready first per lane: a cut-off job with its same `id`

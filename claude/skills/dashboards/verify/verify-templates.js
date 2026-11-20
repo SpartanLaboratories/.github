@@ -96,7 +96,9 @@
 // issue's chain on the state boards' roadmap and the repository work board's rows, each labelled chevrons in order, done, current or to
 // come. The boards' companions (verify/cases-companions.js, GUIDANCE.md §13): the Whiteboards' generated parts read from git at a commit, the
 // refresh's plan and the batch check, the links list, the ideas writer and its check, the Ideas Card and the Ideas Panel, the publish step. The
-// private repositories (verify/cases-private-names.js, plan/RULES.md §1): one rule, quoted names cut to "…", other text refused, the checks failing. A
+// private repositories (verify/cases-private-names.js, plan/RULES.md §1): one rule, quoted names cut to "…", other text refused, the checks failing. The
+// sweep of a rule that can fail boards (verify/cases-sweep.js, GUIDANCE.md §11): the sweep, its record, and its warning stage, in which the checks warn
+// on a text already on a board and the writers refuse only a text newly written, until the fixes land. A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
 // passes and the rendered cases too.
 "use strict";
@@ -2455,6 +2457,13 @@ catch (e) { console.log(`FAILED   the companions' cases: ${e.message}`); linkFai
    checkers failing a board that still names one, the verification reading no live GitHub. It needs no browser, and runs on its own too. */
 try { require("./cases-private-names.js")({ sk, out, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { console.log(`FAILED   the private repositories' cases: ${e.message}`); linkFailures++; }
+
+/* The sweep of a rule that can fail boards and its warning stage (verify/cases-sweep.js; GUIDANCE.md §11, "A rule that can fail boards: the sweep and
+   its warning stage"; the user's decision q-411): the record and the stage (system/scripts/sweeplib.js), the sweep (system/scripts/sweep.js), the
+   checks warning and the writers refusing only a text newly written while the stage stands, a seeding carrying a view copy's kept text, and the
+   stage's end at the fixes' landing. It needs no browser, and runs on its own too. */
+try { require("./cases-sweep.js")({ sk, out, targets, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { console.log(`FAILED   the sweep's cases: ${e.message}`); linkFailures++; }
 
 const today = new Date().toISOString().slice(0, 10);
 const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";

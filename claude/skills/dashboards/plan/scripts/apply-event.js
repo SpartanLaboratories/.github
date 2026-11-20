@@ -74,7 +74,9 @@
 // The sizing is never written (levels.js): the laying reads it from the request, else the team's local state, for the kind and the steps line only; a board
 // not landed loses any it still holds at this rewrite (lib.js resolveBoard()); a landed one keeps them.
 // No private repository is named (plan/RULES.md §1, "Private repositories"; privaterefs.js, at every rewrite, lib.js resolveBoard()): an issue's title or an excerpt
-// that names one has the name cut to "…"; any other text that names one, a fact's or one the board already holds, fails the event, nothing written.
+// that names one has the name cut to "…"; any other text that names one, a fact's or one the board already holds, fails the event, nothing written; while a
+// sweep of the rule is in its warning stage (GUIDANCE.md §11, "A rule that can fail boards"; system/scripts/sweeplib.js), a text the sweep lists as already on
+// a board (a seeded view copy's among them) is written and warned in the summary, naming the sweep, and only a text newly written fails the event.
 // Events and fills share the boards' short lock (lib.js lockTree()), held for this whole run: a fill (fill.js) merges onto the latest plan.json behind it and
 // waits at most this run's second or two, so neither overwrites the other, and every file is written through a rename (lib.js atomicWrite()).
 // A stretch when the run was not running (run-restarted, facts { since, ended, reason }; team-raised; board/timeline-outages): its
@@ -1891,7 +1893,8 @@ function writeBoard(dir, data, eol, enrich, label) {
   const to = VIEWING ? lib.viewDirOf(dir, MAIN) : dir;
   if (VIEWING) { const made = []; for (let d = to; !fs.existsSync(d); d = path.dirname(d)) made.unshift(d); made.forEach(d => { fs.mkdirSync(d); madeDirs.push(d); }); }
   const rel = path.relative(VIEWING ? MAIN : ROOT, path.join(to, "dashboard.html")).split(path.sep).join("/");
-  lib.setViewLinks(VIEWING, MAIN); try { lib.resolveBoard(data, dir); } finally { lib.setViewLinks(false); }
+  /* a text a sweep keeps in its warning stage (GUIDANCE.md §11, "A rule that can fail boards") is written with a warning in the summary, naming the sweep */
+  lib.setViewLinks(VIEWING, MAIN); try { lib.resolveBoard(data, dir).filter(l => /, KEPT BY A SWEEP: /.test(l)).forEach(l => WARNINGS.push(l)); } finally { lib.setViewLinks(false); }
   /* the Context's Ideas Card, from the repository's ideas file (embed.js refreshIdeas(); plan/RULES.md §2): at every event, never on a closed board */
   require("./embed.js").refreshIdeas(data, dir);
   const json = (JSON.stringify(data, null, 2) + "\n").replace(/\n/g, eol);

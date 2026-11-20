@@ -26,7 +26,9 @@
 //   "waiting on you". An issue's title, quoted verbatim, an option's signature, which is code, and a $comment are left alone.
 //   A private repository (plan/RULES.md §1, "Private repositories"; privaterefs.js): its name in an issue's title or an excerpt the fields quote is cut to
 //   "…" and named in notes; any other text of the fields that names one is refused, exit 2 and nothing written; the board as merged is held to the same
-//   rule (lib.js resolveBoard()), so a fill that leaves a text naming one in place fails, every file put back.
+//   rule (lib.js resolveBoard()), so a fill that leaves a text naming one in place fails, every file put back. While a sweep of the rule is in its
+//   warning stage (GUIDANCE.md §11, "A rule that can fail boards"; system/scripts/sweeplib.js), a text the sweep lists as already on a board is
+//   warned in notes, naming the sweep, and only a text newly written is refused.
 //   Two narrow ways into what the events own, each by what it names, so neither undoes an event:
 //   "trailAdd": [{ date, column, label, ref? }] appends trail entries, one already there skipped;
 //   "trailFix": [{ "label": "<the entry as it reads>", "to": "<as it should read>" }] rewords trail entries already there, each found by its label; a label not there is
@@ -230,7 +232,11 @@ function mergeFill(board, fields, planDir) {
   { const PR = require(path.resolve(__dirname, "..", "..", "system", "scripts", "privaterefs.js"));
     let privates; try { privates = PR.privatesOf(); } catch (e) { throw new Refused(e.message); }
     const r = PR.guardData(F, "plan-board", privates, at => /^trailFix\[\d+\]\.label$|^wip\.(?:interview|asked|questions|stages|qa|open|document)\[\d+\]\.(?:text|question|id|pass)$/.test(at));
-    if (r.named.length) throw new Refused(`${PR.privateLine("the fields", r.named)}: reword it and fill again`);
+    /* while a sweep of the rule is in its warning stage, a text it lists as already on a board is warned, and only a text newly written is
+       refused (GUIDANCE.md §11, "A rule that can fail boards"; sweeplib.js) */
+    const sp = require(path.resolve(__dirname, "..", "..", "system", "scripts", "sweeplib.js")).split(PR.RULE, r.named);
+    if (sp.fresh.length) throw new Refused(`${PR.privateLine("the fields", sp.fresh)}: reword it and fill again`);
+    if (sp.kept.length) notes.push(PR.keptLine("the fields", sp.kept));
     r.elided.forEach(x => notes.push(`${x.at}: a private repository's name elided ("…")`)); }
   /* the qa passes by name, "Quality Review N" (passnames.js): the fill's own text and the board's, so an item named by its text still matches */
   { const fr = lib.renamePassesIn(F, titleSkip(null, "plan-board")), br = lib.renamePasses(plan);

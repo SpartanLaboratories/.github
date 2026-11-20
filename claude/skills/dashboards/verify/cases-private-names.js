@@ -1,8 +1,10 @@
 // The cases of the private repositories (plan/RULES.md §1, "Private repositories"; the user's decision q-380), run by verify-templates.js (it
 // passes its helpers in), or on its own with no browser: node verify/cases-private-names.js [--out <dir>].
-// 1. The one rule (system/scripts/privaterefs.js): owner/name, owner/name#n, name#n, a CamelCase name and a value that is the name under a repo,
-//    repository or name key name a repository; a plain-word name only beside one of those in the same text, never "GitHub <word>" or the word in
-//    lower case; a name that begins another leaves no piece; a quotation (an issue's title, an excerpt) elided, any other text listed.
+// 1. The one rule (system/scripts/privaterefs.js): owner/name, owner/name#n, name#n, a CamelCase name, a lower-case name with hyphens (q-412, 2a)
+//    and a value that is the name under a repo, repository or name key name a repository; a plain-word name only beside one of those in the same
+//    text, never "GitHub <word>" or the word in lower case; a hyphenated word that is no private repository's name, the name in another case or
+//    inside or around a longer name is no find; a name that begins another leaves no piece; a quotation (an issue's title, an excerpt) elided,
+//    any other text listed.
 // 2. The list: a fixture list read alone (DASHBOARDS_PRIVATES); under the verification (DASHBOARDS_VERIFY=1) with neither a fixture nor a stand-in gh,
 //    a failure that says why, and this machine's cache neither read nor written; from GitHub (a stand-in gh) into the cache; a fresh cache used as
 //    it stands; an older one used, and said, where GitHub cannot be read; with none, a failure that says why; a malformed fixture refused; the
@@ -45,6 +47,16 @@ module.exports = function casesPrivateNames(X) {
     c.push(["a CamelCase name is found and cut on its own", r("Share code with VaultKeeper.").join() === "acme/VaultKeeper" && e("Share code with VaultKeeper.") === "Share code with ….", e("Share code with VaultKeeper.")]);
     c.push(["a name that begins another leaves no piece of the longer one", e("Retire acme/hidden-ledger-old for acme/hidden-ledger.") === "Retire … for ….", e("Retire acme/hidden-ledger-old for acme/hidden-ledger.")]);
     c.push(["a name inside a longer word, a path or another repository's name is no find", !r("acme/Supporting and VaultKeepers and acme/hidden-ledger-x").length, js(r("acme/Supporting and VaultKeepers and acme/hidden-ledger-x"))]);
+    /* a name in lower case with hyphens, bare (the user's decision q-412, 2a) */
+    c.push(["a lower-case name with hyphens is found and cut on its own, as a CamelCase name is", r("Rehearse the rewrite in hidden-ledger first.").join() === "acme/hidden-ledger" && e("Rehearse the rewrite in hidden-ledger first.") === "Rehearse the rewrite in … first." && e("Ends in hidden-ledger.") === "Ends in ….", e("Rehearse the rewrite in hidden-ledger first.")]);
+    c.push(["…beside \"GitHub\" too, and in a path or quotes", r("GitHub hidden-ledger").join() === "acme/hidden-ledger" && r("see `hidden-ledger` and docs/hidden-ledger/").join() === "acme/hidden-ledger" && e("GitHub hidden-ledger and \"hidden-ledger\"") === "GitHub … and \"…\"", e("GitHub hidden-ledger and \"hidden-ledger\"")]);
+    c.push(["a lower-case name with hyphens and the same name with a suffix, both bare: each found, the longer one whole", js(r("Swap hidden-ledger-old for hidden-ledger.").sort()) === js(["acme/hidden-ledger", "acme/hidden-ledger-old"]) && e("Swap hidden-ledger-old for hidden-ledger.") === "Swap … for …." && js(r("Only hidden-ledger-old stays.")) === js(["acme/hidden-ledger-old"]), js([r("Swap hidden-ledger-old for hidden-ledger."), r("Only hidden-ledger-old stays.")])]);
+    const NOT = "A well-known read-only cache; a hidden ledger; Hidden-Ledger and HIDDEN-LEDGER; hidden-ledgers, unhidden-ledger, old-hidden-ledger, hidden-ledger-x, hidden-ledger2, hidden-ledger.js and hidden_ledger.";
+    c.push(["what must not match: a hyphenated lower-case word that is no private repository's name, the name in another case, inside or around a longer name, or with a file's extension", !r(NOT).length && e(NOT) === NOT, js(r(NOT))]);
+    c.push(["a plain-word name in lower case is still the word, with a hyphen after it too", !r("support the parser, and support-desk too").length && e("support the parser, and support-desk too") === "support the parser, and support-desk too", js(r("support the parser, and support-desk too"))]);
+    const dh = { schema: "plan-board/1", issueTitle: "Retire hidden-ledger", wip: { detail: "Rehearsed in hidden-ledger-old." }, rows: [{ id: "a", verdict: { statements: [{ text: "x", ref: "plan.md#a", excerpt: { heading: "Rehearsal", paragraph: "Run it in hidden-ledger first." } }] } }], impact: { summary: "Rehearsed in hidden-ledger, then swapped." } };
+    const gh2 = PR.guardData(dh, undefined, S);
+    c.push(["on a board: a quotation naming a lower-case name with hyphens is elided in place, any other text listed by where it stands", dh.issueTitle === "Retire …" && dh.rows[0].verdict.statements[0].excerpt.paragraph === "Run it in … first." && js(gh2.named.map(x => x.at).sort()) === js(["impact.summary", "wip.detail"]), js(gh2)]);
     const d = { schema: "plan-board/1", issueTitle: "Port acme/Support#3 helpers", followUps: [{ issue: 4, title: "Use VaultKeeper" }], wip: { detail: "Waits on acme/hidden-ledger#2.", open: [{ text: "Fine." }] },
       rows: [{ id: "a", name: "Support", verdict: { statements: [{ text: "x", ref: "plan.md#a", excerpt: { heading: "Port", paragraph: "Use acme/VaultKeeper#1 here." } }] } }], blockers: { waitsOn: [{ repo: "acme/VaultKeeper", issue: 1 }] } };
     const g = PR.guardData(d, undefined, S);
@@ -199,6 +211,45 @@ module.exports = function casesPrivateNames(X) {
     c.push(["…and finds nothing in \"GitHub Support\"", !/PRIVATE REPOSITORY/.test(b2.stdout), b2.stdout.split(/\r?\n/).filter(l => /PRIVATE/.test(l)).join(" | ")]);
     const envNone2 = { ...baseEnv }; delete envNone2.DASHBOARDS_PRIVATES; const b3 = run(CB, [page("unread"), "--auto", "--no-browser"], envNone2);
     c.push(["with the list not to be read, check-board.js fails, saying why", b3.status === 1 && /PRIVATE REPOSITORIES UNREAD: .*verification reads no live GitHub/.test(b3.stdout), b3.stdout.split(/\r?\n/).filter(l => /FAIL|PRIVATE/.test(l)).join(" | ")]);
+  });
+
+  /* the user's decision q-412, 2a: a lower-case name with hyphens, bare, on every board type, by its writers and both checks */
+  guard("a lower-case name with hyphens, bare, on every board type: the writers elide a quotation and refuse any other text, both checks fail it", c => {
+    const fails = r => (r.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l));
+    /* an issue board: an event, a fill, embed.js, check.js */
+    const B = lay(flight()), before = files(B);
+    const ev = text => { const rq = wr(path.join(sc, `req-${++n}.json`), js({ v: 1, action: "plan-board", github: B.plan.repo, issue: B.plan.issue, event: "implementation-stage", folder: B.plan.folder, facts: { stage: "S1", stages: STG("current", "todo"), at: "2026-11-03T04:00:00Z", open: [{ text }] } }));
+      const a = run(APPLY, ["--event", rq, "--worktree", B.root, "--no-gh", "--no-live", "--json"]); return { a, s: parse(a) }; };
+    const a1 = ev("Rehearsed in hidden-ledger first.");
+    c.push(["apply-event.js fails an event whose fact names one bare, every file as it was", a1.a.status === 1 && /PRIVATE REPOSITORY: .*\(acme\/hidden-ledger\).*wip\.open/.test(a1.s.error || "") && files(B) === before, js([a1.a.status, a1.s.error])]);
+    const a2 = ev("A well-known read-only cache answers first.");
+    c.push(["…and applies one whose hyphenated words name no private repository", a2.a.status === 0, js([a2.a.status, a2.s.error])]);
+    const f0 = files(B), ff = wr(path.join(sc, `fields-${++n}.json`), js({ impact: { summary: "Rehearsed in hidden-ledger, then swapped." } })), f1 = run(FILL, [B.dir, "--fields", ff, "--json"]), s1 = parse(f1);
+    c.push(["fill.js refuses a field that names one bare: exit 2, nothing written", f1.status === 2 && /PRIVATE REPOSITORY: the fields .*\(acme\/hidden-ledger\).*impact\.summary/.test(s1.error || "") && files(B) === f0, js([f1.status, s1.error])]);
+    const p2 = flight(); p2.issueTitle = "Rehearse in hidden-ledger"; p2.wip.detail = "Rehearsed in hidden-ledger.";
+    const B2 = lay(p2, true), r2 = run(CHECK, [B2.dir]);
+    c.push(["check.js fails a board whose detail and issue title name one bare, each by where it stands", r2.status === 1 && fails(r2).some(l => /PRIVATE REPOSITORY: plan\.json .*\(acme\/hidden-ledger\)/.test(l) && /issueTitle/.test(l) && /wip\.detail/.test(l)), fails(r2).join(" | ")]);
+    const before2 = files(B2), e2 = run(EMBED, [B2.dir]);
+    c.push(["embed.js refuses it, the detail named, nothing written", e2.status === 1 && /PRIVATE REPOSITORY: .*wip\.detail/.test(e2.stderr) && files(B2) === before2, (e2.stdout + e2.stderr).slice(-300)]);
+    const p3 = flight(); p3.issueTitle = "Rehearse in hidden-ledger"; const B3 = lay(p3), q3 = P(B3);
+    c.push(["embed.js elides a quoted title that names one bare", q3.issueTitle === "Rehearse in …", q3.issueTitle]);
+    /* the repository work board */
+    const root = path.join(sc, `wb-${++n}`); fs.mkdirSync(path.join(root, "docs", "plans"), { recursive: true });
+    const git = (...a) => cp.spawnSync("git", ["-c", "user.name=verify", "-c", "user.email=verify@example.invalid", ...a], { cwd: root, encoding: "utf8", windowsHide: true });
+    git("init", "-q", "-b", "master"); git("remote", "add", "origin", "https://github.com/acme/widgets.git");
+    const tracker = issues => wr(path.join(sc, `tracker-${++n}.json`), js({ issues: issues.map(i => ({ state: "OPEN", stateReason: null, closedAt: null, labels: [], createdAt: "2026-11-01T00:00:00Z", ...i })), prs: [], branches: [], graph: {} }));
+    const w = run(BOARD, ["--root", root], { ...baseEnv, DASHBOARDS_TRACKER_FIXTURE: tracker([{ number: 5, title: "Rehearse in hidden-ledger" }]) });
+    const wb = (() => { try { return JSON.parse(rd(path.join(root, "docs", "plans", "board.json"))); } catch (e) { return {}; } })(), u = (wb.unscheduled || []).find(x => x.issue === 5) || {};
+    c.push(["board.js elides an unscheduled issue's title that names one bare", w.status === 0 && u.title === "Rehearse in …", js([w.status, u.title, (w.stdout + w.stderr).slice(-200)])]);
+    /* the org work board's sources: every string elided */
+    const seen = { n: 0 }, ob = PR.elideAll({ repos: [{ detail: "Rehearsed in hidden-ledger.", note: "A well-known step." }] }, S, seen);
+    c.push(["the org work board elides it wherever it stands, and leaves a hyphenated word that names none", ob.repos[0].detail === "Rehearsed in …." && ob.repos[0].note === "A well-known step." && seen.n === 1, js(ob)]);
+    /* a state board's own text */
+    const page = (extra) => { const f = path.join(sc, `sb-${++n}`, "index.html"); wr(f, rd(tp("system/template/system.html")).replace("<footer>", `<p>${extra}</p>
+<footer>`)); return f; };
+    const b1 = run(CB, [page("Its history was rehearsed in hidden-ledger."), "--auto", "--no-browser"]), b2 = run(CB, [page("A well-known, read-only cache."), "--auto", "--no-browser"]);
+    c.push(["check-board.js fails a state board whose hand-written text names one bare", b1.status === 1 && /CHECK PRIVATE REPOSITORY: the board names a private repository \(acme\/hidden-ledger\)/.test(b1.stdout), b1.stdout.split(/\r?\n/).filter(l => /FAIL|PRIVATE/.test(l)).join(" | ")]);
+    c.push(["…and finds nothing in hyphenated words that name no private repository", !/PRIVATE REPOSITORY/.test(b2.stdout), b2.stdout.split(/\r?\n/).filter(l => /PRIVATE/.test(l)).join(" | ")]);
   });
 
   return groups;

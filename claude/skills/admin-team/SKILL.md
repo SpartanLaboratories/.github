@@ -49,7 +49,7 @@ Only one session may launch it, so take the launch lock first:
 5. **Release the lock** (remove the directory) if you took it.
 6. If the team is still not listed after the deadline, stop and tell the user:
    the launcher may have hit a trust prompt in its window, or the session was
-   not named `admin team` (only the user can name a session). Never fall back
+   not named `admin team` (the launcher sets that name). Never fall back
    to doing version control yourself.
 
 ## 3. Build the request

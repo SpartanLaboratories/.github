@@ -555,7 +555,8 @@ function excerptDrift(plan, dir) {
    (passnames.js renamePasses()), whatever wrote it. First, an open board drops any sizing it holds (levels.js dropWorkLevels()) and stores
    its test sets by name (testslib.js storeSets()). Last of all, no private repository is named (plan/RULES.md §1, "Private repositories";
    privaterefs.js guardBoard()): an issue's title or an excerpt that names one has the name cut to "…", and any other text that names one
-   throws, so nothing is written. Returns one line per change. */
+   throws, so nothing is written, but for a text a sweep of the rule keeps in its warning stage, warned in a line of its own (GUIDANCE.md §11,
+   "A rule that can fail boards"). Returns one line per change. */
 function resolveBoard(plan, dir, opts) { const lines = [...LV.dropWorkLevels(plan), ...require("./testslib.js").storeSets(plan), ...clearFoundation(plan), ...fillRoadmap(plan, dir), ...linkIssueBoards(plan, dir), ...refreshSystems(plan, dir), ...linkShared(plan, dir), ...copyExcerpts(plan, dir, opts), ...PN.renamePasses(plan)];
   return [...lines, ...require(path.resolve(__dirname, "..", "..", "system", "scripts", "privaterefs.js")).guardBoard(plan, "plan-board", `${plan && plan.folder ? plan.folder + "/" : ""}plan.json`)]; }
 /* ---------- The foundation (plan/RULES.md §4, "The foundation") ----------

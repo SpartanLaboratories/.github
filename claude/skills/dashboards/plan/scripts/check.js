@@ -15,7 +15,8 @@
 // DASHBOARDS_NO_BROWSER=1 in the environment (verify/verify-templates.js sets it unless run with --browser) opens no browser: a browser
 // pass the run would make fails as "browser: NOT RUN".
 // A foundation laid on the fast path passes while it is being written (plan/RULES.md §4, "The foundation"); past its plan's acceptance it fails.
-// No text of a board names a private repository, and neither does its page (plan/RULES.md §1, "Private repositories"; privaterefs.js): a failure.
+// No text of a board names a private repository, and neither does its page (plan/RULES.md §1, "Private repositories"; privaterefs.js): a failure;
+// while a sweep of the rule is in its warning stage, a text the sweep lists as already on a board is a warning naming the sweep (GUIDANCE.md §11).
 // Exit 0 when every rule holds, 1 otherwise. Warnings never fail the run.
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -136,8 +137,12 @@ function levelFail(data, file) {
 
 /* No private repository (plan/RULES.md §1, "Private repositories"; system/scripts/privaterefs.js): no text of the board's data names one, an issue's
    title or an excerpt included (the writers cut a quoted name to "…" and refuse any other text that names one), and neither does its page, read
-   whole as a last look; a failure, landed or not. The list is this machine's (GitHub, cached); where it cannot be had the check fails, saying why. */
+   whole as a last look; a failure, landed or not. The list is this machine's (GitHub, cached); where it cannot be had the check fails, saying why.
+   While a sweep of the rule is in its warning stage (GUIDANCE.md §11, "A rule that can fail boards"; system/scripts/sweeplib.js), a text the sweep
+   lists as already on a board is a warning that names the sweep, and only a text it does not list fails; the page is then read with its data block
+   emptied, line by line, each line held to the sweep's list the same way. */
 const PR = require(path.resolve(__dirname, "..", "..", "system", "scripts", "privaterefs.js"));
+const SWEEPS = require(path.resolve(__dirname, "..", "..", "system", "scripts", "sweeplib.js"));
 let PRIVATES = null, PRIVATE_SEEN = false;
 function privateList() {
   if (PRIVATES) return PRIVATES;
@@ -146,12 +151,16 @@ function privateList() {
 }
 function privateFail(data, file) {
   const P = privateList(); if (P.error) return;
-  const hits = PR.refsIn(data, P); if (hits.length) { PRIVATE_SEEN = true; fail(PR.privateLine(file, hits)); }
-  else ok(`private repositories: ${file} names none`);
+  const { kept, fresh } = SWEEPS.split(PR.RULE, PR.refsIn(data, P));
+  if (kept.length) warn(PR.keptLine(file, kept));
+  if (fresh.length) { PRIVATE_SEEN = true; fail(PR.privateLine(file, fresh)); }
+  else if (!kept.length) ok(`private repositories: ${file} names none`);
 }
 function privateHtml(html, name) {
   const P = privateList(); if (P.error || PRIVATE_SEEN) return;
-  const keys = PR.privateRefs(html, P); if (keys.length) fail(PR.privateLine(name, [{ at: "its page", keys }]));
+  const { kept, fresh } = SWEEPS.split(PR.RULE, PR.pageRefs(SWEEPS.stripBlocks(html), P));
+  if (kept.length) warn(PR.keptLine(name, kept));
+  if (fresh.length) fail(PR.privateLine(name, [{ at: "its page", keys: [...new Set(fresh.flatMap(x => x.keys))] }]));
 }
 
 /* A board's names come from passnames.js: a pass "Quality Review N", one not numbered "review", the qa step

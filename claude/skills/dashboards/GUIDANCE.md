@@ -553,6 +553,9 @@ gets a browser pass before landing only when it diverges from its template:
 | a board that is a verified template plus its data: an issue board, the repository work board or the org work board, or a system, supersystem or repository state board whose CSS, Tabs and script — before `MODEL` (less its board-filled lines, such as `REPO` and `SRC`) and after it — are the verified template's | nothing more: no browser pass |
 | a board that diverges — declared, undeclared, made from an older template — or whose template changed since it was verified | the full pass: light, dark, 520 px, a 390 px frame, a 1920 x 1080 desktop |
 
+While a sweep of a rule that can fail boards is in its warning stage in a repository, that rule's check warns, naming the sweep, on a text
+the sweep found already on a board, and fails only a text it did not (§11, "A rule that can fail boards").
+
 A difference nobody declared is a warning: re-render the board from the template, or declare it
 (§7). `--browser` (plan) and a plain `check-board.js` run still force a pass when wanted.
 
@@ -621,6 +624,42 @@ other:
 | the org work board | at **every landing in a repository on the board**, when it is regenerated and committed (`plan/RULES.md` §10) |
 | an issue's board that is in flight, and its tracking board | at **its own events** (`apply-event.js` re-renders a board that is not the verified template plus its data) |
 | a closed work board: an issue board or a tracking board whose issue is closed | **never** (`~/.claude/agents/admin-team/presenter.md`, "Closed work boards") |
+
+**A rule that can fail boards: the sweep and its warning stage** (the user's decision, q-411). A rule that can fail boards is one whose check
+fails a board that breaks it or whose writers refuse to write one, a failure and not a warning. Such a rule is placed with its sweep, in the
+same job, and the sweep reaches every board type the rule applies to: issue boards, tracking boards, the repository work board, the org work
+board, and system, supersystem and repository state boards.
+
+- **What the sweep checks.** Every committed board and every view copy of the repositories on the org work board (`plan/RULES.md` §10, its
+  repositories less every private one): each repository's tracked boards, read in a checkout of its default branch, and the view copies in
+  its main checkout's `docs/plans/.live/view/`. Where a run holds boards in flight that the committed boards no longer show as it carries
+  them (a view copy's text carried onto its branch by a seeding, once that copy is gone), the sweep also reads that run's checkout, its
+  boards as its working tree holds them, only to record what they already carry: it fixes nothing there, the run's own writers carry them.
+- **What it fixes, and what it lists.** It fixes what the boards' own tools can fix: the fix the rule's own writers make in place (for the
+  private repositories, a quotation's name cut to "…"), written into the board's data, its embedded copy and its sidecar as the writers write
+  them. Everything else it finds it lists for the user's decision, each by its board and where it stands, with why. The fixes in a
+  repository's tracked boards land through a docs-only landing of that repository, through the team's version control; a view copy is
+  git-ignored, and its fixes need no landing.
+- **The warning stage.** From the sweep until its fixes land in a repository, the rule's writers refuse only a text they would newly write: a
+  text already on a board is written, with a warning that names the sweep, and the checks warn on it, naming the sweep, where they would fail
+  it. A text is already on a board when the sweep found it there: the same text, wherever a writer now puts it (a view copy's, carried
+  onto a run's branch by a seeding, among them), known by its mark in the sweep's record, never by the text itself. Once the fixes land,
+  the stage ends, and the rule refuses and fails every text that breaks it again. A repository where the sweep found nothing has no stage.
+- **Closed boards.** Each such rule says whether it binds closed boards: an issue board or a tracking board whose issue is closed, which is
+  otherwise kept as it closed (above). Where a rule does not bind them, its sweep skips them.
+- **The tools.** A rule that can fail boards gives its finder to `system/scripts/sweeplib.js` (`RULES`) when it is placed: the texts of a
+  board's data that break it, which of them its writers fix in place, and the lines of a page's own text outside its data. Its writers and
+  its checks split their finds by the sweep's record (`sweeplib.js` `split()`). `system/scripts/sweep.js` runs a sweep for one repository
+  (`run`, with `--fix` for the fixes, `--binds-closed` as the rule says, `--main` for the view copies, `--run` for a run's checkout), records that its fixes landed
+  (`landed`), lists the sweeps and each repository's stage (`status`) and the repositories on the org work board (`repos`). The record is
+  this machine's, outside every mirrored path (`~/.claude/cache/dashboards/sweeps.json`); under the verification only a case's own. The
+  finders given so far: the private repositories' (`plan/RULES.md` §1, "Private repositories"). Verified by `verify/cases-sweep.js`.
+
+Weighed for every type: the sweep checks every board type a rule applies to, as above. It fixes in place on issue boards, tracking boards,
+the repository work board, the org work board and view copies, whose data a writer rewrites with its embedded copy and sidecar. On a
+system, supersystem or repository state board it fixes nothing and lists every find: a quotation there is cut at the board's next stamp
+(`system/scripts/apply-state.js`), and its hand-written text is reworded by hand. The live repository work board is regenerated from the
+boards at every event, so it is not swept.
 
 **Finished steps, clickable** (admin-team/dashboards-skill/24): applied to issue boards and tracking boards (a tracking board for its
 own steps and for each unit in progress through its mirror), where the progress strip is (`plan/RULES.md` §3, "Finished steps"). Not to

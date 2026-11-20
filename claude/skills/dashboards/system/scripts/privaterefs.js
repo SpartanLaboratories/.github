@@ -17,11 +17,18 @@
 //   guardData(data, kind, set, skip)   a board's data: each quoted text elided in place, every other text that names one listed
 //   refsIn(data, set)           every text of a board's data that names one: [{ at, keys }]
 //   guardBoard(data, kind, where)      guardData() with privatesOf(): throws, nothing to be written, where a text other than a quotation names one;
-//                               returns the lines of what it elided
+//                               returns the lines of what it elided. While a sweep of this rule is in its warning stage (sweeplib.js; GUIDANCE.md §11,
+//                               "A rule that can fail boards"), a text the sweep lists as already on a board is warned, a line returned, and only a
+//                               text newly written throws
+//   keptLine(where, list)       the warning's line for texts a sweep keeps
+//   pageRefs(text, set)         each line of a page's own text (its data blocks emptied, sweeplib.js stripBlocks()) that names one: [{ line, keys, h }]
+//   sweepFind / sweepFix / sweepPage   this rule's finder for a sweep (sweeplib.js RULES, "private-repositories"): every text of a board's data that
+//                               names one, a quotation marked quoted (the writers cut it to "…"); the quotations cut in place; the page's own lines
 // What names a repository: its owner/name and its name#n wherever they stand, a JSON value that is its name under a repo, repository or name
-// key, and a name in CamelCase on its own (a CamelCase name with a suffix, such as SomeTool-old, counts as well). A name that is a plain word
-// (a repository named after an ordinary word) names the repository only beside one of those forms in the same text: alone it reads as the word,
-// and is left. Case matters: the word in lower case is never the name.
+// key, and on its own a name in CamelCase (a CamelCase name with a suffix, such as SomeTool-old, counts as well) or a name in lower case with
+// hyphens (some-tool, some-tool-old; the user's decision q-412, 2a). A name that is a plain word (a repository named after an ordinary word,
+// with no hyphen) names the repository only beside one of those forms in the same text: alone it reads as the word, and is left. Case matters:
+// a plain-word name in lower case is never the name, and a lower-case name with hyphens is found only as it is written.
 "use strict";
 const fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process");
 const SKILL = path.resolve(__dirname, "..", "..");
@@ -36,12 +43,16 @@ const cacheFile = () => process.env.DASHBOARDS_PRIVATES_CACHE ? path.resolve(pro
 /* ---------- What names a private repository ---------- */
 const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const camel = n => /[a-z][A-Z]/.test(n);
+/* a name in lower case with hyphens (letters and digits, a hyphen between each two parts): found on its own, as a CamelCase name is */
+const hyphened = n => /^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(n);
+/* a name that names the repository on its own, wherever it stands */
+const distinct = n => camel(n) || hyphened(n);
 /* a name standing on its own: no name character before it, and none after it but a full stop that ends the sentence ("… owner/name.") */
 const alone = n => `(?<![\\w.-])${esc(n)}(?![\\w-]|\\.[\\w-])`;
 const pairs = privates => [...(privates || [])].map(k => String(k).split("/")).filter(p => p.length === 2 && p[0] && p[1]);
-const strongForms = ([o, n]) => [`(?<![\\w.-])${esc(o)}/${esc(n)}#\\d+`, `(?<![\\w.-])${esc(o)}/${esc(n)}(?![\\w-]|\\.[\\w-])`, `(?<![\\w.-])${esc(n)}#\\d+`, ...(camel(n) ? [alone(n)] : [])];
+const strongForms = ([o, n]) => [`(?<![\\w.-])${esc(o)}/${esc(n)}#\\d+`, `(?<![\\w.-])${esc(o)}/${esc(n)}(?![\\w-]|\\.[\\w-])`, `(?<![\\w.-])${esc(n)}#\\d+`, ...(distinct(n) ? [alone(n)] : [])];
 /* A quoted text (an issue's title, an excerpt) with each private repository's name elided with "…", as a quotation elides a name it cannot
-   show: owner/name#n, owner/name, name#n and a CamelCase name wherever they stand, and with them in the same text a name that is a plain
+   show: owner/name#n, owner/name, name#n and a CamelCase name or a lower-case name with hyphens wherever they stand, and with them in the same text a name that is a plain
    word, which alone reads as the word and is left ("GitHub <word>", GitHub's own, is left beside them too). Longer names first, so a name that begins another (a name and the same name with a suffix) never leaves a piece. */
 function elidePrivate(text, privates) {
   if (typeof text !== "string" || !text) return { text, n: 0 };
@@ -50,11 +61,11 @@ function elidePrivate(text, privates) {
   if (!strong.some(re => { re.lastIndex = 0; return re.test(text); })) return { text, n: 0 };
   let s = text, n = 0;
   strong.forEach(re => { re.lastIndex = 0; s = s.replace(re, () => { n++; return "…"; }); });
-  names.filter(([, nm]) => !camel(nm)).forEach(([, nm]) => { s = s.replace(new RegExp(`(?<!\\bGitHub )${alone(nm)}`, "g"), () => { n++; return "…"; }); });
+  names.filter(([, nm]) => !distinct(nm)).forEach(([, nm]) => { s = s.replace(new RegExp(`(?<!\\bGitHub )${alone(nm)}`, "g"), () => { n++; return "…"; }); });
   return { text: s, n };
 }
 /* The private repositories a text names: its owner/name, its name#n, a JSON value that is its name under a repo, repository or name key, or
-   a CamelCase name on its own; a plain-word name is a word of its own, and its forms above are what identify the repository. */
+   a CamelCase name or a lower-case name with hyphens on its own; a plain-word name is a word of its own, and its forms above are what identify the repository. */
 function privateRefs(text, privates) {
   const out = [], t = String(text == null ? "" : text);
   pairs(privates).forEach(([o, n]) => {
@@ -101,30 +112,54 @@ function guardData(data, kind, privates, skip) {
   walk(data, "", null, (s, at, key) => {
     if (skip && skip(at)) return undefined;
     if (isQuoted(k, at)) { const r = elidePrivate(s, privates); if (r.n) { elided.push({ at, n: r.n }); return r.text; } return undefined; }
-    const keys = stringRefs(s, key, privates); if (keys.length) named.push({ at, keys });
+    const keys = stringRefs(s, key, privates); if (keys.length) named.push({ at, keys, h: SW().textHash(s) });
     return undefined;
   });
   return { elided, named };
 }
-/* Every text of a board's data that names a private repository, a quotation included (a writer elides one): [{ at, keys }] */
+/* Every text of a board's data that names a private repository, a quotation included (a writer elides one): [{ at, keys, h }], h the text's mark
+   (sweeplib.js textHash()), by which a sweep's warning stage knows a text already on a board */
 function refsIn(data, privates) {
   const out = [];
   if (!privates || !privates.size || data == null || typeof data !== "object") return out;
-  walk(JSON.parse(JSON.stringify(data)), "", null, (s, at, key) => { const keys = stringRefs(s, key, privates); if (keys.length) out.push({ at, keys }); return undefined; });
+  walk(JSON.parse(JSON.stringify(data)), "", null, (s, at, key) => { const keys = stringRefs(s, key, privates); if (keys.length) out.push({ at, keys, h: SW().textHash(s) }); return undefined; });
   return out;
 }
+/* Each line of a page's own text that names a private repository (the page with its data blocks emptied, sweeplib.js stripBlocks(); a state board's
+   hand-written panels, its DSL and registry copies, its links): [{ line, keys, h }] */
+function pageRefs(text, privates) {
+  const out = [];
+  if (!privates || !privates.size) return out;
+  String(text == null ? "" : text).split(/\r?\n/).forEach((l, i) => { const keys = privateRefs(l, privates); if (keys.length) out.push({ line: i + 1, at: "its page", keys, h: SW().lineHash(l) }); });
+  return out;
+}
+const SW = () => require("./sweeplib.js");
 const atsOf = list => `${[...new Set(list.map(x => x.at))].slice(0, 4).join(", ")}${list.length > 4 ? ", …" : ""}`;
 const keysOf = list => [...new Set(list.flatMap(x => x.keys))].join(", ");
 /* the checkers' line for a board that still names one */
 const privateLine = (where, list) => `PRIVATE REPOSITORY: ${where} names a private repository (${keysOf(list)}) at ${atsOf(list)}: a board names none (plan/RULES.md §1, "Private repositories"); a quoted title or excerpt is elided with "…", any other text is reworded where the board stores it, an issue or tracking board's through fill.js`;
+/* the warning's line for texts a sweep of this rule keeps in its warning stage (sweeplib.js; GUIDANCE.md §11, "A rule that can fail boards") */
+const keptLine = (where, list) => `${privateLine(where, list).replace(/^PRIVATE REPOSITORY: /, "PRIVATE REPOSITORY, KEPT BY A SWEEP: ")}; ${SW().keptWords(list[0].sweep)}`;
 /* guardData() with the organizations' private repositories: throws where a text other than a quotation names one (nothing is to be written),
-   else returns the lines of what it elided */
+   else returns the lines of what it elided. While a sweep of this rule is in its warning stage, a text it lists as already on a board is warned,
+   its line returned with the rest, and only a text newly written throws (sweeplib.js split()). */
 function guardBoard(data, kind, where, opts) {
   const privates = (opts && opts.privates) || privatesOf();
   const r = guardData(data, kind, privates, opts && opts.skip);
-  if (r.named.length) { const e = new Error(`${privateLine(where, r.named)}; nothing written`); e.privateRepository = r.named; throw e; }
-  return r.elided.length ? [`private repositories: ${r.elided.reduce((a, x) => a + x.n, 0)} name${r.elided.length === 1 && r.elided[0].n === 1 ? "" : "s"} elided in ${where} (${atsOf(r.elided)})`] : [];
+  const { kept, fresh } = SW().split(RULE, r.named);
+  if (fresh.length) { const e = new Error(`${privateLine(where, fresh)}; nothing written`); e.privateRepository = fresh; throw e; }
+  return [...(kept.length ? [keptLine(where, kept)] : []), ...(r.elided.length ? [`private repositories: ${r.elided.reduce((a, x) => a + x.n, 0)} name${r.elided.length === 1 && r.elided[0].n === 1 ? "" : "s"} elided in ${where} (${atsOf(r.elided)})`] : [])];
 }
+/* ---------- This rule's finder for a sweep (sweeplib.js RULES, "private-repositories") ---------- */
+const RULE = "private-repositories";
+/* every text of a board's data that names one, a quotation marked quoted: the board's own writers cut it to "…" (a fix), any other is listed */
+function sweepFind(data, kind) {
+  const P = privatesOf(), k = kind === undefined ? kindOf(data) : kind;
+  return refsIn(data, P).map(x => ({ ...x, quoted: isQuoted(k, x.at) }));
+}
+/* the fixes the board's own writers make, in place: each quotation that names one cut to "…"; returns how many texts changed */
+function sweepFix(data, kind) { return guardData(data, kind === undefined ? kindOf(data) : kind, privatesOf()).elided.length; }
+const sweepPage = text => pageRefs(text, privatesOf());
 
 /* ---------- The list: a fixture, this machine's cache, GitHub ---------- */
 function ownersOf() {
@@ -199,4 +234,4 @@ function remember(privates, owners) {
 const forget = () => { memo.clear(); lastSource = null; };
 const source = () => lastSource;
 
-module.exports = { SCHEMA, FRESH_MS, DEFAULT_CACHE, cacheFile, ownersOf, privatesOf, remember, forget, source, elidePrivate, privateRefs, elideAll, isQuoted, guardData, refsIn, guardBoard, privateLine };
+module.exports = { SCHEMA, FRESH_MS, DEFAULT_CACHE, RULE, cacheFile, ownersOf, privatesOf, remember, forget, source, elidePrivate, privateRefs, elideAll, isQuoted, guardData, refsIn, pageRefs, guardBoard, privateLine, keptLine, sweepFind, sweepFix, sweepPage };

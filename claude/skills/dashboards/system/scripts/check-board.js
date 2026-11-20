@@ -429,14 +429,17 @@ function nameChecks() {
 // each text by where it stands, an issue's title included (a writer cuts a quoted name to "…"), then the whole page, a state board's hand-written
 // panels, its DSL, its registry copy and its links among it. Each find is a problem of the board, PRIVATE REPOSITORY, landed or not. The list is this
 // machine's (GitHub, cached); where it cannot be had the board fails, PRIVATE REPOSITORIES UNREAD, saying why. A rendered Markdown copy is no board.
+// While a sweep of the rule is in its warning stage (GUIDANCE.md §11, "A rule that can fail boards"; sweeplib.js), a text the sweep lists as already on
+// a board is a warning that names the sweep, never a problem; the page is read with its data blocks emptied, line by line, each line held to the
+// sweep's list the same way.
 function privateChecks() {
   if (!src || /<meta name="dashboard" content="doc-copy">/.test(src)) return null;
-  const PR = require("./privaterefs.js"), L = require("./statelib.js");
+  const PR = require("./privaterefs.js"), L = require("./statelib.js"), SW = require("./sweeplib.js");
   let P; try { P = PR.privatesOf(); } catch (e) { return { note: "private repositories: the list could not be read", problems: [`PRIVATE REPOSITORIES UNREAD: ${e.message}`] }; }
-  const problems = [];
-  ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { const h = PR.refsIn(JSON.parse(t), P); if (h.length) problems.push(PR.privateLine(`its ${id} data`, h)); } catch (e) { /* the data checks report it */ } });
-  if (!problems.length) { const keys = PR.privateRefs(src, P); if (keys.length) problems.push(PR.privateLine("the board", [{ at: "its page", keys }])); }
-  return { note: `private repositories: ${problems.length ? "named" : "none named"}`, problems };
+  const problems = [], notes = [];
+  ["plan", "board", "state"].forEach(id => { const t = L.blockText(src, id); if (t == null) return; try { const { kept, fresh } = SW.split(PR.RULE, PR.refsIn(JSON.parse(t), P)); if (kept.length) notes.push(PR.keptLine(`its ${id} data`, kept)); if (fresh.length) problems.push(PR.privateLine(`its ${id} data`, fresh)); } catch (e) { /* the data checks report it */ } });
+  if (!problems.length) { const { kept, fresh } = SW.split(PR.RULE, PR.pageRefs(SW.stripBlocks(src), P)); if (kept.length) notes.push(PR.keptLine("the board", kept)); if (fresh.length) problems.push(PR.privateLine("the board", [{ at: "its page", keys: [...new Set(fresh.flatMap(x => x.keys))] }])); }
+  return { note: `private repositories: ${problems.length ? "named" : notes.length ? "named only where a sweep keeps it, warned" : "none named"}`, notes, problems };
 }
 // The element names (GUIDANCE.md §12, "The names, checked"; termrefs.js), read without a browser from the board's data block and its HTML: each a warning, never a problem.
 function termChecks() {

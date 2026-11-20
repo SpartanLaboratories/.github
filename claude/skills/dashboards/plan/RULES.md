@@ -130,8 +130,10 @@ board, the repository work board, the org work board (§10) or a state board (`s
 every board writer, both checkers and the companions' scripts take:
 
 - **What names one.** Its `owner/name` and its `name#n` wherever they stand, a value that is its name under a `repo`, `repository` or `name`
-  key, and a name in CamelCase on its own. A name that is a plain word names the repository only beside one of those forms in the same
-  text; alone it reads as the word and is left, and so is "GitHub <word>", GitHub's own, and the word in lower case.
+  key, and on its own a name in CamelCase or a name in lower case with hyphens (`some-tool`; the user's decision q-412, 2a), each found as it
+  is written. A name that is a plain word, with no hyphen, names the repository only beside one of those forms in the same text; alone it
+  reads as the word and is left, and so is "GitHub <word>", GitHub's own, and the word in lower case. A hyphenated word that is no private
+  repository's name, or that only begins or ends one, is no find.
 - **A quotation is elided.** An issue's title (the fields above, quoted verbatim) and a statement's excerpt (§2, "Statements") are quoted text:
   there the name is cut to "…", as a quotation elides what it cannot show, and nothing else in the quote changes. `embed.js` elides it as it
   copies an excerpt.
@@ -141,8 +143,13 @@ every board writer, both checkers and the companions' scripts take:
   an event fails (exit 1), every file put back. The text is reworded where the board stores it, through `fill.js`, and the event raised again.
   The org work board, whose sources are other repositories' data, elides the name wherever it stands (§10).
 - **The checks fail a board that still names one.** `check.js` (`PRIVATE REPOSITORY`, the data by where each text stands, a title
-  included, then the board's page whole) and `system/scripts/check-board.js` (its data blocks, then the whole page: a state board's
-  hand-written panels, its DSL and registry copies and its links), landed or not.
+  included, then the board's page, its data block emptied, line by line) and `system/scripts/check-board.js` (its data blocks, then the
+  page with them emptied: a state board's hand-written panels, its DSL and registry copies and its links), landed or not.
+- **A sweep's warning stage.** While a sweep of this rule is in its warning stage in a repository (`GUIDANCE.md` §11, "A rule that can fail
+  boards"; `system/scripts/sweeplib.js`), every writer above writes a text the sweep found already on a board, with a warning that names the
+  sweep (an event's in its summary, a fill's in its notes), and refuses only a text newly written; both checks warn on such a text, naming the
+  sweep (`PRIVATE REPOSITORY, KEPT BY A SWEEP`), and fail only one it did not find. Its finder for a sweep is `privaterefs.js` `sweepFind()`,
+  `sweepFix()` and `sweepPage()`.
 - **The list.** The private repositories are read from GitHub, `gh repo list` for each organization of
   `plan/template/org-board.repositories.json`, and cached on this machine only, outside every mirrored path, at
   `~/.claude/cache/dashboards/private-repositories.json`: a reading under six hours old is used as it stands, an older one is read again
