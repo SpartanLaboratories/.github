@@ -353,7 +353,8 @@ retried without looking (`~/.claude/agents/admin-team/PROTOCOL.md`, A reply).
   added entries, which the executor merges (`version-control-manager.md`, Conflicts at a sync).
   Generated board files the base also changed that merged cleanly are the team's too:
   `presenter` regenerates them inside the merge (Board-file
-  conflicts). Any other `CHANGELOG.md` conflict and every
+  conflicts), and uncommitted ones that make git refuse the merge are dropped before it and
+  rebuilt after it (Board-file conflicts). Any other `CHANGELOG.md` conflict and every
   `README.md` conflict is `needs-rework` with `result.conflicts` naming the files: the merge
   stays open, the run fixes the markers in its own files and resends, and the executor
   finishes the merge. A clean sync
@@ -741,7 +742,12 @@ keeps the **Whiteboards**, each repository's **ideas file** and the boards'
   not `needs-rework`: `presenter` regenerates those files from the merged
   documents and boards (`embed.js`, `board.js`, `org-board.js`) and the executor
   commits the result; work-board files the base also changed that merged
-  cleanly (Landing) are regenerated the same way. A conflict in
+  cleanly (Landing) are regenerated the same way. When git refuses a
+  `prepare-landing` sync or a `sync-branch` because the merge would overwrite
+  work-board files left uncommitted in the run's worktree, the executor drops
+  them before the merge (`version-control-manager.md`, Conflicts at a sync), and
+  `presenter` rebuilds them from the merged state after it, uncommitted, for the
+  run's document-landing commit. A conflict in
   state-board files under `docs/dashboards/` (`index.html`, `systems.json`,
   `workspace.dsl`, the system boards, `state.json`) is not `needs-rework`
   either: `presenter` rebuilds them from the merged code and documents, stamped

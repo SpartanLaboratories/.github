@@ -5,11 +5,11 @@
 //    holding its files; a file outside any module or source set at the level it belongs to; files in the list's order inside a folder,
 //    folders in the order of their first file, a folder with one file on its own line, a path listed twice drawn once, a folder listed whole
 //    an entry of its parent.
-// 2. The drawing: every folder line a toggle (details, open at load) whose summary carries its full path in its title and, shown only while
+// 2. The drawing: every folder line a details element that opens and closes (a Disclosure in a step's file list; open at load) whose summary carries its full path in its title and, shown only while
 //    closed, its file count ("· 1 file", "· 3 files"); each file a code label with its full path in its title; a folder line breaking after
 //    a "/", a file name between the words of its camel case; everything escaped; an empty list drawing nothing.
 // 3. The sites and the look: the Verdict inspector's Steps and the As built inspector's Files draw fileTree(), the one-path-per-line list is
-//    gone, the CSS (a guide line per level, the toggles' marks, the count shown while closed, the file a code label), and inspect() keeping
+//    gone, the CSS (a guide line per level, the open and closed marks of the folder lines, the count shown while closed, the file a code label), and inspect() keeping
 //    closed the folders a reader closed when a redraw shows the same content.
 // 4. The feature probe (file-tree): found on the issue-board template, missed on a template without it, for issue and tracking boards
 //    only (each other type's reason stated); check.js --auto passes a board in flight embedded from the template and fails one embedded from a
@@ -57,7 +57,7 @@ module.exports = function casesFileTree(X) {
     c.push(["each folder line keeps its full path; the count is every file under it", n.path === "webtools-feeds/" && n.kids[0].path === "webtools-feeds/src/commonMain/" && n.kids[0].kids[0].path === CM && H.ftCount(n) === 3 && H.ftCount(n.kids[1]) === 1, js([n.path, n.kids[0].path, n.kids[0].kids[0].path, H.ftCount(n)])]);
   });
 
-  guard("the drawing: every folder line a toggle, open at load, its file count while closed; each file a code label; every line its full path in its title", c => {
+  guard("the drawing: every folder line opening and closing, a Disclosure in a step's file list, open at load, its file count while closed; each file a code label; every line its full path in its title", c => {
     const h = H.fileTree([CM + "Log.kt", CM + "UrlOrigin.kt", JM + "Log.jvm.kt"]);
     c.push(["one .ftree, a list per level", /^<span class="ftree"><ul class="ft-l">/.test(h) && (h.match(/<ul class="ft-l">/g) || []).length === 6, h.slice(0, 120)]);
     const det = [...h.matchAll(/<details class="ftd ft-(mod|set|dir)" open><summary title="([^"]*)">/g)].map(m => [m[1], m[2]]);
@@ -70,7 +70,7 @@ module.exports = function casesFileTree(X) {
     c.push(["an empty or missing list draws nothing", H.fileTree([]) === "" && H.fileTree(undefined) === "" && H.fileTree([""]) === "", js([H.fileTree([]), H.fileTree(undefined)])]);
   });
 
-  guard("the sites and the look: the Verdict inspector's Steps and the As built inspector's Files; the toggles kept across a redraw", c => {
+  guard("the sites and the look: the Verdict inspector's Steps and the As built inspector's Files; the folder lines a reader closed kept across a redraw", c => {
     const s = PB.replace(/\/\*[\s\S]*?\*\//g, "");
     c.push(["the Verdict inspector's Steps draw the step's files as the tree", /<span>\$\{rich\(s\.what\|\|""\)\}\$\{fileTree\(s\.files\)\}\$\{s\.check\?/.test(s), "inspectCell verdict"]);
     c.push(["the As built inspector's Files the same, the heading only where a file is listed", /\$\{ftTree\(b\.files\)\.kids\.length\?`<dt>Files<\/dt><dd>\$\{fileTree\(b\.files\)\}<\/dd>`:""\}/.test(s), "inspectCell built"]);
@@ -81,7 +81,7 @@ module.exports = function casesFileTree(X) {
       /\.ftree summary::before\{content:"\\25BE";/, /\.ftree details:not\(\[open\]\)>summary::before\{content:"\\25B8"\}/, /\.ftree \.ft-n\{display:none;/, /\.ftree details:not\(\[open\]\)>summary>\.ft-n\{display:inline\}/,
       /\.ftree \.ft-mod>summary\{font-weight:700;color:var\(--ink\)\}/, /\.ftree \.ft-set>summary\{font-weight:600;color:var\(--ink-2\)\}/, /\.ftree \.ft-file code\{font-size:11px;color:var\(--ink-2\)\}/];
     const miss = want.filter(re => !re.test(k)).map(String);
-    c.push(["the CSS: a guide line per level, the toggles' marks (▾ open, ▸ closed), the count shown only while closed, the module and the source set as headings, each file a code label", !miss.length, js(miss)]);
+    c.push(["the CSS: a guide line per level, the folder lines' marks (▾ open, ▸ closed), the count shown only while closed, the module and the source set as headings, each file a code label", !miss.length, js(miss)]);
     c.push(["no folder class carries a type word a chip, a pill, a tile, a badge or a tag selector would take (a code label stays a label inside the tree)", !/class="[^"]*(chip|pill|tile|badge|tag(?![\w]))[^"]*"/.test((s.match(/const ftHtml=.*$/m) || [""])[0]) && !/\.ftree[^{]*(chip|pill|tile|badge|tag(?![\w]))/.test(k), "ftHtml"]);
     c.push(["inspect(): a redraw that shows the same content keeps closed the folders the reader closed; new content opens them all", /function inspect\(html\)\{ const b=\$\("#insp-body"\), same=b\.__shown===html, shut=same\?\[\.\.\.b\.querySelectorAll\("details\.ftd"\)\]\.map\(d=>!d\.open\):\[\]; b\.innerHTML=html; b\.__shown=html; if\(same\) b\.querySelectorAll\("details\.ftd"\)\.forEach\(\(d,i\)=>\{ if\(shut\[i\]\) d\.open=false; \}\);/.test(s), "inspect()"]);
     /* the same rule run against a stand-in for the inspector's DOM */

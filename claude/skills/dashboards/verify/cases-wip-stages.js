@@ -1,4 +1,4 @@
-// The cases of the stage view (plan/RULES.md §3, "The stage table", "The record of a stage", "The stage list", "Collapsing", "The Now Chip"), of the
+// The cases of the stage view (plan/RULES.md §3, "The stage table", "The record of a stage", "The stage list", "Disclosures", "The Now Chip"), of the
 // phase Card's bar and the plan step's StepBar, of the plain system (GUIDANCE.md §1, Internal Tooling), and of apply-state.js's carried entries (system/RULES.md §10), run by
 // verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-wip-stages.js [--out <dir>].
 // 1. lib.js stageTable(): a plan's table read, its rows out of form named, a fenced or absent table none.

@@ -577,6 +577,10 @@ catch up at their own events.
 - Boards render offline, in light and dark, at phone width without horizontal
   scroll, with keyboard-reachable controls; a divergence must keep it.
 
+## Background commands
+
+Read and follow R-145 (Background commands) [145-T6] in `~/.claude/shared/background-commands.md`.
+
 ## What you return to the caller
 
 ```

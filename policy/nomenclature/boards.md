@@ -126,7 +126,7 @@ defines it.
 | Term | Its purpose on the boards |
 |------|---------------------------|
 | **Row** | an issue board's design point, a tracking board's unit |
-| **Disclosure** | a stage of the step Panel (an implementation stage, a plan stage, or a tracking board's architecture stage), a stage's step that has steps of its own, a remediation's sub-step, a Document task, a finished step's visit, a finished Implementation view |
+| **Disclosure** | a stage of the step Panel (an implementation stage, a plan stage, or a tracking board's architecture stage), a stage's step that has steps of its own, a remediation's sub-step, a Document task, a finished step's visit, a finished Implementation view, a folder line of a step's file list |
 | **CodeBlock** | an option's signature, beneath its name |
 | **ShareBar** | the Tiles' Bars, but the Quality Reviews Tile's (a SlotBar) and the Timeline Tile's (a Timeline) |
 | **SlotBar** | the Quality Reviews Tile's Bar: one slot per review allowed, filled in order by each review's result |

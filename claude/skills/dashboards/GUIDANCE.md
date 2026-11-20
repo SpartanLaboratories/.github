@@ -888,8 +888,8 @@ refresh on its branch: the committed repository work board, and the repository s
 **The decision of admin-team/dashboards/step-file-tree** (dated dashboards-skill/43), weighed for every type:
 
 - **A step's files nested by their folders** (`plan/RULES.md` §2, "A step's files"): the module a heading, its source set a level under
-  it (`src/` left out), the folder path one line holding its files, each file a CodeLabel; every folder line a toggle, open at load, a
-  closed one counting its files. Applied to issue boards and tracking boards — the Verdict inspector's Steps and the As built inspector's
+  it (`src/` left out), the folder path one line holding its files, each file a CodeLabel; every folder line of a step's file list a Disclosure and one under
+  the As built inspector's Files opening and closing the same way, open at load, a closed one counting its files. Applied to issue boards and tracking boards — the Verdict inspector's Steps and the As built inspector's
   Files, the only file lists they draw — and held by the `file-tree` probe. Not to system boards: a component's source files in the
   inspector are a few names under the system's one source root, each a link to its source, with no module or source set to nest. Not
   to supersystem and repository state boards: a system's code paths are its registry's folders, one line, not a list of files. Not to the
@@ -1125,7 +1125,7 @@ q-111, as `boards.md` reads since): the templates select them by the type word e
 only where `tag` is a whole part of the class (`.tag-next`, `.tag-kind`, `.archtag`), so `.stage`, `.outage` and the `.tags` row are not
 taken. An option's signature (`plan/RULES.md` §2, "An option's signature") is a
 **CodeBlock** beneath the option's name (`code.codeblock`). A step's files nested by their folders (`plan/RULES.md` §2, "A step's files") draw each file as a CodeLabel and their
-folder lines as plain text; until `ui.md` has terms for the nesting and its folder toggles these rules name them only by what they are. A Row's name, an option's and a title taken from either draw their `` `code` `` spans as CodeLabels wherever they are
+folder lines as plain text; the folder lines of a step's file list are Disclosures (`boards.md`, Disclosure), and until `ui.md` has a term for the nesting as a whole, and a vocabulary one for the folder lines under the As built inspector's Files, these rules name those only by what they are. A Row's name, an option's and a title taken from either draw their `` `code` `` spans as CodeLabels wherever they are
 drawn, never as literal backticks; an attribute (an `aria-label`, a `title`) takes the text with its backticks dropped.
 
 ## 13. Beside the boards: the Whiteboards, the ideas files and the published copies

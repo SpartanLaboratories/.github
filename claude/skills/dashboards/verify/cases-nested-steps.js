@@ -1,5 +1,5 @@
 // The cases of a stage's nested steps (plan/RULES.md §3, "The stage table",
-// "The record of a step", "The stage list", "Collapsing"; the step-complete row of §4), run by verify-templates.js (it passes its helpers in), or on its own
+// "The record of a step", "The stage list", "Disclosures"; the step-complete row of §4), run by verify-templates.js (it passes its helpers in), or on its own
 // with no browser: node verify/cases-nested-steps.js [--out <dir>].
 // 1. lib.js stageTable(): the "below" list to any depth, the flat cell as before (a dotted id included), every STAGE TABLE warning.
 // 2. apply-event.js step-complete: a leaf, a parent (every step under it), the last step closing its parent, twice (a duplicate), a stage to come, an

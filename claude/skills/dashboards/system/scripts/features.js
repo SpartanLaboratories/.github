@@ -278,10 +278,10 @@ const FEATURES = [
   /* dashboards/step-file-tree, dated 43: a step's files, and the As built
      inspector's Files, nested by their folders on an issue or tracking board (plan/RULES.md §2, "A step's files"). A board drawn before it
      lists one full path per line until its next rebuild (its next event, the splice); a landed issue board is kept as it landed (§11). */
-  { id: "file-tree", name: "a step's files (and the As built inspector's Files) nested by their folders: the module, its source set, the folder path as one line, each file a code label; every folder line a toggle, open at load, a closed one counting its files", since: 43, types: ["plan-board"],
+  { id: "file-tree", name: "a step's files (and the As built inspector's Files) nested by their folders: the module, its source set, the folder path as one line, each file a code label; every folder line opening and closing, a Disclosure in a step's file list, open at load, a closed one counting its files", since: 43, types: ["plan-board"],
     notFor: { system: "its inspector lists a component's few source files by name, each a link under the system's one source root: no modules or source sets to nest", supersystem: "no file lists: a system's code paths are its registry's folders, one line", "work-board": "no file lists: one row per run, each run's files on its own board" },
     test: h => { const s = scripts(h), c = css(h); return need(/const ftTree=files=>/.test(s) && /const fileTree=files=>/.test(s) && /<details class="ftd ft-\$\{k\.k\}" open>/.test(s) && /\$\{fileTree\(s\.files\)\}/.test(s) && /<dt>Files<\/dt><dd>\$\{fileTree\(b\.files\)\}<\/dd>/.test(s) && /\.ftree details:not\(\[open\]\)>summary>\.ft-n\{display:inline\}/.test(c),
-      "a step's files are listed one full path per line (no fileTree() in the Verdict inspector's steps and the As built inspector's Files, or no .ftree toggles)"); } },
+      "a step's files are listed one full path per line (no fileTree() in the Verdict inspector's steps and the As built inspector's Files, or no .ftree folder lines that open and close)"); } },
   /* dashboards/gap-marks, dated 44: the Gap cell's marks on an issue
      or tracking board (plan/RULES.md §2, "The Gap cell"). A board drawn before them keeps the evidence count in the cell's foot and its
      summary unbolded until its next rebuild (its next event, the splice); a landed issue board is kept as it landed (§11). */

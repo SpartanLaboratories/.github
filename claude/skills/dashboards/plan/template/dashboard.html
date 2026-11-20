@@ -254,7 +254,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp-opts{margin:3px 0 0;padding-left:16px;font-weight:400;color:var(--ink-2)}
 /* the questions a halt put to you, in the panel of the step it halted in (plan/RULES.md §3, wip.asked) */
 .sp-asked{margin:6px 0 8px}
-/* the stage list of the WIP Panel, the collapsing items of the step Panel (plan/RULES.md §3, "The stage list", "Collapsing"), the Now Chip */
+/* the stage list of the WIP Panel, the Disclosures of the step Panel (plan/RULES.md §3, "The stage list", "Disclosures"), the Now Chip */
 .stg-strip{margin-top:10px;padding-top:2px;border-top:1px solid var(--hair)}
 .stg-rows{list-style:none;margin:5px 0 0;padding:0;display:grid;gap:0}
 .stg-row{display:grid;grid-template-columns:2.2em minmax(0,1fr) auto;gap:1px 8px;align-items:baseline;padding:5px 8px;border-top:1px solid var(--hair);border-radius:0;min-width:0;cursor:pointer}
@@ -292,7 +292,7 @@ summary.stg-s:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .stg-rl>li{min-width:0}
 .stg-rl .rn{color:var(--ink);overflow-wrap:anywhere}
 .sp .stg-rl small{display:block;font:11.5px/1.35 var(--sans);color:var(--ink-2);margin-top:1px;overflow-wrap:anywhere}
-/* a stage's steps, nested to any depth (plan/RULES.md §3, "The stage list", "Collapsing"): each its number, its name and its mark; a step with steps of its own a Disclosure */
+/* a stage's steps, nested to any depth (plan/RULES.md §3, "The stage list", "Disclosures"): each its number, its name and its mark; a step with steps of its own a Disclosure */
 .stg-steps{list-style:none;margin:2px 0 6px;padding:0;display:grid;gap:3px}
 .stg-steps .stg-steps{margin:1px 0 4px 4px;padding-left:13px;border-left:1px solid var(--hair)}
 .stg-steps li{display:block;min-width:0;font-size:12.5px;color:var(--ink-2)}
@@ -521,8 +521,8 @@ details.sp-visit>summary .nm{font-size:12.5px;color:var(--ink-2)}
 .steps-list li>span{min-width:0}
 /* A list of files nested by their folders (plan/RULES.md §2, "A step's files"; dated
    dashboards-skill/43): the top folder (the module) a heading, its source set a sub-level (src/ left out), the rest of a folder path one
-   line holding its files, each file a code label; a guide line per level. Every folder line toggles (keyboard and click), open at load; a
-   closed one says how many files it holds. A folder line breaks after a "/", a file name between the words of its camel case. */
+   line holding its files, each file a code label; a guide line per level. Every folder line opens and closes (keyboard and click), a Disclosure
+   in a step's file list, open at load; a closed one says how many files it holds. A folder line breaks after a "/", a file name between the words of its camel case. */
 .ftree{display:block;margin-top:3px;font:11px/1.45 var(--mono);color:var(--muted);min-width:0;max-width:100%}
 .ftree ul.ft-l{list-style:none;margin:0;padding:0}
 .ftree ul.ft-l ul.ft-l{margin:1px 0 0 4px;padding-left:9px;border-left:1px solid var(--line)}
@@ -1136,7 +1136,7 @@ const sigText=o=>sigOf(o)?`, signature ${esc(sigOf(o))}`:"";
    folder), the source set (src/ left out), the rest of the folder path as one line — and its file; a path outside any module or source set
    keeps only the levels it has, and a folder written with a trailing "/" stands as a file of its parent. ftTree(): the levels as a tree, files in
    the list's order inside a folder, folders in the order of their first file, a path listed twice drawn once. ftHtml(): every folder line a
-   toggle (details: keyboard and click), open at load, "· n files" while closed; every line its full path in its title; a folder line breaks
+   details element that opens and closes (keyboard and click), a Disclosure in a step's file list, open at load, "· n files" while closed; every line its full path in its title; a folder line breaks
    after a "/" (ftBrk), a file name between the words of its camel case (ftWord). */
 const ftParts=p=>{ const t=String(p==null?"":p).trim().replace(/\\/g,"/").replace(/^(\.\/)+/,""), whole=/\/$/.test(t), s=t.split("/").filter(Boolean), leaf=s.length?s.pop()+(whole?"/":""):"", i=s.indexOf("src"), set=i>=0&&s.length-i>=2; return {leaf,path:t,levels:set?[...(i?[["mod",s.slice(0,i).join("/")]]:[]),["set",s[i+1]],...(s.length>i+2?[["dir",s.slice(i+2).join("/")]]:[])]:[...(s.length?[["mod",s[0]]]:[]),...(s.length>1?[["dir",s.slice(1).join("/")]]:[])]}; };
 const ftTree=files=>{ const root={kids:[],at:new Map()}, seen=new Set(); (Array.isArray(files)?files:[]).forEach(f=>{ const x=ftParts(f); if(!x.leaf||seen.has(x.path)) return; seen.add(x.path); let n=root, base=""; x.levels.forEach(([k,v])=>{ base+=k==="set"?`src/${v}/`:`${v}/`; let c=n.at.get(k+":"+v); if(!c){ c={k,name:v,path:base,kids:[],at:new Map()}; n.at.set(k+":"+v,c); n.kids.push(c); } n=c; }); n.kids.push({k:"file",name:x.leaf,path:x.path}); }); return root; };
@@ -1679,11 +1679,11 @@ const PANEL={
   "sub-issues":(R,o)=>`<p>The plan has landed: each unit of its architecture is filed as a sub-issue of this one. A unit's board appears when its run starts.</p>`+unitProgress(R,o,"filed"),
   boards:(R,o)=>`<p>Each unit's board was created ahead of its run, from this issue's documents: its Gap and Considered columns, not started.</p>`+unitProgress(R,o,"boards"),
   _:R=>R.detail?"":`<p>Nothing recorded for this step.</p>`};
-/* ---------- The stage list and the collapsing items (plan/RULES.md §3, "The stage list", "Collapsing") ----------
+/* ---------- The stage list and the Disclosures (plan/RULES.md §3, "The stage list", "Disclosures") ----------
    The WIP Panel lists each stage of the run at the implementation step: its number, name and status, and its brief, the plan's stage table's
    wording copied verbatim at branch-cut (a plan with no table gives no brief); a tracking board's unit Card lists the number, the name and the
    status alone. A click on a stage opens it in the step Panel. The step Panel's stages, a remediation's sub-steps, the Document step's tasks and
-   a finished Implementation view are collapsing items: number, name, status; the active ones open, the others closed, a reader's choice kept
+   a finished Implementation view are Disclosures: number, name, status; the active ones open, the others closed, a reader's choice kept
    across the live redraw (DISC_OPEN, by key). A finished stage's status Pill: kind "work" neutral, "done"; kind "check" the result its closing
    event reported, green or red; no result recorded reads as a work stage does. */
 const NOW_KEY_CHIP=`<span class="chip now"><span class="ck">Now</span></span>`;
@@ -1716,7 +1716,7 @@ const discList=items=>items.length?`<ol class="sp-list stg-list">${items.join(""
 const stgChip=(l,v)=>`<span><span class="l">${l}</span>${v}</span>`;
 const stampChips=x=>[okStamp(x.started)?stgChip("started",`<span class="nw">${when(x.started)}</span>`):"",x.state==="done"&&x.late===true?stgChip("finished",`<span class="nw">not recorded</span>`):okStamp(x.finished)&&x.state==="done"?stgChip("finished",`<span class="nw">${when(x.finished)}</span>`):""].filter(Boolean);
 const reportHtml=x=>x.state==="done"&&typeof x.report==="string"&&x.report.trim()?`<div class="stg-h">At its end</div><p>${rich(x.report)}</p>`:"";
-/* ---------- A stage's steps, nested (plan/RULES.md §3, "The record of a step", "The stage list", "Collapsing") [steps-block] ----------
+/* ---------- A stage's steps, nested (plan/RULES.md §3, "The record of a step", "The stage list", "Disclosures") [steps-block] ----------
    Each step by its number (the stage's place in wip.stages, then the step's place among the steps beside it at each depth, joined by "-": 2-3-19) and its
    name, never its id. Done: a stored record (a step-complete), or any step of a done stage. In the current stage the steps the live progress notes name
    ("step") and every step they lie under are at work; with no note naming one, the first step not done, at its innermost depth, and every step it lies
@@ -1767,11 +1767,11 @@ function stageBody(R,x,o,keys){ const local=o.own||o.issue===PLAN.issue, rows=Ar
 /* a sub-step's or a task's detail: its report and its times, where they were recorded */
 function itemBody(x){ const fx=stampChips(x); return reportHtml(x)+(fx.length?`<div class="wip-facts">${fx.join("")}</div>`:""); }
 const discKey=(o,what,id)=>`${o.past?`past:${o.key||"own"}:${o.visit==null?"r":o.visit}`:`live:${o.issue}`}:${what}:${id}`;
-/* the stages of a run, collapsing: the live step Panel (o.past unset: the current stage open) and a finished Implementation view (o.past: every one closed) */
+/* the stages of a run, as Disclosures: the live step Panel (o.past unset: the current stage open) and a finished Implementation view (o.past: every one closed) */
 function stageItems(R,sg,o,keys){ if(sg.length) keys.add(KEY_DISC);
   return discList(sg.map((x,i)=>{ const n=Array.isArray(x.rows)?x.rows.length:0, kx=o.past&&x.state!=="done"; if(kx) keys.add(KEY_PAST_TODO);
     return discItem({key:discKey(o,"stage",x.id||x.name),cls:o.past?(x.state==="done"?"done":"todo"):stgCls(x),id:x.id,stage:x.id,name:rich(x.name||""),meta:n?`${n} Row${n===1?"":"s"}`:"",pill:kx?pill(STG_PILL.todo,"",pastPill(x.state)):stgPill(x,keys,"stage"),cur:!o.past&&x.state==="current",body:stageBody(R,x,{...o,no:i+1},keys)}); })); }
-/* a remediation's sub-steps or the Document step's tasks, collapsing */
+/* a remediation's sub-steps or the Document step's tasks, as Disclosures */
 function subItems(list,o,keys,what,noun){ if(list.length) keys.add(KEY_DISC);
   return discList(list.map((x,i)=>{ const kx=o.past&&x.state!=="done"; if(kx) keys.add(KEY_PAST_TODO);
     return discItem({key:discKey(o,what,x.id||stepName(x)||i),cls:o.past?(x.state==="done"?"done":"todo"):stgCls(x),name:rich(stepName(x)||x.id||""),pill:kx?pill(STG_PILL.todo,"",pastPill(x.state)):stgPill(x,keys,noun),cur:!o.past&&x.state==="current",body:itemBody(x)}); })); }
@@ -1832,7 +1832,7 @@ function pstageBody(x,keys,K){ K=K||SKIND.plan; const nr=`<span class="nw">not r
   (Array.isArray(x.rounds)?x.rounds.filter(r=>r&&typeof r==="object"):[]).forEach((r,j)=>{ const res=x.id==="check"&&PSTG_PILL[r.result]; if(res) keys.add(`<span>${pill(res)} ${pstgWord(r.result,K)}</span>`);
     h+=`<div class="stg-h">Round ${j+1}${res?` ${pill(res)}`:""}</div>${typeof r.report==="string"&&r.report.trim()?`<p>${rich(r.report)}</p>`:""}<div class="wip-facts">${stgChip("started",r.late?nr:t(r.started))}${stgChip("ended",r.late?nr:t(r.finished))}</div>`; });
   return h; }
-/* the stages in the step Panel, collapsing: the live Panel (the current one open) and a finished visit (o.past: none open, a stage not done dashed) */
+/* the stages in the step Panel, as Disclosures: the live Panel (the current one open) and a finished visit (o.past: none open, a stage not done dashed) */
 function pstageItems(P,o,keys,kind){ const K=skind(kind), sg=pstagesOf(P); if(!sg.length) return ""; keys.add(KEY_DISC);
   return discList(sg.map((x,i)=>{ const kx=o.past&&x.state!=="done"; if(kx) keys.add(KEY_PAST_TODO);
     return discItem({key:discKey(o,"stage",K.pre+x.id),cls:o.past?(x.state==="done"?"done":"todo"):(x.state==="done"?"done":x.state==="current"?"cur":"todo"),id:String(i+1),stage:K.pre+x.id,name:esc(pstageName(x)),meta:esc(pstageEarlier(x,keys,K)),pill:kx?pill(STG_PILL.todo,"",x.state==="current"?"in progress when the step ended":"not recorded"):pstagePill(sg,i,keys,K),cur:!o.past&&x.state==="current",body:pstageBody(x,keys,K)}); })); }
@@ -2025,7 +2025,7 @@ function visitHtml(S,V,i,n,o,keys,vs){ const grp=(l,v)=>`<span><span class="l">$
   if(n<2) return `<div class="sp-visit">${h}</div>`;
   const key=visitKey(o.key||"own",S,i), open=DISC_OPEN.has(key)?DISC_OPEN.get(key):i===n-1, gist=visitGist(S,V); keys.add(KEY_DISC);
   return `<details class="stg-d sp-visit" data-key="${esc(key)}" data-visit="${i}"${open?" open":""}><summary class="stg-s"><h4>${esc(visitName(S,V,i,n,vs))}</h4><span class="nm">${esc(gist)}</span>${visitEnd(V,keys)}<span class="chev" aria-hidden="true">▸</span></summary><div class="sp-vb">${h}</div></details>`; }
-/* a visit's name, short account and how it ended: the head of its collapsing item in the step Panel and its row in the WIP Panel's brief */
+/* a visit's name, short account and how it ended: the head of its Disclosure in the step Panel and its row in the WIP Panel's brief */
 const visitKey=(run,S,i)=>`past:${run}:${S}:visit:${i}`;
 /* the parts of one pass's visit a wait or a break split, headed as the Timeline Tile's Legend names them, by the pass and the part, "Quality Review 1 ·
    visit 2", "Correction · visit 1" (plan/RULES.md §3, "The Panel of a finished step"): the visits of the step (vs)

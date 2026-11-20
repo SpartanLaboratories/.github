@@ -2096,7 +2096,7 @@ async function reseed(now, req) {
   for (const [tree, ds] of written) {
     ROOT = tree;
     const cks = await Promise.all([...new Set(ds)].map(d => run(path.join(__dirname, "check.js"), [d], tree)));
-    if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${cks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 6).join(" | ")}`; throw new Error("check.js failed on a board it would re-seed"); }
+    if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${failText(cks, 6)}`; throw new Error("check.js failed on a board it would re-seed"); }
     ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(tree, "docs", "plans", f)));
     const wb = await run(path.join(__dirname, "board.js"), ["--refresh-template", "--root", tree, ...(flag("no-gh") ? ["--no-gh"] : [])], tree);
     if (wb.status !== 0) throw new Error(`board.js (the committed repository work board, after re-seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
@@ -2159,7 +2159,7 @@ async function seed(now, req, facts) {
     return;
   }
   const cks = await Promise.all(written.map(d => run(path.join(__dirname, "check.js"), [d], ROOT)));
-  if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${cks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 6).join(" | ") || errLine(cks.find(c => c.status !== 0).stderr)}`; throw new Error("check.js failed on a board the seed would write"); }
+  if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${failText(cks, 6)}`; throw new Error("check.js failed on a board the seed would write"); }
   ["board.json", "index.html", "board.js"].forEach(f => stage(path.join(ROOT, "docs", "plans", f)));
   const wb = await run(path.join(__dirname, "board.js"), ["--refresh-template", "--root", ROOT, ...(flag("no-gh") ? ["--no-gh"] : [])], ROOT);
   if (wb.status !== 0) throw new Error(`board.js (the committed repository work board, after seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
@@ -2224,8 +2224,8 @@ async function unitLanded(now, req, facts) {
   /* the tracking board landed with this unit, and sits inside another: its unit landed there too (plan/RULES.md §3, "A sub-issue lands") */
   const above = P.plan.status === "built" && pp.status !== "built" ? landUpward(dir, P.plan, now) : [];
   const [ck, ...aks] = await Promise.all([dir, ...above].map(d => run(path.join(__dirname, "check.js"), [lib.viewDirOf(d, MAIN), "--root", ROOT], ROOT)));
-  if (ck.status !== 0) { S.check = `FAIL: ${ck.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || errLine(ck.stderr)}`; throw new Error("check.js failed on the tracking board's view copy"); }
-  if (aks.some(c => c.status !== 0)) { S.check = `FAIL (above the tracking board): ${aks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 6).join(" | ") || errLine(aks.find(c => c.status !== 0).stderr)}`; throw new Error("check.js failed on the view copy of the tracking board above it"); }
+  if (ck.status !== 0) { S.check = `FAIL: ${failText([ck], 6)}`; throw new Error("check.js failed on the tracking board's view copy"); }
+  if (aks.some(c => c.status !== 0)) { S.check = `FAIL (above the tracking board): ${failText(aks, 6)}`; throw new Error("check.js failed on the view copy of the tracking board above it"); }
   S.check = `pass (tracking board: ${plural((ck.stdout.match(/^warn/gm) || []).length, "warning")}${above.length ? `; above it: ${plural(aks.reduce((n, c) => n + (c.stdout.match(/^warn/gm) || []).length, 0), "warning")}` : ""})`;
   S.defects = [...new Set([ck, ...aks].flatMap(c => c.stdout.split(/\r?\n/).map(l => (l.match(/^warn\s+(ISSUE TITLE NAMES A GRADE: #[\d?]+)/) || [])[1]).filter(Boolean)))];
   if (flag("no-live")) S.live = "skipped (--no-live)";
@@ -2239,13 +2239,20 @@ async function unitLanded(now, req, facts) {
   }
   S.result = "ok";
 }
-/* A child process, as a promise of { status, stdout, stderr }; each one's whole output kept in CHILD_RUNS for keepFailure(). */
+/* A child process, as a promise of { status, signal, ms, stdout, stderr }; each one's whole output kept in CHILD_RUNS for keepFailure(). */
 const CHILD_RUNS = [];
-const run = (file, a, cwd) => new Promise(res => { const c = cp.spawn(process.execPath, [file, ...a], { cwd, windowsHide: true }); let o = "", e = "";
+const run = (file, a, cwd) => new Promise(res => { const t0 = Date.now(), c = cp.spawn(process.execPath, [file, ...a], { cwd, windowsHide: true }); let o = "", e = "";
   const done = r => { CHILD_RUNS.push({ script: path.basename(file), args: a, cwd: cwd || null, ...r }); res(r); };
-  c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", s => done({ status: s, stdout: o, stderr: e })); c.on("error", x => done({ status: 1, stdout: o, stderr: String(x) })); });
+  c.stdout.on("data", d => { o += d; }); c.stderr.on("data", d => { e += d; }); c.on("close", (s, sig) => done({ status: s, signal: sig || null, ms: Date.now() - t0, stdout: o, stderr: e })); c.on("error", x => done({ status: 1, signal: null, ms: Date.now() - t0, stdout: o, stderr: String(x) })); });
 /* the line of a child's stderr that says what went wrong: an uncaught error's message, not the location Node prints first */
 const errLine = t => { const L = String(t || "").trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean); return L.find(l => /^([A-Z]\w*Error|Error)\b|^[A-Z]{2,}\w*:/.test(l)) || L[0] || ""; };
+/* how a child ended that printed nothing to say why: its signal, or its exit code, a Windows status (a crash, 0xC0000005 an access violation)
+   also in hex, with the time it ran */
+const exitText = c => `${c.script || "the child"} ${c.signal ?`ended by ${c.signal}` : `exited ${c.status}${c.status > 255 ? ` (0x${(c.status >>> 0).toString(16).toUpperCase()})` : ""}`} after ${c.ms} ms with no output`;
+/* why the checks failed, for the summary's check field: the FAIL lines (at most n), else the first failed check's error line, else how it
+   ended, so a check that crashed and printed nothing is named as a crash, never an empty "FAIL: " */
+const failText = (cks, n) => { const bad = cks.filter(c => c.status !== 0), f = bad.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, n);
+  return f.length ? f.join(" | ") : bad.length ? errLine(bad[0].stderr) || exitText({ script: "check.js", ...bad[0] }) : ""; };
 /* Under the verification (DASHBOARDS_VERIFY_FAILURES, which verify/scratch.js sets to its scratch's failures/ folder): a failed event that is no
    refusal keeps, before the rollback puts the files back, what tells why it failed: the command and its request, the summary with the error's
    stack, every child's whole output (check.js's FAIL lines in full, a crash's stack), and every file the event wrote as it would have stood.
@@ -2259,7 +2266,7 @@ function keepFailure(e) {
     const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => /^DASHBOARDS_|^(TEMP|TMP|TMPDIR)$/.test(k)));
     fs.writeFileSync(path.join(d, "command.json"), JSON.stringify({ argv: [process.execPath, ...process.argv.slice(1)], cwd: process.cwd(), env, request }, null, 2) + "\n");
     fs.writeFileSync(path.join(d, "summary.json"), JSON.stringify({ ...S, stack: String(e && e.stack || e) }, null, 2) + "\n");
-    fs.writeFileSync(path.join(d, "children.txt"), CHILD_RUNS.map(c => `=== node ${c.script} ${c.args.join(" ")} (cwd ${c.cwd}) → exit ${c.status}\n--- stdout\n${c.stdout}\n--- stderr\n${c.stderr}\n`).join("\n") || "no child ran\n");
+    fs.writeFileSync(path.join(d, "children.txt"), CHILD_RUNS.map(c => `=== node ${c.script} ${c.args.join(" ")} (cwd ${c.cwd}) → exit ${c.status}${c.status > 255 ? ` (0x${(c.status >>> 0).toString(16).toUpperCase()})` : ""}${c.signal ? `, signal ${c.signal}` : ""}, ${c.ms} ms\n--- stdout\n${c.stdout}\n--- stderr\n${c.stderr}\n`).join("\n") || "no child ran\n");
     for (const [file] of staged) {
       if (!fs.existsSync(file) || !fs.statSync(file).isFile()) continue;
       const rel = ROOT && !path.relative(ROOT, file).startsWith("..") ? path.join("tree", path.relative(ROOT, file)) : path.join("outside", file.replace(/^([A-Za-z]):/, "$1").replace(/^[\\/]+/, ""));
@@ -2622,8 +2629,8 @@ async function main() {
        land with one still open; the summary says what to do */
     if (fails.some(l => /OPEN POINT AT THE LAND/.test(l))) S.enrich.push("an open point is still open at the land: resolve it (facts.open, each with resolved) and raise the event again; nothing is committed open");
     if (fails.some(l => /GAP UNWRITTEN|FOUNDATION NOT FILLED/.test(l))) S.enrich.push("the board's foundation is not filled: write what it reads as being written from the documents (the function, the rows with their Gap) and raise the event again");
-    if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${fails.slice(0, 6).join(" | ") || errLine(cks.find(c => c.status !== 0).stderr)}`; throw new Error("check.js failed on the board it would write"); }
-    if (sks.some(c => c.status !== 0)) { S.check = `FAIL (a seeded board): ${sks.flatMap(c => c.stdout.split(/\r?\n/).filter(l => /^FAIL/.test(l))).slice(0, 4).join(" | ")}`; throw new Error("check.js failed on a board seeded from the live view"); }
+    if (cks.some(c => c.status !== 0)) { S.check = `FAIL: ${failText(cks, 6)}`; throw new Error("check.js failed on the board it would write"); }
+    if (sks.some(c => c.status !== 0)) { S.check = `FAIL (a seeded board): ${failText(sks, 4)}`; throw new Error("check.js failed on a board seeded from the live view"); }
     if (wb && wb.status !== 0) throw new Error(`board.js (the committed repository work board, after seeding) failed: ${(wb.stderr || wb.stdout).trim().split(/\r?\n/).slice(-1)[0]}`);
     if (wb) S.wrote.push("the repository work board: docs/plans/board.json, index.html, board.js (regenerated after seeding)");
     S.check = `pass (board: ${plural(warns[0], "warning")}${up ? `; parent: ${plural(warns[1], "warning")}` : ""}${above.length ? `; above the parent: ${plural(warns.slice(2).reduce((a, b) => a + b, 0), "warning")}` : ""})`;

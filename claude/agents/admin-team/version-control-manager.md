@@ -202,6 +202,13 @@ changed, code included. When those files include the work-board or state-board
 files above, `presenter` regenerates them, inside the merge
 (`git merge --no-commit`), so the merge commit carries them.
 
+A merge git refuses at the `prepare-landing` sync or a `sync-branch` because it
+would overwrite uncommitted changes in the worktree is no conflict when every
+file it names is a generated work-board file above: save a copy of each in
+your scratchpad, restore only those to `HEAD`, merge, and report them; the
+team's `presenter` then rebuilds them from the merged state, uncommitted, for
+the run's document-landing commit.
+
 Any other conflict, every other `CHANGELOG.md` conflict and every `README.md`
 conflict included, you never resolve: report its files under **Overlap**, each
 marked `conflict`, and the team replies `needs-rework`. On a

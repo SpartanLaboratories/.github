@@ -253,7 +253,7 @@ h1 a.ghn:hover{border-bottom-color:var(--ink)}
 .sp-opts{margin:3px 0 0;padding-left:16px;font-weight:400;color:var(--ink-2)}
 /* the questions a halt put to you, in the panel of the step it halted in (plan/RULES.md §3, wip.asked) */
 .sp-asked{margin:6px 0 8px}
-/* the stage list of the WIP Panel, the collapsing items of the step Panel (plan/RULES.md §3, "The stage list", "Collapsing"), the Now Chip */
+/* the stage list of the WIP Panel, the Disclosures of the step Panel (plan/RULES.md §3, "The stage list", "Disclosures"), the Now Chip */
 .stg-strip{margin-top:10px;padding-top:2px;border-top:1px solid var(--hair)}
 .stg-rows{list-style:none;margin:5px 0 0;padding:0;display:grid;gap:0}
 .stg-row{display:grid;grid-template-columns:2.2em minmax(0,1fr) auto;gap:1px 8px;align-items:baseline;padding:5px 8px;border-top:1px solid var(--hair);border-radius:0;min-width:0;cursor:pointer}
@@ -291,7 +291,7 @@ summary.stg-s:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .stg-rl>li{min-width:0}
 .stg-rl .rn{color:var(--ink);overflow-wrap:anywhere}
 .sp .stg-rl small{display:block;font:11.5px/1.35 var(--sans);color:var(--ink-2);margin-top:1px;overflow-wrap:anywhere}
-/* a stage's steps, nested to any depth (plan/RULES.md §3, "The stage list", "Collapsing"): each its number, its name and its mark; a step with steps of its own a Disclosure */
+/* a stage's steps, nested to any depth (plan/RULES.md §3, "The stage list", "Disclosures"): each its number, its name and its mark; a step with steps of its own a Disclosure */
 .stg-steps{list-style:none;margin:2px 0 6px;padding:0;display:grid;gap:3px}
 .stg-steps .stg-steps{margin:1px 0 4px 4px;padding-left:13px;border-left:1px solid var(--hair)}
 .stg-steps li{display:block;min-width:0;font-size:12.5px;color:var(--ink-2)}
@@ -520,8 +520,8 @@ details.sp-visit>summary .nm{font-size:12.5px;color:var(--ink-2)}
 .steps-list li>span{min-width:0}
 /* A list of files nested by their folders (plan/RULES.md §2, "A step's files"; dated
    dashboards-skill/43): the top folder (the module) a heading, its source set a sub-level (src/ left out), the rest of a folder path one
-   line holding its files, each file a code label; a guide line per level. Every folder line toggles (keyboard and click), open at load; a
-   closed one says how many files it holds. A folder line breaks after a "/", a file name between the words of its camel case. */
+   line holding its files, each file a code label; a guide line per level. Every folder line opens and closes (keyboard and click), a Disclosure
+   in a step's file list, open at load; a closed one says how many files it holds. A folder line breaks after a "/", a file name between the words of its camel case. */
 .ftree{display:block;margin-top:3px;font:11px/1.45 var(--mono);color:var(--muted);min-width:0;max-width:100%}
 .ftree ul.ft-l{list-style:none;margin:0;padding:0}
 .ftree ul.ft-l ul.ft-l{margin:1px 0 0 4px;padding-left:9px;border-left:1px solid var(--line)}

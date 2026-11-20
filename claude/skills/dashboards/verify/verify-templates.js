@@ -1,8 +1,16 @@
 #!/usr/bin/env node
 // Verify the dashboard templates once, so boards made from them need not be (GUIDANCE.md §8).
 //   node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>] [--browser] [--keep]
+//   node verify/verify-templates.js --part <k>/<n> --parts <dir> [--root <repo>] [--history-repo <clone>] [--keep]   (each k from 1 to n)
+//   node verify/verify-templates.js --parts <dir> [--root <repo>]                                                      (then: the record)
 // Each run works in a private scratch of its own (verify/scratch.js): its output, its temp root and its stand-in for the team's state, removed
 // at exit unless a check failed or --keep (or --browser) keeps it, so runs at the same time share no file.
+// In parts, so that no one command runs longer than a caller may wait on it (~/.claude/shared/background-commands.md): --part k/n runs the
+// k-th of n shares of the checks below (the sections in order, the k-th, the (k+n)-th, …), renders and records nothing, and writes its result
+// to <dir>/part-<k>of<n>.json with the fingerprint of the skill's files and the templates under test it ran on. The record, --parts <dir> with
+// no --part, runs no case and records a template exactly as a whole run does (its renderings checked, then its hash and history), and only
+// when all n parts are there, each passed, on the fingerprint the files have now; otherwise it records nothing and says why. A part that
+// fails keeps its scratch and output as a whole run does, and is run again on its own; parts never run with --browser.
 // By default it runs only the checks that need no browser, and opens none (GUIDANCE.md §8: a skill or template change gets no browser
 // pass from the skill's own runs; the user checks it in a browser from what the report lists). It renders each template with its fixtures
 // into a scratch folder and runs system/scripts/check-board.js --auto --no-browser on every rendering, and runs the case groups below
@@ -105,11 +113,24 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
 const { recordFile, sha, norm } = require(path.join(__dirname, "..", "system", "scripts", "deviation.js"));
 const SKILL = path.resolve(__dirname, "..");
-require(path.join(__dirname, "..", "system", "scripts", "cliargs.js")).strict(process.argv.slice(2), { usage: "usage: node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>] [--browser] [--keep]", valued: ["root", "out", "history-repo"], flags: ["browser", "keep"], max: 0 });
+const USAGE = "usage: node verify/verify-templates.js [--root <repo>] [--out <dir>] [--history-repo <clone of SpartanLaboratories/.github>] [--browser] [--keep] [--part <k>/<n>] [--parts <dir>]";
+require(path.join(__dirname, "..", "system", "scripts", "cliargs.js")).strict(process.argv.slice(2), { usage: USAGE, valued: ["root", "out", "history-repo", "part", "parts"], flags: ["browser", "keep"], max: 0 });
 const args = process.argv.slice(2), opt = (n, d) => { const i = args.indexOf("--" + n); return i >= 0 ? args[i + 1] : d; };
 /* No browser unless asked for (GUIDANCE.md §8): DASHBOARDS_NO_BROWSER=1 reaches every script the checks and cases spawn, so
    check-board.js and check.js open none (exit 3, "NOT RUN") and dumpDom() below renders nothing. */
 const BROWSER = args.includes("--browser");
+/* In parts (the header): PART is { k, n } for one share of the checks, PARTS the folder their results go to; --parts alone is the record */
+const PARTS = opt("parts", null) ? path.resolve(opt("parts")) : null;
+const PART = (() => { const v = opt("part", null); if (v == null) return null; const m = /^(\d+)\/(\d+)$/.exec(v), k = m ? +m[1] : 0, n = m ? +m[2] : 0;
+  if (!m || n < 2 || k < 1 || k > n) { console.error(`--part takes k/n, n at least 2 and k from 1 to n, not ${JSON.stringify(v)}\n${USAGE}`); process.exit(2); }
+  return { k, n }; })();
+if (PART && !PARTS) { console.error(`--part needs --parts <dir>, the folder each part's result goes to and the record reads\n${USAGE}`); process.exit(2); }
+if (PARTS && BROWSER) { console.error(`parts run without a browser: --browser is one whole run\n${USAGE}`); process.exit(2); }
+/* the sections in order: each top-level group of checks below asks runs() once, whatever the part, so a section's number is the same in
+   every part; a whole run runs every one, a part the k-th of every n, the record none */
+let SECTION = 0;
+const runs = () => { const i = SECTION++; return !PARTS ? true : PART ? i % PART.n === PART.k - 1 : false; };
+const T0 = Date.now();
 if (!BROWSER) process.env.DASHBOARDS_NO_BROWSER = "1"; else delete process.env.DASHBOARDS_NO_BROWSER;
 /* a private scratch per run (verify/scratch.js), so two runs at the same time share nothing: a fresh <temp root>/dashboards-verify-XXXXXX
    holding the default output folder (an explicit --out wins), the temp root of this run and of every process it spawns, and the stand-in
@@ -150,6 +171,20 @@ if (!targets.length) { console.error(root ? `${root} keeps no templates under do
    verified at all: a case that re-renders a board onto "the verified template" would otherwise fail until the template is recorded,
    and it is recorded only once every case passes. */
 process.env.DASHBOARDS_TEMPLATES_UNDER_TEST = JSON.stringify(targets.map(t => sha(fs.readFileSync(t.path, "utf8"))));
+/* What the parts ran on (the header): every file of the skill but the record a run writes (verify/verified.json, verify/history/), and the
+   templates under test, by path and content; the parts and the record must agree on it, so no part counts toward a record of other files */
+const fingerprint = () => {
+  const h = require("crypto").createHash("sha256"), skip = rel => rel === "verify/verified.json" || rel.startsWith("verify/history/");
+  const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)).forEach(e => {
+    const p = path.join(dir, e.name), rel = path.relative(SKILL, p).split(path.sep).join("/");
+    if (skip(rel + (e.isDirectory() ? "/" : ""))) return;
+    if (e.isDirectory()) walk(p); else if (e.isFile()) h.update(`${rel}\0`).update(fs.readFileSync(p)).update("\0");
+  });
+  walk(SKILL);
+  targets.forEach(t => h.update(`template ${t.name}\0${sha(fs.readFileSync(t.path, "utf8"))}\0`));
+  return h.digest("hex");
+};
+const FP_START = PARTS ? fingerprint() : null;
 
 const withData = (html, id, json) => {
   const open = `<script type="application/json" id="${id}">`, a = html.indexOf(open), b = html.indexOf("</script>", a + open.length);
@@ -162,7 +197,7 @@ const withData = (html, id, json) => {
    scratch repository whose docs/dashboards/_template/ holds the template under test, so deviation.js holds it to that template. */
 const { deviation } = require(path.join(SKILL, "system", "scripts", "deviation.js"));
 let failures = 0, devFailures = 0;
-targets.filter(t => !t.block).forEach(t => {
+if (runs()) targets.filter(t => !t.block).forEach(t => {
   const tpl = norm(fs.readFileSync(t.path, "utf8")), scratch = path.join(out, "deviation-" + path.basename(t.file, ".html"));
   const tdir = path.join(scratch, "docs", "dashboards", "_template"), pdir = path.join(scratch, "docs", "dashboards", "page");
   fs.mkdirSync(tdir, { recursive: true }); fs.mkdirSync(pdir, { recursive: true });
@@ -237,13 +272,15 @@ const notRun = r => { if (!r || BROWSER) return false; const o = r.stdout || "",
   return (r.status === 3 && /^CHECK browser: NOT RUN/m.test(o)) || (r.status === 1 && f.length > 0 && f.every(l => /^FAIL +browser: NOT RUN/.test(l))); };
 const needsBrowser = c => !BROWSER && (/^(no Chrome or Edge|skipped: no browser)/.test(String(c[2])) || c[2] === NEEDS_BROWSER);
 let notRunTotal = 0, domSkipsSeen = 0;
+/* the groups that failed, by name, for a part's result */
+const FAILED_GROUPS = [];
 const report = (what, cases) => { const skip = cases.filter(needsBrowser), run = cases.filter(c => !needsBrowser(c)), bad = run.filter(c => !c[1]);
   const doms = domSkips - domSkipsSeen; domSkipsSeen = domSkips; notRunTotal += skip.length;
   const nr = !BROWSER && (skip.length || doms) ? ` · not run without a browser: ${skip.length} case${skip.length === 1 ? "" : "s"}${doms ? `, ${doms} rendering${doms === 1 ? "" : "s"}` : ""}` : "";
   console.log(`${bad.length ? "FAILED  " : "checked "} ${what}: ${run.length - bad.length}/${run.length} cases${nr}`);
-  bad.forEach(c => console.log(`  ${c[0]}: ${c[2]}`)); if (bad.length) linkFailures++; };
+  bad.forEach(c => console.log(`  ${c[0]}: ${c[2]}`)); if (bad.length) { linkFailures++; FAILED_GROUPS.push(what); } };
 
-targets.filter(t => t.block === "plan").forEach(t => {
+if (runs()) targets.filter(t => t.block === "plan").forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), oldSub = tpl.replace("const ISSUE_BOARDS=", "const SUB_BOARDS="), none = tpl.replace("const ISSUE_BOARDS=", "const ISSUE_BOARDS_OFF=");
   /* the tracking board */
   const fx = JSON.parse(fs.readFileSync(sk("verify/fixtures/tracking.plan.json"), "utf8"));
@@ -464,7 +501,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
      checked against the UTC source so the result never depends on the machine's zone; check-board.js fails a raw stamp;
    - the timeline's four columns sit on bands on a desktop window and on none in the narrow layout;
    - every script refuses an unknown option, and --help prints the usage without touching a file. */
-targets.filter(t => t.block === "plan").forEach(t => {
+if (runs()) targets.filter(t => t.block === "plan").forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), nc = [], sc = path.join(out, "conventions"); fs.mkdirSync(sc, { recursive: true });
   const render = (name, d, hash, size) => { const f = path.join(sc, name + ".html"); fs.writeFileSync(f, withData(tpl, "plan", JSON.stringify(d, null, 2))); return dumpDom(f, hash, size); };
   const fx = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
@@ -654,7 +691,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
    scratch tree holding the tracking fixture (signed off: it has unit rows) and the unit's folder inside it: check.js passes such a
    board with no milestone warning and says so; it warns on one born empty; new.js --parent prints what to fill; the board renders
    the filled columns (the options in Considered) with no verdict and passes a light browser pass. */
-targets.filter(t => t.block === "plan").forEach(t => {
+if (runs()) targets.filter(t => t.block === "plan").forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), zc = [], scratch = path.join(out, "sized-sub-issue"); fs.rmSync(scratch, { recursive: true, force: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
   const trk = J("verify/fixtures/tracking.plan.json"), ex = J("plan/examples/38-handshake-empty-name/plan.json");
@@ -693,7 +730,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
    a halted and an escalated board judged by wip.resume, a landed board not at all, and a tracking board in implementation (its
    units in progress, or nothing between units). new.js lays the foundation's wip.current from the map. The rendered page holds an
    escalated board's glow still, the ring alone, as a halted one's, and lets a running one breathe. */
-targets.filter(t => t.block === "plan").forEach(t => {
+if (runs()) targets.filter(t => t.block === "plan").forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), gc = [], scratch = path.join(out, "glow-map"); fs.rmSync(scratch, { recursive: true, force: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
   const ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json");
@@ -792,7 +829,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
      fails a "no change" entry on an issue board;
    - board.js writes each row's "reconciliation" into board.json (planned, partial with n of M on the tracking issue, as-built, null
      for a row with no board of its own), check.js takes it, and the repository work board shows it in the State cell with its legend. */
-targets.filter(t => t.block === "plan").forEach(t => {
+if (runs()) targets.filter(t => t.block === "plan").forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), rc = [], sc = path.join(out, "reconciliation"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const { reconciliation } = require(path.join(SKILL, "plan", "scripts", "lib.js"));
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
@@ -859,7 +896,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
   report(`the derived reconciliation state on ${t.name}`, rc);
 });
 /* board.js writes the derived state into board.json, and the repository work board shows it */
-targets.filter(t => t.block === "board" && t.file === "board.html").forEach(t => {
+if (runs()) targets.filter(t => t.block === "board" && t.file === "board.html").forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), wc = [], repo = path.join(out, "reconciliation-board"); fs.rmSync(repo, { recursive: true, force: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
   const ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json"), ptpl = fs.readFileSync(sk("plan/template/dashboard.html"), "utf8");
@@ -889,7 +926,7 @@ targets.filter(t => t.block === "board" && t.file === "board.html").forEach(t =>
   report(`the derived reconciliation state on ${t.name}`, wc);
 });
 
-targets.filter(t => t.block === "board" && t.file === "board.html").forEach(t => {
+if (runs()) targets.filter(t => t.block === "board" && t.file === "board.html").forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), b = JSON.parse(fs.readFileSync(sk("verify/fixtures/work-board.json"), "utf8"));
   const scratch = path.join(out, "issue-links-work-board"), dir = path.join(scratch, "docs", "plans");
   const setup = html => { fs.rmSync(scratch, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
@@ -929,7 +966,7 @@ targets.filter(t => t.block === "board" && t.file === "board.html").forEach(t =>
      written <a data-board="7"> opens it and a lone <a data-issue="7"> opens it; with none, the title is plain text and a lone #n opens
      the GitHub issue; the supersystem's planned card and inspector link "planned by #7" through ilink(); check-board.js fails a BOARDS
      entry whose file is not there, and passes the one that is. */
-targets.filter(t => !t.block || (t.block === "board" && t.file === "board.html")).forEach(t => {
+if (runs()) targets.filter(t => !t.block || (t.block === "board" && t.file === "board.html")).forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), cc = [], sc = path.join(out, "conventions-" + path.basename(t.file, ".html"));
   fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/\s+/g, " ").trim();
@@ -988,7 +1025,7 @@ targets.filter(t => !t.block || (t.block === "board" && t.file === "board.html")
      says how many are not yet written; written cells keep their kind, unwritten ones show none;
    - a tracking board with some unit verdicts unwritten counts the same way;
    - the example, every verdict written, names no unwritten count. */
-targets.filter(t => t.block === "plan").forEach(t => {
+if (runs()) targets.filter(t => t.block === "plan").forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), vc = [], sc = path.join(out, "verdicts"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
   const ex = J("plan/examples/38-handshake-empty-name/plan.json"), trk = J("verify/fixtures/tracking.plan.json");
@@ -1029,7 +1066,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
 /* The footer (GUIDANCE.md §3), on every dashboard type: "Corresponds to <source>." and the authority sentence, a plan or tracking
    board's columns sentence after it, and nothing more — read from the rendered issue boards and work boards and from the system
    templates and example; check-board.js fails a footer in the old form on a system board and on an issue board. */
-{ const fc = [], sc = path.join(out, "footer"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+if (runs()) { const fc = [], sc = path.join(out, "footer"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), tp = name => (targets.find(t => t.name === name) || {}).path;
   const ftext = html => (inner(html, "<footer[^>]*>", "footer") || "").replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
   const MD = "Code and the Markdown beside this board are authoritative on any conflict.", CODE = "Code is authoritative on any conflict.", COLS = "Columns 1 to 3 are written once; column 4 records every difference.";
@@ -1070,7 +1107,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
      (not "no system recorded"); check.js passes "unassigned": true with system null and fails one that is not true or sits beside
      a system;
    - the system and supersystem templates: the model chip and the inspector's link button are solid. */
-{ const dc = [], sc = path.join(out, "dashed-and-counts"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+if (runs()) { const dc = [], sc = path.join(out, "dashed-and-counts"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
   const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
   const put = (name, html) => { const f = path.join(sc, name); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); return f; };
@@ -1133,7 +1170,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
    - boardless work-board rows take their state from the tracker (plan/RULES.md §5): lib.js boardlessState() over every case,
      namesIssue() over branch names, check.js on the fixture's five boardless rows and on rows that contradict their tracker, and
      the rendered work board: "not started" dashed, "in progress" and "merged · awaiting close" solid, no glow, legend entries. */
-{ const xc = [], sc = path.join(out, "decisions-16"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+if (runs()) { const xc = [], sc = path.join(out, "decisions-16"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
   const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
   const put = (name, html) => { const f = path.join(sc, name); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); return f; };
@@ -1227,7 +1264,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
    F. live updates: embed.js writes plan.js (board.js on the repository work board), check.js holds it to the data file, and the board re-loads it
       while the run is live, redraws in place keeping the tab and the inspector, and says so in its live indicator;
    G. the theme switch on every dashboard type: it follows the system setting until clicked, then remembers the choice. */
-{ const lc = [], sc = path.join(out, "decisions-17"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+if (runs()) { const lc = [], sc = path.join(out, "decisions-17"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
   const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/\s+/g, " ").trim();
   const lib = require(path.join(SKILL, "plan", "scripts", "lib.js"));
@@ -1387,7 +1424,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
    7. the as-built states before the outcome: in progress (a current stage) and partially built (a done stage, a later one to come),
       derived from wip.stages, solid, each with its legend entry; a unit whose run is under way reads in progress; check.js on them;
    8. open points (wip.open): listed in the step panel until resolved, mirrored for a unit, and check.js on their form. */
-{ const yc = [], sc = path.join(out, "decisions-18"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+if (runs()) { const yc = [], sc = path.join(out, "decisions-18"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
   const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/\s+/g, " ").trim();
   const lib = require(path.join(SKILL, "plan", "scripts", "lib.js"));
@@ -1509,7 +1546,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
    - the re-render: a board on an older template brought onto the current one by an ordinary event, and a board that declares a
      divergence left alone;
    - timing: one event, live repository work board included, well under five seconds. */
-{ const ac = [], sc = path.join(out, "apply-event"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+if (runs()) { const ac = [], sc = path.join(out, "apply-event"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x));
   const ptpl = (targets.find(t => t.name === "plan/template/dashboard.html") || {}).path, PT = ptpl ? fs.readFileSync(ptpl, "utf8") : null;
   const apply = sk("plan/scripts/apply-event.js"), tree = path.join(sc, "tree"), plans = path.join(tree, "docs", "plans");
@@ -1666,7 +1703,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
    applied, its open point kept, and --repo takes the slug or the main checkout's path, anything else a usage error; and the real
    qa-pass event (WebTools #63, pass 1) it refused next: two remediation sub-steps current at once, each shown in progress in the step
    panel, the stages still at most one current, and an open point's ref to a build output kept as text, never a dead link. */
-{ const kc = [], sc = path.join(out, "decisions-19"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+if (runs()) { const kc = [], sc = path.join(out, "decisions-19"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
   const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim();
   const lib = require(path.join(SKILL, "plan", "scripts", "lib.js")), { levelRefs } = require(path.join(SKILL, "system", "scripts", "levelrefs.js"));
@@ -1870,7 +1907,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
    D. the step panel's heading is the step's title alone, on an issue board and on a tracking board;
    E. its facts are info cards at its bottom (last event, since, next; the branch at the branch step), and every info card, in the
       step panel, a unit card and the issue board's strip, is a small card of its own. */
-{ const hc = [], sc = path.join(out, "decisions-21"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+if (runs()) { const hc = [], sc = path.join(out, "decisions-21"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const J = n => JSON.parse(fs.readFileSync(sk(n), "utf8")), copy = x => JSON.parse(JSON.stringify(x)), tp = name => (targets.find(t => t.name === name) || {}).path;
   const text = h => (h || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim();
   const lib = require(path.join(SKILL, "plan", "scripts", "lib.js"));
@@ -1969,7 +2006,7 @@ targets.filter(t => t.block === "plan").forEach(t => {
    - check-board.js --no-browser failing a state that disagrees with its registry, a state block that is not its state.json and a part
      reference that names nothing, and needing --auto;
    - timing: one request well under five seconds. */
-{ const vc = [], sc = path.join(out, "apply-state"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
+if (runs()) { const vc = [], sc = path.join(out, "apply-state"); fs.rmSync(sc, { recursive: true, force: true }); fs.mkdirSync(sc, { recursive: true });
   const tp = name => (targets.find(t => t.name === name) || {}).path, SYS = tp("system/template/system.html"), SUP = tp("system/template/supersystem.html");
   if (!SYS || !SUP) vc.push(["both system templates are under test", !root, "a repository template set without both system templates skips this group"]);
   else try {
@@ -2122,59 +2159,59 @@ targets.filter(t => t.block === "plan").forEach(t => {
    links only to files that exist and the live view first, the work-board link on the state boards, the tablists' keys, the clean-ups, the
    theme remembered across boards, no issue above Context, the rendered Markdown copies, the tracking issue's unit boards and its two steps,
    the agents' progress notes, built or planned from the code. */
-try { require("./cases-26.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-26.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/26 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The changes of dashboards-skill/22 (verify/cases-22.js): the KPI tiles' legends inside each tile, the larger charging arrow, the
    team-raised landing event, the header (no "board" tag, the title's #n, the issue line, "since" said once), board.js keeping "unassigned"
    from every checkout, the research-planning glow with and without rows, the Tests tab, and this run's feature probes. */
-try { require("./cases-22.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-22.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/22 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The changes of dashboards-skill/23 (verify/cases-23.js): the Timeline tile's bar on a landed board (the time per phase in
    neutral ink shades, a phase with no bound named; a tracking board's own phases), the run's start and the qa passes' times stamped, a
    reference's section number before its excerpt, a sizing in the pipeline's facts reworded, and this run's feature probes. */
-try { require("./cases-23.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-23.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/23 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The changes of dashboards-skill/24 (verify/cases-24.js): the finished steps on an issue board's progress strip clickable: the
    snapshots apply-event.js freezes into wip.history (each remediation loop and each qa pass apart; deterministic, idempotent), new.js's sizing,
    the standing rule's on a tracking board, check.js on wip.history, the reconstruction of a step with no snapshot, the template's buttons,
    panel, viewing line and selection across the live redraw, a tracking board's unit and own steps, and this run's feature probe. */
-try { require("./cases-24.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-24.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/24 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The changes of dashboards-skill/27 (verify/cases-27.js): verify/history/ is a local cache, kept out of the .github mirror; a
    recorded version missing from it is rebuilt on demand from the mirror's git history (history.js; a fixture clone, and gh api through a
    stand-in), a damaged copy rebuilt over, and a version nothing matches warned on, the splice two-way when none is left. */
-try { require("./cases-27.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-27.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/27 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The changes of dashboards-skill/28 (verify/cases-28.js): the Timeline tile's figure the sum of the phases its bar draws; an
    issue's title quoted verbatim, one that names a sizing flagged as the issue's defect on every type, never a failure; an issue board at
    research with no rows a defect (NO ROWS AT RESEARCH); each unit row's label glowing on its own while it is filed, then while its board is
    created (per-unit events, a final one closing each step); and this run's feature probes. */
-try { require("./cases-28.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-28.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/28 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The defects fixed by dashboards-skill/29 (verify/cases-29.js): splice.js onto the recorded verified version (--verified), a
    cached version as --template spliced with its template's history; apply-state.js keeping a verbatim lastAmended.title for the same
    issue, taking facts.title, the folder's name only when neither exists; a planned supersystem's card linking its built parts' board. */
-try { require("./cases-29.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-29.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/29 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The repository work board's columns of dashboards-skill/30 (verify/cases-30.js): every qa pass and the one running, as ordinals (the
    defect: a pass in progress shown nowhere, a unit's passes read from the tracking board's own wip); no branch or board column, the branch in
    the state cell; "Depends on" with each dependency's build state and locality, none where no rule fits; "Blocks · enables"; check.js on
    the new fields; the issue board's QA tile and WIP strip and a tracking unit's inspector; and this run's feature probes. */
-try { require("./cases-30.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-30.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/30 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The changes of dashboards-skill/31 (verify/cases-31.js): the decision not to run another qa pass shown, a neutral mark beside
    the pass fixed in place (lib.js qaShown(), qaInPlace(), from the recorded route only), on the repository work board, an issue board's WIP strip and QA
    tile and a tracking unit's run; apply-event.js recording the route on the pass; check.js refusing a stored inPlace; the repository work board's Runs
    tab larger but Now, a labelled card per run under 880 px; and this run's feature probes. */
-try { require("./cases-31.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-31.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/31 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The changes of dashboards-skill/32 (verify/cases-32.js): the Timeline tile of a landed board as one legend entry per visit
@@ -2182,7 +2219,7 @@ catch (e) { report("the dashboards-skill/31 cases", [["the cases run to the end"
    plan.sized, the qa passes, the merge's time and the step commits from git, a neighbour's bound), "—" where none; spans in minutes, hours
    and minutes, or days and hours; the bar and its neutral ramp; a landed board's Timeline across the KPI row; gitTimes(), timeline.js
    --from-git and apply-event.js at landed; check.js; and this run's feature probe. */
-try { require("./cases-32.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-32.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/32 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The changes of dashboards-skill/33 (verify/cases-33.js; the global conventions: boards never pages, no internal names in committed content, the pre-merge landing flow): the
@@ -2190,53 +2227,53 @@ catch (e) { report("the dashboards-skill/32 cases", [["the cases run to the end"
    older names), no internal names on a board (namerefs.js, apply-event.js's scrub, the neutral route ids, the progress notes, the
    INTERNAL NAME warnings, the splice's migration), an unnumbered mention of a sizing, the open points on every event, the pre-merge stamp
    and the state-boards action, and the probes reading the older wording alike. */
-try { require("./cases-33.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-33.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/33 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The changes of dashboards-skill/34 (verify/cases-34.js): the Timeline tile coloured by kind of work (planning, build, checking,
    landing), approximate bounds (asBuilt.approx, "≈"), the landing in three steps (landing, state-boards, merge), a sub-issue's roadmap filled
    from the repository roadmap and its card naming the parent while unset, the four columns' tab named Design, and this run's feature probes. */
-try { require("./cases-34.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-34.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/34 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The changes of dashboards-skill/35 (verify/cases-35.js): a dependency's build state from its code (dropped, a duplicate's
    canonical state), remediation sub-steps in parallel, an open point's report copied for the live view and none committed open, a bare "Ln",
    consequences.md, a fix to an earlier plan's work, the Document step, the state boards stamped in it, seeding at sized, the test report's
    neutral path, the structure map's recorded height, and this run's feature probes. */
-try { require("./cases-35.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-35.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/35 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The live view of a landing (verify/cases-live-view.js; plan/RULES.md §4): the post-merge refresh's landed raised with apply-event.js --view
    into view copies under docs/plans/.live/view/, no tracked file written; a copy's <base> line, no difference to deviation.js; embed.js and
    check.js on a copy, its links from the tracked folder and its neighbours' copies; board.js --live opening the copies and removing a stale
    one; the landed unit's plain-fact summary on the fast path. */
-try { require("./cases-live-view.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-live-view.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the live view cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The fast path owning the Timeline (verify/cases-timeline-fast-path.js; plan/RULES.md §4, "The fast path owns the Timeline"): the merge's
    time at landed from the facts, git in the worktree or the main checkout, or the pull request (lib.js ghMergeTime()), a warning and no
    enrichment where none tells it; the seeding at sized recording it from git; new.js --at; a board in flight's Timeline from the plan.js an
    event writes, and the template's tick. It needs no browser, and runs on its own too (node verify/cases-timeline-fast-path.js). */
-try { require("./cases-timeline-fast-path.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-timeline-fast-path.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the Timeline's fast path cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The waits on the user (verify/cases-timeline-waits.js; board/timeline-waits): the time from a blocking question to its answer
    counted by no visit and no figure and mentioned nowhere on the Timeline, the step split into visits around it; the signals on the fast path (a stop until the event that ends
    it, a resumed answering the open points of the event before it), "implement" read as the implementation step, check.js on wip.waits,
    and the template's copy of the rule. It needs no browser, and runs on its own too (node verify/cases-timeline-waits.js). */
-try { require("./cases-timeline-waits.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-timeline-waits.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the waits on the user cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* A qa verdict's step (verify/cases-qa-step.js; board/qa-step): a returned verdict sent with facts.step "qa", the step the pass
    ran in, moves the board on to remediation (its glow the rows the findings touch, the qa visit frozen) or the Document step, a running
    pass stays at qa; the pass's test report is read from facts.documents. It needs no browser, and runs on its own too. */
-try { require("./cases-qa-step.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-qa-step.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a qa verdict's step cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* A row a remediation stage reopens (verify/cases-remediation-row.js; board/remediation-row): facts.tests.drop of a class on no
    list named in the summary, a run named with its module one entry with its own count, and a partially built row's summary drawn above
    the as-built statements it already has. Its rendering needs a browser; the rest runs on its own too. */
-try { require("./cases-remediation-row.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-remediation-row.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a row a remediation stage reopens cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* A stretch when the run was not running (verify/cases-timeline-outages.js; board/timeline-outages): mentioned nowhere (no line, mark, note or trail entry), never a bar
@@ -2245,54 +2282,54 @@ catch (e) { report("a row a remediation stage reopens cases", [["the cases run t
    of the old: 0.75 % of the figure, 1 px); the first part of a closed visit a stretch cuts keeping what names its pass, a qa visit's
    included, and the parts of a split qa or remediation visit named "Quality Review 1 · visit 1", "· visit 2" (dated 59).
    It needs no browser, and runs on its own too (node verify/cases-timeline-outages.js). */
-try { require("./cases-timeline-outages.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-timeline-outages.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a stretch when the run was not running cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* Only an explicit signal from the run moves the board's step (verify/cases-explicit-step.js; dashboards-skill/explicit-step): an
    implementation-stage's facts.step has no effect and every stage done implies nothing; remediation alone stays recognised, a "qa" after one
    ignored; qa-pass with verdict "running" opens the qa visit at its time and the verdict closes that same visit; a returned verdict with no
    running before it applies as it stands, and says so. It needs no browser, and runs on its own too (node verify/cases-explicit-step.js). */
-try { require("./cases-explicit-step.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-explicit-step.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("an explicit signal moves the step cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* Two defects of KotlinBottools #24's run (verify/cases-stage-revision.js; dashboards/stage-revision): every stage event after
    branch-cut brings the stages to the plan's stage table as it stands, or to the event's steps where the table names no such stage, so a plan
    revised during a Correction reaches them, a finished visit's record keeping what it ran to; and a late report on a board already at qa or past
    it moves nothing back, a remediation's included. It needs no browser, and runs on its own too (node verify/cases-stage-revision.js). */
-try { require("./cases-stage-revision.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-stage-revision.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the stage table after a plan revision; a late report at Quality Review cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* A board file's atomic write while a reader holds it (verify/cases-atomic-write.js; KotlinBottools #24, p25): the rename a Windows reader refuses
    is retried with a growing, jittered pause for up to 15 s, the write still atomic, and fails as before once that is spent. It needs no browser,
    and runs on its own too (node verify/cases-atomic-write.js). */
-try { require("./cases-atomic-write.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-atomic-write.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a board file's atomic write while a reader holds it cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* An event's facts.tests read as sent, and a remediation halted and resumed (verify/cases-tests-facts.js; KotlinBottools #24): a testSet
    stored by its name, one not read named, a testLevel sent in its place no longer read; an event reporting several stages done at once
    stamping no class with the last one; a recorded test set another event changes said with the set held and sent; check.js counting a
    visit ended by a halt with the visit that resumes it; an open board's old numbers written by name at its next rewrite, a closed one's kept. It needs no browser, and runs on its own too (node verify/cases-tests-facts.js). */
-try { require("./cases-tests-facts.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-tests-facts.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("an event's facts.tests read as sent cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* A tracking issue's run sending plan-accepted and branch-cut (verify/cases-tracking-plan-events.js; dashboards/tracking-plan-events,
    KotlinBottools #2): both keep a tracking board in its own line, its units not yet filed passing the check; branch-cut records the branch and
    writes no stages. It needs no browser, and runs on its own too (node verify/cases-tracking-plan-events.js). */
-try { require("./cases-tracking-plan-events.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-tracking-plan-events.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a tracking issue's plan-accepted and branch-cut cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* A tracking board's unit dependencies before its units are filed (verify/cases-unit-blockers.js; dashboards/unit-blockers-before-filing,
    dated 49, KotlinBottools #2): unit.blockedBy names a unit not filed yet by its number ({ unit: k }), check.js accepts it, sub-issues-filed and
    fill.js write it as the issue number once that unit is filed, the template draws it (the Landing Order's arrows, "depends on", "blocked by")
    and the repository work board names it by its slug. It needs no browser, and runs on its own too (node verify/cases-unit-blockers.js). */
-try { require("./cases-unit-blockers.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-unit-blockers.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a tracking board's unit dependencies before filing cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* A tracking board's "plan" step and a nested tracking board's roadmap item (verify/cases-tracking-step-plan.js; dashboards/tracking-step-plan,
    KotlinBottools #2): facts.step "plan" or "planning" on a tracking board reads as its architecture step (or the step it stands at past it) and opens no
    plan pass, an issue board unchanged; a tracking board with a parent takes plan.roadmap, the item carrying its section of the parent's roadmap.md,
    nothing invented where no source names it. Its rendered Card needs a browser; it runs on its own too (node verify/cases-tracking-step-plan.js). */
-try { require("./cases-tracking-step-plan.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-tracking-step-plan.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a tracking board's plan step and its parent's roadmap item cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The team-raised retime (verify/cases-retime.js; dashboards/retime, KotlinBottools #2's sizing sent as midnight): one event's recorded time
@@ -2300,12 +2337,12 @@ catch (e) { report("a tracking board's plan step and its parent's roadmap item c
    event is named at it, it bounds a stretch when the run was not running, or the new one crosses a neighbouring bound; a day change moving its trail
    entry; a landed board kept as it closed; a sub-issue's tracking board moving with it; --view; raised again, a duplicate. It needs no browser, and runs
    on its own too (node verify/cases-retime.js). */
-try { require("./cases-retime.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-retime.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the retime cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 /* reword, one event's recorded text reworded, and a run's own retime and reword (verify/cases-reword.js; dashboards-skill/reword-event,
    KotlinBottools #25's four texts): every place the event's record holds the passage reworded, one notes.corrections
    entry, the refusals, the duplicate, the tracking board's mirror, --view, and the run's limits. Runs on its own too (node verify/cases-reword.js). */
-try { require("./cases-reword.js")({ sk, out, targets }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-reword.js")({ sk, out, targets }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the reword cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The event's time held to its arrival (verify/cases-arrival.js; plan/RULES.md §4, "The event's time"; runs sent facts.at guessed or rounded): with
@@ -2315,44 +2352,44 @@ catch (e) { report("the reword cases", [["the cases run to the end", false, Stri
    replaced by the arrival time only outside them, the line naming the bound it crossed, and stamped when missing (a carried point not read; a newly raised one bound
    from above alone). Without --arrived nothing changes; --at still wins; a bad --arrived a usage error. It needs no browser, and runs on
    its own too (node verify/cases-arrival.js). */
-try { require("./cases-arrival.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-arrival.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the event's time held to its arrival cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The progress notes' index (verify/cases-progress-index.js; board/progress-index): every note a run writes reaches the step panel, its slug
    its writer's own; the watcher needs no event, runs only where .live is git-ignored and stops by itself. It needs no browser. */
-try { require("./cases-progress-index.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-progress-index.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the progress notes' index cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The Document step's last task, a view copy followed and left until it has landed, the fill's impact lists, the landed summary's enrich (verify/cases-doc-landing.js;
    dashboards-skill/doc-landing-and-view-follow). It needs no browser, and runs on its own too (node verify/cases-doc-landing.js); the follow in a browser is
    verify/browser-view-follow.js, run only when a person asks for it. */
-try { require("./cases-doc-landing.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-doc-landing.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the document-landing and view-copy cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The team-raised seed (verify/cases-seed.js; dashboards-skill/level-1-seed): the seeding of a sized alone, board-less, so a level-1 branch carries the
    repository's pending corrections, its unit on its tracking board marked complete; no board laid; raised again, nothing; its refusals. It needs no browser, and runs
    on its own too (node verify/cases-seed.js). */
-try { require("./cases-seed.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-seed.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the seed cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The team-raised unit-landed (verify/cases-unit-landed.js; dashboards-skill/level-1-landed): after the merge of a unit with no board, with --view, the
    standing rule's landed move on its tracking board's view copy alone; at the tracking issue's last unit (by unit-landed or a sub-issue's landed) the tracking board
    lands once its impact is reconciled; the seeding gate on the unit's merge, the copy kept for its enrichment, reseed; its refusals. It needs no browser, and runs on
    its own too (node verify/cases-unit-landed.js). */
-try { require("./cases-unit-landed.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-unit-landed.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the unit-landed cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The built milestone on the fast path (verify/cases-built-milestone.js; dashboards/built-milestone-fast-path): landed writes it from the landing's
    record, once, a built milestone already there kept, none without a merge sha; the tracking board's own landing at its last unit is in verify/cases-unit-landed.js.
    It needs no browser, and runs on its own too (node verify/cases-built-milestone.js). */
-try { require("./cases-built-milestone.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-built-milestone.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the built-milestone cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* A foundation on the fast path (verify/cases-foundation.js; board/foundation-fast-path): a sized with no board lays it, applies the
    event, re-embeds the parent tracking board and regenerates the live repository work board; its facts each from the first source that tells
    it; a slug the registry does not know; a failure leaves nothing; the fill read from the data, a board past its plan's acceptance with its Gap
    unwritten refused. It needs no browser, and runs on its own too (node verify/cases-foundation.js). */
-try { require("./cases-foundation.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-foundation.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("a foundation on the fast path cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The changes of dashboards-skill/option-d-and-decisions: a tracking plan lands, then files (verify/cases-option-d.js); a fill merges onto the latest board, event and
@@ -2407,66 +2444,97 @@ catch (e) { report("a foundation on the fast path cases", [["the cases run to th
    template's Pill and finish chip, run in a vm with no browser.
    Each runs on its own too. */
 [["./cases-design-tab-defects.js", "the Design tab's defects"], ["./cases-design-tab-proposals.js", "the Design tab's approved proposals"], ["./cases-option-d.js", "a tracking plan lands, then files"], ["./cases-fill.js", "a fill merges onto the latest board"], ["./cases-work-levels.js", "a board keeps no work level"], ["./cases-archived-colours.js", "an archived system holds no colour"], ["./cases-quality-review.js", "a qa pass is named Quality Review N"], ["./cases-board-wording.js", "the board's names and classes"], ["./cases-code-label.js", "the code label and an option's signature"], ["./cases-file-tree.js", "a step's files nested by their folders"], ["./cases-gap-marks.js", "the Gap cell's marks"], ["./cases-halt-questions.js", "the questions a halt puts to you"], ["./cases-halt-fix-step.js", "a halt during a fix step named by its route alone"], ["./cases-internal-names.js", "the internal-names list read by the finding tool, and namerefs.js's finds on it"], ["./cases-findings-line.js", "a Quality Review's findings line and the run's step names"], ["./cases-check-labels.js", "a Quality Review's checks by their labels"], ["./cases-wip-stages.js", "the stage view, the plain system and the carried entries"], ["./cases-nested-steps.js", "a stage's nested steps: the table, step-complete, the records, the numbers and marks"], ["./cases-termrefs.js", "the element names, read from the glossary and warned on"], ["./cases-nothing-published.js", "release.nothingPublished: the checks and the version Badge"], ["./cases-halt-tasks.js", "a halt's Document tasks and the unread facts"], ["./cases-task-times.js", "a Document task's times corrected by a fill"], ["./cases-researched-nothing.js", "a researched with nothing to research, a small fix's line and the defects that came with them"], ["./cases-plan-stages.js", "the plan stages on the issue board: plan-stage, late-update, the WIP Panel and the step Panel"], ["./cases-arch-stages.js", "the architecture stages on the tracking board: plan-stage, late-update, the sign-off, the phase Card and the step Panel"], ["./cases-verdicts.js", "the verdicts at plan acceptance: facts.verdicts on the fast path"], ["./cases-late-implementation.js", "the wait rule, the late update of an implementation stage and a fix pass the user finished"]].forEach(([file, what0]) => {
+  if (!runs()) return;
   try { require(file)({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
   catch (e) { report(`${what0} cases`, [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); } });
 
 /* The header's switches (verify/cases-switches.js; dashboards-skill/theme-switch and /inspector-switch, dated 39): the theme switch drawn as a
    switch on every type and on the Markdown copies, the inspector switch where there is an inspector, both run against a stand-in for the DOM, the splice
    carrying the head's script, and the decision path's legend naming planned only where drawn. Its rendered cases need --browser; it runs on its own too. */
-try { require("./cases-switches.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-switches.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the header's switches cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The inspector's Hide button (verify/cases-inspector-hide.js; dashboards/inspector-hide-button, dated 46): in each template's
    inspector, one state with the inspector switch, the focus moved to the switch, added to an inspector drawn before it, its probe and the
    splice. Its rendered cases need --browser; it runs on its own too. */
-try { require("./cases-inspector-hide.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-inspector-hide.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the inspector's Hide button cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The C4 DSL reader's keyword identifiers (verify/cases-dsl-keyword-id.js; dashboards/dsl-keyword-id, a defect, dated 47): each
    board's parseDsl() and statelib.js dslElements() read "model = component …" as the element, and check-board.js fails, without a browser,
    an element named by a block keyword and a reference to an element the model does not define. It runs on its own too. */
-try { require("./cases-dsl-keyword-id.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-dsl-keyword-id.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the C4 DSL reader's keyword identifiers cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The marks' classes (verify/cases-mark-classes.js; dated 48): the in-progress FullPulse,
    the column's, the up-next Ring and the live dot's FillPulse each a class carrying its type word, on the issue board and repository work
    board templates, the mark-classes probe failing a board drawn before, and check-board.js counting the marks; the visible wording (no
    "glow" a reader sees) and the mark-class browser fixture current with the templates. It runs on its own too. */
-try { require("./cases-mark-classes.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-mark-classes.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the marks' classes cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The StepBar (verify/cases-stepbar.js; dashboards-skill/54): the issue board's progress
    strip and the tracking board's WIP strip, a tracking issue's chain on the state boards' roadmap and on the repository work board's rows,
    each a StepBar of labelled chevrons, done, current or to come, the current step's marks where it carried them; one CSS block in the four
    templates, board.js writing chain.units, the stepbar probe, and the fixture boards for a browser check. It runs on its own too. */
-try { require("./cases-stepbar.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-stepbar.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the StepBar cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 
 /* The org work board (verify/cases-org-board.js): the generator's two forms, a private repository named nowhere, a board linked on its default branch or its run's branch or
    not at all, the links' form by where the board is opened, check.js's kind and the writers' one path for internal names. It needs no browser, and runs on its own too (node verify/cases-org-board.js). */
-try { require("./cases-org-board.js")({ sk, out, node, stub, withData, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-org-board.js")({ sk, out, node, stub, withData, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { console.log(`FAILED   the org work board's cases: ${e.message}`); linkFailures++; }
 
 /* The boards' companions (verify/cases-companions.js; GUIDANCE.md §13): the Whiteboards' generator, refresh plan, batch check and links list, the ideas
    writer and its check, the Ideas Card and the Ideas Panel, the publish step. It needs no browser, and runs on its own too (node verify/cases-companions.js). */
-try { require("./cases-companions.js")({ sk, out, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-companions.js")({ sk, out, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { console.log(`FAILED   the companions' cases: ${e.message}`); linkFailures++; }
 
 /* The private repositories (verify/cases-private-names.js; plan/RULES.md §1, "Private repositories"; the user's decision q-380): the one rule
    (system/scripts/privaterefs.js) and its list, every board writer cutting a quoted name to "…" and refusing any other text that names one, both
    checkers failing a board that still names one, the verification reading no live GitHub. It needs no browser, and runs on its own too. */
-try { require("./cases-private-names.js")({ sk, out, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-private-names.js")({ sk, out, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { console.log(`FAILED   the private repositories' cases: ${e.message}`); linkFailures++; }
 
 /* The sweep of a rule that can fail boards and its warning stage (verify/cases-sweep.js; GUIDANCE.md §11, "A rule that can fail boards: the sweep and
    its warning stage"; the user's decision q-411): the record and the stage (system/scripts/sweeplib.js), the sweep (system/scripts/sweep.js), the
    checks warning and the writers refusing only a text newly written while the stage stands, a seeding carrying a view copy's kept text, and the
    stage's end at the fixes' landing. It needs no browser, and runs on its own too. */
-try { require("./cases-sweep.js")({ sk, out, targets, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+if (runs()) try { require("./cases-sweep.js")({ sk, out, targets, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { console.log(`FAILED   the sweep's cases: ${e.message}`); linkFailures++; }
 
+/* A part (the header): its result, written whole (beside it, then renamed), and no rendering or record; the files it ran on must not have
+   changed while it ran */
+if (PART) {
+  const fp = fingerprint(), pass = !failures && !devFailures && !linkFailures && fp === FP_START, s = Math.round((Date.now() - T0) / 1000);
+  const res = { part: `${PART.k}/${PART.n}`, k: PART.k, n: PART.n, sections: SECTION, ran: Array.from({ length: SECTION }, (x, i) => i).filter(i => i % PART.n === PART.k - 1).length,
+    fingerprint: FP_START, pass, failed: FAILED_GROUPS.concat(devFailures ? [`deviation.js on ${devFailures} template(s)`] : [], fp !== FP_START ? ["the skill's files changed while the part ran"] : []),
+    notRun: notRunTotal, renderingsNotRun: domSkips, seconds: s, node: process.version, finished: new Date().toISOString() };
+  fs.mkdirSync(PARTS, { recursive: true });
+  const file = path.join(PARTS, `part-${PART.k}of${PART.n}.json`), tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(res, null, 2) + "\n"); fs.renameSync(tmp, file);
+  console.log(`\npart ${res.part}: ${res.ran} of ${SECTION} sections, ${pass ? "passed" : "FAILED (" + (res.failed.join("; ") || "a group above") + ")"}, ${s} s; result in ${file}`);
+  console.log(pass ? `record once every part has passed: node verify/verify-templates.js --parts ${PARTS}${root ? ` --root ${root}` : ""}` : "run this part again once its cause is fixed; the other parts' results stand while the files are unchanged");
+  process.exit(pass ? 0 : 1);
+}
+/* The record after parts: every part of one count there, each passed, on the files as they are now; otherwise nothing is recorded */
+const partsProblem = !PARTS ? null : (() => {
+  let got; try { got = fs.readdirSync(PARTS).filter(f => /^part-\d+of\d+\.json$/.test(f)).map(f => { try { return JSON.parse(fs.readFileSync(path.join(PARTS, f), "utf8")); } catch (e) { return { bad: f }; } }); }
+  catch (e) { return `no parts in ${PARTS} (${e.code || e.message})`; }
+  if (got.some(p => p.bad)) return `a part's result does not read: ${got.filter(p => p.bad).map(p => p.bad).join(", ")}`;
+  const ns = [...new Set(got.map(p => p.n))];
+  if (ns.length !== 1) return ns.length ? `parts of more than one count in ${PARTS} (${ns.join(", ")}): keep one count` : `no parts in ${PARTS}`;
+  const n = ns[0], fp = fingerprint(), missing = [], failed = [], stale = [];
+  for (let k = 1; k <= n; k++) { const p = got.find(x => x.k === k);
+    if (!p) missing.push(`${k}/${n}`); else if (p.fingerprint !== fp || p.sections !== SECTION) stale.push(`${k}/${n}`); else if (!p.pass) failed.push(`${k}/${n}`); }
+  return missing.length ? `part${missing.length > 1 ? "s" : ""} ${missing.join(", ")} not run` : stale.length ? `part${stale.length > 1 ? "s" : ""} ${stale.join(", ")} ran on other files than these: run ${stale.length > 1 ? "them" : "it"} again`
+    : failed.length ? `part${failed.length > 1 ? "s" : ""} ${failed.join(", ")} failed` : null;
+})();
+if (PARTS) console.log(partsProblem ? `parts: ${partsProblem}` : `parts: all ${SECTION} sections passed in their parts, on these files`);
+/* the record's closing line counts the cases and renderings the parts did not run without a browser */
+if (PARTS && !partsProblem) fs.readdirSync(PARTS).filter(f => /^part-\d+of\d+\.json$/.test(f)).forEach(f => { const p = JSON.parse(fs.readFileSync(path.join(PARTS, f), "utf8")); notRunTotal += p.notRun || 0; domSkips += p.renderingsNotRun || 0; });
 const today = new Date().toISOString().slice(0, 10);
-const COMMENT = "Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";
+const COMMENT ="Written by verify/verify-templates.js: each template's sha256 (line endings normalised to LF) at its last verification, when every check that needs no browser passed (its modes: \"--auto --no-browser\"; a run with --browser, made only when a person asks for it, lists the browser passes instead). check-board.js --auto and check.js --auto trust a template only while its hash matches. Each template's history lists every verified version, its text kept in verify/history/<file> for system/scripts/splice.js's three-way merge. verify/history/ is a local cache, kept out of the .github mirror: a version whose file is missing (or no longer hashes to its sha256) is rebuilt on demand by system/scripts/history.js from the mirror's git history (SpartanLaboratories/.github, claude/skills/dashboards/<template path>; a local clone with --history-repo, else gh api), matched by this sha256 and written back; a version nothing matches is warned on, and with none left the splice is two-way.";
 targets.forEach(t => {
   const tpl = fs.readFileSync(t.path, "utf8"), results = [];
   t.fixtures.forEach(fx => {
@@ -2489,6 +2557,7 @@ targets.forEach(t => {
   results.filter(r => !r.pass).forEach(r => console.log(`  ${r.fixture} · ${r.mode}: ${r.bad.join(" | ")}`));
   if (!ok) { failures++; return; }
   if (linkFailures) { console.log(`  not recorded: a case group above failed`); failures++; return; }
+  if (partsProblem) { console.log(`  not recorded: ${partsProblem}`); failures++; return; }
   const { file, key } = recordFile(t.path);
   let rec = {}; try { rec = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { /* first record */ }
   rec.$comment = COMMENT;
