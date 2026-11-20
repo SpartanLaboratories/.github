@@ -130,9 +130,14 @@ skill), and it copies, scans and pushes.
 A pointer reads `R-<id> (Name)`, as R-1008 (Pointers) [1008-T6] says. To read what it points at,
 run the fetch script on it, `node "$SPARTAN_ORG_POLICIES/scripts/rule-fetch.js" R-<id>`: it
 prints the rule, section, file or folder, whichever root holds it. When `SPARTAN_ORG_POLICIES` is
-not set, or the script says a checkout is missing, send the admin team a `policies-checkout`
-request (the `admin-team` skill): the team clones the repository, sets the variable and replies
-with the path.
+not set (the command then fails with Node's own `Cannot find module` error, for a
+`scripts\rule-fetch.js` outside any checkout), or the script says a checkout is missing, send the
+admin team a `policies-checkout` request (the `admin-team` skill): the team clones the
+repository, sets the variable and replies with the path. The variable it sets reaches no shell
+already running, so after a reply for the organization repository, run the script from that path
+for the rest of the session, `node "<path>/scripts/rule-fetch.js" R-<id>`: the script reads the
+variable's stored value itself. After a reply for another repository, run the fetch again as
+before.
 
 ## Policy
 {"name":"Policy","code":"G-2-P1","id":"2-P1"}

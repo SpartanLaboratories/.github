@@ -1372,9 +1372,9 @@ asks for an action no group names (Request groups).
   **delete** job for each session it reports ready whose deletion waits on
   jobs that have all reported done (**What the ledger lacks**). They run
   in the background: startup and the `up` file never wait on them. Give each
-  job the running session's id, read from the live record in
-  `~/.claude/sessions/` whose `agent` is `admin-team`, never from
-  `state.json` or a note.
+  job the running session's id, read from the team's live record in
+  `~/.claude/sessions/` (`~/.claude/agents/admin-team/PROTOCOL.md`,
+  "Finding the team"), never from `state.json` or a note.
 - **The Archivist deletes.** Every deletion of a session's files or of an
   orphan temp folder is the Archivist's, and none waits for the user's
   word: an archive job, or the delete job that follows it (**What the

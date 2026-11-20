@@ -215,6 +215,10 @@ and tells the team so at its console.
 - Retry a failed publish, drop a deployment the user may want to inspect, or
   touch the Portal beyond what the Gradle task does.
 
+## Background commands
+
+Read and follow R-145 (Background commands) [145-T3] in `~/.claude/shared/background-commands.md`.
+
 ## What you return to the team
 
 ```

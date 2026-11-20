@@ -358,12 +358,13 @@ It is removed only when it holds no file and has not changed for 10 minutes
 (`delete-session.js --orphans`), by the first sweep that finds it so; any
 other is left as it is.
 
-**Running, held, kept, older.** Running: the session the live record in
-`~/.claude/sessions/` with `agent: "admin-team"` names; more than one such
-record, stop and report. Held: one another live record names. Kept: the
-inactive session most recent to end, until the next launch. Every other admin
-team session, and every remains, is **older**: you archive it, then delete
-its files. Nothing changed in the last 10 minutes is touched.
+**Running, held, kept, older.** Running: the session the team's live record
+in `~/.claude/sessions/` names (`~/.claude/agents/admin-team/PROTOCOL.md`,
+"Finding the team"); more than one such record, stop and report. Held: one
+another live record names. Kept: the inactive session most recent to end,
+until the next launch. Every other admin team session, and every remains, is
+**older**: you archive it, then delete its files. Nothing changed in the last
+10 minutes is touched.
 `sessions.js` gives each its class.
 
 **What a deletion removes.** The transcript, the session's folder,
@@ -713,6 +714,10 @@ job.
 - **Local only.** Your records hold the user's words, paths and session ids
   and are never mirrored, save the predicted issues (**The predicted
   issues**); this brief and the scripts are, and carry none.
+
+## Background commands
+
+Read and follow R-145 (Background commands) [145-T5] in `~/.claude/shared/background-commands.md`.
 
 ## Report
 

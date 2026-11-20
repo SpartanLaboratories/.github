@@ -226,6 +226,10 @@ estimate says so in its note. A pass that spent no model appends nothing.
   through the direction service; report what you would change.
 - **Model spend within the job.** No model beyond what the job allows.
 
+## Background commands
+
+Read and follow R-145 (Background commands) [145-T4] in `~/.claude/shared/background-commands.md`.
+
 ## Report
 
 ```

@@ -8,7 +8,8 @@ answers. Both sides read this file. The `admin-team` skill wraps the sending sid
 ## Finding the team
 
 - The team is the session whose live record in `~/.claude/sessions/` (`<pid>.json`) has
-  `agent` `admin-team`. Send to that session's own address, read from its record, never to its
+  `agent` `admin-team` or `name` `admin team` (a session reopened in the desktop app has the
+  name alone). Send to that session's own address, read from its record, never to its
   name: `SendMessage(to: "uds:<messagingSocketPath>")`, with the record's
   `messagingSocketPath`. A subagent, which has no `ListAgents`, finds the team the same way.
 - If no row named `admin team` is listed, or every one is `offline`, run
@@ -47,7 +48,7 @@ one fenced ```json block:
 | Field | Required | Meaning |
 |-------|----------|---------|
 | `v` | yes | Protocol version, `1`. |
-| `id` | yes | Unique per sender: `<sender>/<issue>/<n>`. A retry keeps the `id` and raises `attempt`. |
+| `id` | yes | Unique per sender: `<sender>/<issue>/<n>`. A session with no issue puts a short word for its work in place of `<issue>`, such as `policies` for a `policies-checkout`. A retry keeps the `id` and raises `attempt`. |
 | `attempt` | yes | Starts at 1. A reply carries an `attempt` the requester did not send in one case only: the team's rerun of a request from its ledger when it starts again after the restart a temporary allow line needs (the `admin-team` agent brief, Gates and standing grants, Temporary permissions, **Allow lines**), with the same `id` and `attempt + 1`. |
 | `from` | yes | The sender's session name, as `ListAgents` shows it. The reply goes here. |
 | `repo` | yes (not `status`, `file-issue` or `log-hook`); optional on a GitHub-only action, one with no local checkout, such as `create-repo`, `transfer-issue` or `rename-repo`, and on a `policies-checkout` from a session with no repository of its own | Absolute path of the main checkout. Forward slashes. |

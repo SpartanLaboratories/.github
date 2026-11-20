@@ -85,10 +85,15 @@ function liveRecords(P) {
     let r;
     try { r = JSON.parse(fs.readFileSync(path.join(P.sessions, f), 'utf8')); } catch (e) { continue; }
     if (!r || !r.sessionId) continue;
-    out.push({ file: f, pid: r.pid, sessionId: r.sessionId, agent: r.agent || null, alive: isAlive(r.pid) });
+    out.push({ file: f, pid: r.pid, sessionId: r.sessionId, agent: r.agent || null, name: r.name || null, alive: isAlive(r.pid) });
   }
   return out;
 }
+
+// Whether a live record is the team's: agent admin-team, or name "admin team",
+// which a session reopened in the desktop app has alone (the protocol, Finding
+// the team).
+function isTeamRecord(r) { return r.agent === 'admin-team' || r.name === 'admin team'; }
 
 // One transcript read for what the classes need: whether it is the team's,
 // its title and its first and last time.
@@ -165,7 +170,7 @@ function orphans(P, now = Date.now()) {
 function readIndex(P) { return readJsonl(path.join(P.archive, 'index.jsonl')); }
 
 // Every admin team session and remains in the team's project folder, with its
-// class. Throws when more than one live record names an admin-team agent.
+// class. Throws when more than one live record is the team's (isTeamRecord).
 // The live records and every transcript are read in full on every call, so
 // the classes are the same whatever opts.only says. opts.only, an id or a test
 // of a row that sees its class, limits which rows' stores are walked: a row
@@ -173,7 +178,7 @@ function readIndex(P) { return readJsonl(path.join(P.archive, 'index.jsonl')); }
 // bytes maps each walked row's id to the bytes its stores hold.
 function classify(P, now = Date.now(), opts = {}) {
   const live = liveRecords(P);
-  const teamLive = live.filter(r => r.alive && r.agent === 'admin-team');
+  const teamLive = live.filter(r => r.alive && isTeamRecord(r));
   if (teamLive.length > 1) {
     const e = new Error(`more than one live admin-team record: ${teamLive.map(r => r.file).join(', ')}`);
     e.code = 'TWO_TEAMS'; throw e;

@@ -163,6 +163,15 @@ put(path.join(ROOT, 'sessions', '4.json'), JSON.stringify({ pid: process.pid, se
 r = run('sessions.js', []);
 ok(r.code === 2 && /more than one live admin-team record/.test(r.out), 'sessions: two live admin-team records stop it');
 fs.rmSync(path.join(ROOT, 'sessions', '4.json'));
+// A team reopened in the desktop app: its live record has the name alone.
+put(path.join(ROOT, 'sessions', '1.json'), JSON.stringify({ pid: process.pid, sessionId: S.run, name: 'admin team' }));
+r = run('sessions.js', ['--json']);
+ok(j(r).running === S.run && j(r).rows.find(x => x.id === S.run).class === 'running', 'sessions: a live record named admin team with no agent key is the running session');
+put(path.join(ROOT, 'sessions', '4.json'), JSON.stringify({ pid: process.pid, sessionId: S.s3, agent: 'admin-team' }));
+r = run('sessions.js', []);
+ok(r.code === 2 && /more than one live admin-team record/.test(r.out), 'sessions: a named record and an agent record, both live, stop it');
+fs.rmSync(path.join(ROOT, 'sessions', '4.json'));
+put(path.join(ROOT, 'sessions', '1.json'), JSON.stringify({ pid: process.pid, sessionId: S.run, agent: 'admin-team', name: 'admin team' }));
 
 // ---- the id filter and the sizes ------------------------------------------------------
 // The scripts' own functions, in this process, read the same fixture.

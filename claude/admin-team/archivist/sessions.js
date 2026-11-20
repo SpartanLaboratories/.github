@@ -3,9 +3,9 @@
 //
 //   node sessions.js [--id <id>] [--sizes] [--orphans] [--json]
 //
-// Classes (the Archivist's brief, The session archive): running (the live
-// record whose agent is admin-team), held (another live record names it), kept
-// (the inactive session most recent to end), foreign (a transcript in the
+// Classes (the Archivist's brief, The session archive): running (the team's
+// live record: agent admin-team or name "admin team"), held (another live
+// record names it), kept (the inactive session most recent to end), foreign (a transcript in the
 // team's folder that is not an admin team session), ready (archived and
 // verified, its files not yet deleted), candidate (older: to archive).
 // `quiet` is false when any of its stores changed in the last 10 minutes.
@@ -14,7 +14,7 @@
 // --orphans adds the temp folders of ids no session owns (no transcript or
 // folder in any project folder, no live record), with their file count:
 // delete-session.js --orphans removes those that hold no file and are quiet.
-// Exit 2 when more than one live record names an admin-team agent.
+// Exit 2 when more than one live record is the team's.
 
 'use strict';
 const L = require('./lib');

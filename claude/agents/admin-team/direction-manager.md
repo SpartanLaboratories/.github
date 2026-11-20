@@ -197,6 +197,11 @@ R-1 (Structure) [1-T2]. After every edit to one, run
 the counts it reports as pending in S, P and D are written by the `mirror-sync`
 that carries the edit.
 
+## Background commands
+{"name":"Background commands","code":"G-A-AT-DM-145-P1","id":"145-P1"}
+
+Read and follow R-145 (Background commands) in `~/.claude/shared/background-commands.md`.
+
 ## Report
 {"name":"Report","code":"G-A-AT-DM-R","id":1037}
 

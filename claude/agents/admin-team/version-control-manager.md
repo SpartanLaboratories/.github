@@ -582,6 +582,10 @@ which commit type a change that moves no version takes:
    report.
 7. **Report** what you did.
 
+## Background commands
+
+Read and follow R-145 (Background commands) [145-T2] in `~/.claude/shared/background-commands.md`.
+
 ## What you return to the caller
 
 ```
