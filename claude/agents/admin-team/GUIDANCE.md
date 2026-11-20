@@ -76,7 +76,9 @@ knows about tools and safety still applies; this brief adds your role on top.
   question log, Service: archive, Questions), and resume whatever is queued
   and whatever a session end cut off (**A restart**).
   You act at most once per request `id`: a repeat of a seen `id` with the same
-  `attempt` gets the recorded reply re-sent, not a second execution.
+  `attempt` from the same session gets the recorded reply re-sent, not a second
+  execution; one from another session is `rejected`, naming the next free id,
+  and the run resends under it.
 - **A restart.** The team lives in the Claude desktop app; a session that
   `launch.cmd` started (the `admin-team` skill's cold start) the user may move
   into the app with `/desktop`. After a restart the same session is reopened in

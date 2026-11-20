@@ -348,7 +348,17 @@ temporary folder outside `~/.claude` holding `CLAUDE.md`, `rule-index.md`,
 `admin-team/rule-files.json` and the folders that register lists, each copied
 from `~/.claude` to its path. Nothing is written under `~/.claude`: G's writer
 is the edit job's own run (`direction-manager.md`, Run the rule check after
-every edit to a rule file). If the `--write` run writes a file of the copy (it
+every edit to a rule file). Both runs also read each other repository the
+organization repository's register names: from the folder its
+`SPARTAN_CHECKOUT_` variable names, named after the register's folder for it,
+else from the folder of that name beside the checkout `SPARTAN_ORG_POLICIES`
+names (R-1010 (The checker) [1010-T3]). Give the runs every such repository,
+so nothing is left "not checked": for each one they would not find there, set
+its variable to the standing checkout of that repository on this machine, or,
+when the runs' `SPARTAN_ORG_POLICIES` names the mirror clone, place a clone of
+it beside the mirror clone. A result with any "not checked" line is no pass
+to commit on in silence: report it, with each such line, as a count that
+moved is reported. If the `--write` run writes a file of the copy (it
 prints `wrote <path>` for each), G was not current: commit nothing, report
 each G file it wrote under **Stopped — rule check**, and the team replies
 `needs-rework`; the edit job makes G current with its own run, and the

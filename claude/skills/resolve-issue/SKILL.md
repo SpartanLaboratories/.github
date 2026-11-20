@@ -99,7 +99,7 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
   call to plan the oldest issue: its issue comes from the arguments or, with
   none, from this step's own listing.
 - If there are no open issues, say so and stop.
-- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it. One a run left when it stopped with work unfinished, not the second kind a finished run leaves ("Session handoffs" in the global `CLAUDE.md`), means you are taking a run up: set `restarted` on the first request, with the run's own clock readings (`~/.claude/agents/admin-team/PROTOCOL.md`, `restarted`). With no such handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up. A handoff left with work unfinished names the run's prompt flags, and the run that takes it up keeps them ("Prompt flags", **Flags in force**). A handoff left at an implementation pause (step 4, **Built by the user**) is one left with work unfinished: the run that takes it up goes on from the pause, as that section says.
+- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it. One a run left when it stopped with work unfinished, not the second kind a finished run leaves ("Session handoffs" in the global `CLAUDE.md`), means you are taking a run up: set `restarted` on the first request, with the run's own clock readings (`~/.claude/agents/admin-team/PROTOCOL.md`, `restarted`). With no such handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up. A handoff left with work unfinished names the run's prompt flags, and the run that takes it up keeps them ("Prompt flags", **Flags in force**). It also names the run's last request id, and the session that takes the run up numbers its requests on from it; a clash that still arrives comes back `rejected`, naming the next free id, and is resent under it (`~/.claude/agents/admin-team/PROTOCOL.md`, `id`). A handoff left at an implementation pause (step 4, **Built by the user**) is one left with work unfinished: the run that takes it up goes on from the pause, as that section says.
 - Read the chosen issue in full: `gh issue view <n> --repo <repo> --comments`.
   An issue that is only partly done (an earlier tier/stage landed, more is
   open) still counts — this run's goal is the **next step**, not necessarily
@@ -555,8 +555,9 @@ implementation pass before the user has built: it pauses first, and spawns
 - **The pause.** Write the run's handoff ("Session handoffs" in the global
   `CLAUDE.md`), since the session may stop while it waits: the pause, what
   the pass would build, the flags in force, the plan document, the branch,
-  its base and any worktree. Tell the user, in the run's session, where to
-  build (the checkout, or the worktree's path), what the pass would build
+  its base, any worktree and the run's last request id. Tell the user, in
+  the run's session, where to build (the checkout, or the worktree's path),
+  what the pass would build
   (the plan's stages, the items the re-passed plan settles, or the review's
   fixes), and that their commits on the branch are theirs to make and are
   read as part of the change. At the first build of a grade-2 fix, add that

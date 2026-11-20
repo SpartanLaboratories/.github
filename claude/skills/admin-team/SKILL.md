@@ -57,8 +57,10 @@ Only one session may launch it, so take the launch lock first:
 Follow `PROTOCOL.md` exactly: a one-line summary, a blank line, one fenced
 `json` block. Required in every request: `v: 1`, an `id` unique to you
 (`<your session name>/<issue>/<n>`; with no issue, what takes the issue's
-place is `PROTOCOL.md`'s `id`), `attempt`, `from` (your session name as
-`ListAgents` prints it at the top of its listing), and `action`. Give the team
+place is `PROTOCOL.md`'s `id`; taking a run up, you number on from the run's
+last request id, as the `resolve-issue` skill, step 1, **Handoff**, says),
+`attempt`, `from` (your session name as `ListAgents` prints it at the top of
+its listing), and `action`. Give the team
 everything the executor needs in the request itself — paths, grade, plan and
 document paths, dashboard paths, the `qa` verdict — because it has none of
 your context. Requests are coarse: one `land` per change set, not one message
@@ -118,7 +120,7 @@ your turn after sending a request that you need the result of; do not poll. A
 |---------|-------------|
 | `ack` | Note the lane and position. Nothing else. |
 | `done` | Carry `result` forward (SHAs, PR, merge commit, comment link, worktree path). For a `land`, `result.release` says whether the bump was `published` (coordinates, tags, release URLs), `deferred` (reason, usage) or `failed` (the user decides at the team's console); `none` means no published module moved. `result.tracking` names the tracking issues the merge closed, any of them with a sub-issue reopened before the merge, and the first one above its issue left open, with what keeps it open. |
-| `rejected` | Read `reason`. Fix the request and send it with a **new** `id`. If the reason is a rule you cannot meet, stop and tell the user. |
+| `rejected` | Read `reason`. Fix the request and send it with a **new** `id`: the next free id `reason` names, when the `id` and `attempt` were already recorded from another session. If the reason is a rule you cannot meet, stop and tell the user. |
 | `needs-user` | The team is waiting on the user at its own console or in the Remote Control app. Tell the user so, naming the request and what it waits on. On a `plan-board` carry on: it stops nothing. On any other request, whatever else is being actioned goes on, and you end your turn once nothing is; in a `/resolve-issue` run that is the halt (that skill, "Halted — at any step"). |
 | `needs-rework` | Either the sync met a conflict the team cannot resolve itself (`result.overlap`, on a `prepare-landing` or a `land`): re-verify: re-run the change's own tests, and `qa` if the conflict touches code the change altered; fix what breaks; then resend the same `id` with `attempt + 1` and the fresh `qa` verdict. Or a `README.md` or other `CHANGELOG.md` conflict came back with the merge left open (`result.conflicts`): fix the markers in those files in your worktree and resend the same `id` with `attempt + 1`; the team's executor finishes the merge. Or a confirm-only `setup-branch` found no branch (`reason`; nothing was created). Or, for a `commit` or a `prepare-landing`, content about to be committed names the pipeline's agents, sessions or roles, the approval flow, or a grade (`result.finds`, each `file:line` with its text and `sayInstead`, the list's wording or `null`; nothing was committed): reword each find in the project's own terms, with its wording where it fits and by hand where there is none (or have the agent that wrote the file reword it), then resend the same `id` with `attempt + 1`; or, with a reason to keep a find, resend it unchanged asking for an exception, which comes back `needs-user` while the user decides (`PROTOCOL.md`, "Rules both sides keep"). Or, for a run's document-landing `commit`, another Document task on the issue board is not done (`result.unfinished`, each named; nothing was committed): finish any that is truly unfinished, send a `document` event with their true states, wait for its `done`, then resend the same `id` with `attempt + 1`. |
 | `stopped` | A check of a write a plan specifies failed and no further step ran: `result.step` is the step reached, `result.state` the state left. Never resend it without looking: read that state on GitHub or in the checkout first, and only then resend or go on. |
