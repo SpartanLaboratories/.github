@@ -40,8 +40,8 @@
 // Writes only the issue's board files, its parent tracking board's files and docs/plans/.live/; never git, never a commit, never the
 // committed repository work board. Every file is written through a temporary file and a rename, and on any failure every file it wrote is put
 // back as it was: exit 1, nothing changed. Exit 0 when applied, or when the event was already applied (the same event twice changes
-// nothing); exit 2 on a usage error; exit 3 when a retime or reword is refused, nothing written: a refusal, not a failure (apply-event: refused,
-// the reason on the refused line; the team replies rejected with it, the user's decision q-99).
+// nothing); exit 2 on a usage error; exit 3 when a retime, a reword or a backfill-start is refused, nothing written: a refusal, not a failure
+// (apply-event: refused, the reason on the refused line; the team replies rejected with it, the user's decision q-99).
 // A sized on a folder with no board lays the foundation itself and then applies the event to it (plan/RULES.md §4, "The foundation"; layFoundation(),
 // lib.js foundationPlan()), so the board can be opened within seconds of the run's start: the title, the issue's title and the function from
 // the event, the issue on the tracker (not with --no-gh), the parent's unit row or the registry, each from the first that tells it; what none
@@ -2795,7 +2795,7 @@ async function main() {
 }
 
 main().then(() => { say(); process.exit(0); }, e => {
-  /* a retime or reword the rules refuse: a refusal, exit 3, nothing written (CORRECTION_REFUSED, above) */
+  /* a retime, a reword or a backfill-start the rules refuse: a refusal, exit 3, nothing written (CORRECTION_REFUSED, above) */
   if (CORRECTION && e instanceof Refusal) {
     S.result = "refused"; S.refused = e.message;
     try { rollback(); } catch (x) { S.result = "failed"; S.refused = null; S.error = `${e.message}; the rollback failed: ${x.message}`; S.enrich.splice(0, S.enrich.length, "the event was not applied: the presenter applies it"); say(); process.exit(1); }

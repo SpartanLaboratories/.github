@@ -78,7 +78,9 @@ its ruleset; the shared scale is:
 | **neutral** (ink/grey) | no outcome yet, or not applicable | a `pending` part; a `deferred` part (with its issue); an impact still planned (dashed); an issue closed as not planned or as a duplicate ("closed · not planned", "closed · duplicate": never landed; issue boards and the repository work board only, §7); a `bug` label ("▲ bug": a Label, not an outcome); counts and facts |
 
 **The exception: compatibility on the Consequences Tab** (named the Impact Tab before admin-team/dashboards-skill/35; its ids, its
-`#impact.<entry>` deep links and its data key `impact` are kept, the document it reads is `consequences.md`, `impact.md` in an older folder).
+`#impact.<entry>` deep links and its data key `impact` are kept, the document it reads is `consequences.md`, `impact.md` in an older folder;
+since the user's direction of 2026-11-20 the As built Tab's third sub-tab, beside **Who feels it**, which draws the same entries ring by ring
+in the same colours, `plan/RULES.md` §2, "The As built Tab's sub-tabs": what this file says of the Consequences Tab holds for both).
 On an issue board's Consequences Tab, red and
 yellow mean **compatibility**, not outcomes, because what a reader needs from that Tab first is
 whether the change breaks them. **Red** (`--critical`) is a breaking change: a `breaking`
@@ -460,7 +462,9 @@ the unscheduled issues, the "last amended by" note — they are the two links of
 
 Inline CSS, JS and SVG; no external resources (an issue board's or the live repository work board's own
 sidecar, `plan.js` or `board.js` beside the board, is its data, not a resource: the board renders
-without it and re-reads it only while its run is live, `plan/RULES.md` §1); light and dark; no horizontal scroll at
+without it and re-reads it only while its run is live, `plan/RULES.md` §1); a face a board sets is embedded in its style as a `data:` URI,
+subset to the characters the boards write, with its copyright and licence named beside it (the issue and tracking boards' Barlow and
+Barlow Condensed, SIL Open Font License 1.1, the licence's text in `plan/template/fonts/OFL.txt`); light and dark; no horizontal scroll at
 phone width (diagrams scroll inside their own frame); every control reachable by keyboard (every tablist: Left and Right, Home and End, one
 Tab in the Tab order, a roving tabindex);
 under 16 MB. On a wide desktop screen (over 1500 px) every board — system, supersystem and repository
@@ -477,7 +481,9 @@ to the GitHub issue), on an issue board the issue line (the issue's title on Git
 function paragraph — fills the **left half**, the function stretched across it rather than held to a
 prose measure; the **Tags** stand in the **right half** beside it, each a small Card with its label
 over its value, growing to fill its line, a long one (a tracking board's chain, three systems or
-more) across the half. Under 940 px the two stack, intro first, and the Tags wrap as Chips with the
+more) across the half (on an issue or tracking board, in its timetable look, `plan/RULES.md` §2, "The look", the Tags are the cells of a
+ruled facts table, two to a line under a heavy rule, each its label over its value, a long one across both: the same Tags in the same
+order, drawn as a table rather than as Cards). Under 940 px the two stack, intro first, and the Tags wrap as Chips with the
 label before the value. A Tag is a fact with its label (`<span class="ck">label</span> value`); one
 fact is one Tag (the board's systems are one Tag, each system with its swatch), and no Tag repeats what the KPI Tiles count or what
 the footer names (an issue board and the repository work board carry no "board" Tag: their source is in the footer and the Source Tab); a board's
@@ -1101,6 +1107,16 @@ for every type:
   "Closed work boards"): it keeps the Context it closed with.
 - **The published copies**: every type, as committed, a closed work board as it closed; never a live view, whose links are machine-local.
 - **What leaves a repository keeps the boards' rules** (§4, §10): every type's published copy, and every Whiteboard's generated part.
+
+**The decisions of 2026-11-20** (the user's, console/board-look-into-template, console/board-look-keep-new-features and
+console/board-as-built-subtabs), each weighed for every type:
+
+- **The timetable look** (`plan/RULES.md` §2, "The look"): applied to the issue board template, so to issue boards and tracking boards. Whether
+  the system, supersystem and repository state boards, the repository work board and the org work board take it is the user's open decision,
+  not yet taken: until it is, they keep their look, and the two sets of boards look different side by side.
+- **The As built Tab's sub-tabs, Who feels it among them** (`plan/RULES.md` §2, "The As built Tab's sub-tabs"): issue boards and tracking
+  boards, the only types with an As built Tab and an impact. Not to the repository work board, one Row per run whose impact is on the run's
+  own board (its reconciliation Chip stays on the Row), nor to the state boards, which show the code at a commit and no change's impact.
 
 ## 12. Elements — one name per function
 

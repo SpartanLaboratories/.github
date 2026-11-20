@@ -479,8 +479,10 @@ for later. `plan/scripts/lib.js` `leftForLater()` and the template's `leftForLat
 
 ### Consequences
 
-Beside the four columns, a core Tab, **Consequences** (named Impact before admin-team/dashboards-skill/35: its ids `t-impact` and
-`p-impact`, its `#impact.<entry>` deep links and the data key `impact` are kept, so no board's data changes), says what the change means
+Beside the four columns, **Consequences** (named Impact before admin-team/dashboards-skill/35: its ids `t-impact` and
+`p-impact`, its `#impact.<entry>` deep links and the data key `impact` are kept, so no board's data changes; a Tab of its own until the
+user's direction of 2026-11-20, the As built Tab's third sub-tab since, §2, "The As built Tab's sub-tabs", and what these rules say of the
+Consequences Tab holds for that sub-tab), says what the change means
 outside itself, from `plan.json` `impact`, read from the folder's `consequences.md` (`impact.md` in a folder older than the rename, read the
 same; `consequences.md` wins where both are there). It is a general representation like the rest of the board: summaries and
 links to the Markdown section that holds the detail, never listings. **Known gaps live only in `consequences.md`**: a plan and an
@@ -662,12 +664,57 @@ unit's board.
 
 The board's Tabs are **Design** (the four columns; named Timeline before admin-team/dashboards-skill/34, and a link to `#timeline` or
 `#p-timeline` still opens it), **Timeline** (the Timeline Tile and the KPI Tiles, §2, "The Timeline Tab"; its ids `t-steps` and `p-steps`, its link `#steps`, as
-`#timeline` keeps opening Design), **Decisions**, **As built** (column 4's
-Cards, then how the impact differed from the plan, §2), **Tests** (above), **Impact** and **Source**; a tracking board adds **Landing Order**. On the Design Tab the four phase columns read as
-columns: each stands on its own neutral band under a strong, sticky head (its number, its name, its
-question, its milestone). The bands are layout, not an encoding: they take no colour of their own,
+`#timeline` keeps opening Design), **Decisions**, **As built** (its three sub-tabs, below: **Final state**, column 4's
+Cards, then how the impact differed from the plan, §2; **Who feels it**; **Consequences**), **Tests** (above) and **Source**; a tracking board adds **Landing Order**. On the Design Tab the four phase columns read as
+columns: each stands between hairline column rules under a heavy, sticky head (its number, its name, its
+question, its milestone). The rules are layout, not an encoding: they take no colour of their own,
 so system and status colours keep their meanings, and the Legend does not list them; the narrow
-layout stacks each Row and draws none. A Tab's lede is at most one short line, and only for what its
+layout stacks each Row and draws none.
+
+**The look** (the user's decision of 2026-11-20, console/board-look-into-template; `plan/template/dashboard.html`'s own styles): a printed
+station timetable. Each Row is read across the four columns on a ruled sheet: a heavy ink rule under the column heads, under the header's
+first line and over its facts, the WIP Panel, the KPI Tiles and the Context; hairline rules between the Rows; no Card round a Cell, no
+connector between a Row's Cells, no shadow, square corners (2 px on a mark or a Chip, none on a sheet). A state is a full tint or a mark,
+never a one-sided bar: a Pill and an option take a full border and a tint in their status colour with their glyph and word; the WIP Panel
+waiting on you is tinted yellow; an As built statement's mark stands on its own line above its text. A system's colour keeps its swatch
+on the Row's label, and its bar on a Card (As built, Consequences, Tests), where the Legend names it. The Tabs stand on the page's one ink
+band. Barlow Condensed sets the frame (the title, the headings, the labels, figures and dates, the Tabs), Barlow the reading text, a
+monospace only code, the Source view and file paths; both faces are embedded (`GUIDANCE.md` §6), with their licence in
+`plan/template/fonts/OFL.txt`. Below 1500 px the board takes the window up to a 1560 px measure. Every feature the template had before
+the look is kept as it was (the user's direction of 2026-11-20, console/board-look-keep-new-features): the StepBar keeps its chevrons, the
+stage list, the step Panel's Disclosures and nested steps, the Now Chip, the charging Arrow and every mark keep their form, and take the
+look's faces, rules and tokens only.
+
+### The As built Tab's sub-tabs
+
+The As built Tab has three **sub-tabs** (the user's direction of 2026-11-20, console/board-as-built-subtabs), a tablist of their own with
+the Tabs' keys (`GUIDANCE.md` §6), each with its own Legend, in this order:
+
+1. **Final state** — what the As built Tab showed before: column 4's Cards with their filter, then how the impact differed from the plan,
+   under its reconciliation Chip (§2, "Consequences"). Where these rules say the As built Tab of the Cards, the impact changes or the
+   reconciliation Chip, they mean this sub-tab. Its ids are `t-built-final` and `p-built-final`; `#built` and `#built-final` open it.
+2. **Who feels it** — the impact's downstream entries (`impact.downstream`) drawn ring by ring round the change, beside their list (the
+   display of the user's case-file draft for #99, carried into the board). The data holds no distance of its own, so the ring is the
+   entry's `kind`: the inner ring the systems (`system`), the middle the published artifacts (`artifact`), the outer the repositories,
+   consumers and operators (`repository`, `consumer`, `operator`; an entry of no known kind with them). Each mark is numbered and takes
+   its entry's colour on Consequences — red breaking, yellow worth noting, its system's colour otherwise, muted for a party outside the
+   repository's systems (`GUIDANCE.md` §1) — and its line in the list carries the entry's kind and effect Badges, and the compatibility
+   Pill where its effect Badge does not say it, so no colour stands alone. Under the rings, the release the change takes (`impact.release`,
+   the version Badge's words); under the list, what each party must do (`impact.adaptation`, each with its need Badge). It is a view of
+   the impact as it now stands, as Consequences is, and carries no planning information: nothing dashed, no basis, no `changes[]`. A click on
+   a mark or a line selects both and opens the entry in the inspector, as its Card on Consequences does. With no impact recorded it says
+   so, as Consequences does; with no downstream entry it says that, with the `none` statement and the source. Its ids are `t-who` and
+   `p-who`, its link `#who`.
+3. **Consequences** — the Consequences Tab of §2, "Consequences", unchanged, a sub-tab now: its ids `t-impact` and `p-impact`, its links
+   `#impact` and `#impact.<entry>` and its data key `impact` are kept, so every link that opened it opens it still, under As built.
+
+A click on **As built** shows the sub-tab shown last (Final state at first); a link names its own. **Before anything is built** — before
+the plan is accepted, `impact` is `null` — Final state shows column 4 as it stands (every Cell pending, dashed) and no impact section, and
+Who feels it and Consequences each say that no downstream impact is recorded yet and where it will come from. From the plan's acceptance
+until the landing, Who feels it and Consequences show the impact as best known (on the plan's basis until it is reconciled), with no
+planning information, and Final state shows how it differs from the plan so far. On a **tracking board** the three sub-tabs are the same:
+Final state its unit Cards and the initiative's impact changes, then each unit's; Who feels it the initiative's own downstream entries;
+Consequences the initiative's impact and its Units section. A Tab's lede is at most one short line, and only for what its
 graphic and Legend do not show (`GUIDANCE.md` §2); the repository work board's Runs lede too.
 
 **The Context's roadmap** of an issue board is `plan.json` `roadmap`: `{issue, title, asOf, items: [{issue, title, state?, stateReason?}]}`,
@@ -1244,7 +1291,8 @@ units yet (research, architecture) has an issue board's strip and its own step P
 resumes at it), the connector between a Row's Considered Cell and its Verdict Cell is a **battery of
 accent segments filling left to right** while that Row's verdict is unwritten, drawn large — 22 px tall, reaching over the edges of both
 Cells, so it reads at a glance on a wide board; once the verdict is
-written it is the plain line again, and outside the plan step every connector is plain. It holds
+written it is gone, and outside the plan step no connector is drawn: the Cells of a Row stand side by side on the ruled sheet (§2, "The
+look"). It holds
 still, filled, while the run waits on the user, and under `prefers-reduced-motion`. The Design Tab's
 Legend names it while it is drawn (`GUIDANCE.md` §1).
 

@@ -426,7 +426,7 @@ if (runs()) targets.filter(t => t.block === "plan").forEach(t => {
   const ic = [], iScratch = path.join(out, "impact"), ex = JSON.parse(fs.readFileSync(sk("plan/examples/38-handshake-empty-name/plan.json"), "utf8"));
   const page = (name, data) => { const dir = path.join(iScratch, "docs", "plans", name); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
     const d = { ...data, slug: name, folder: `docs/plans/${name}` }; fs.writeFileSync(path.join(dir, "plan.json"), JSON.stringify(d, null, 2) + "\n"); fs.writeFileSync(path.join(dir, "dashboard.html"), tpl); node(embedJs, dir); return dir; };
-  const panel = dom => inner(dom, '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+  const panel = dom => inner(dom, '<section class="bsub" role="tabpanel" id="p-impact"[^>]*>', "section");
   { const dir = page("38-handshake-empty-name", ex), dom = dumpDom(path.join(dir, "dashboard.html"), "impact");
     if (dom != null) { const p = panel(dom);
       ic.push(["the example's Impact tab shows its four sections and no planning information", ["Downstream effects", "Adaptation requirements", "API changes", "Conversion steps"].every(h => p.includes(h)) && !/(planned impact|as built(, amended)?)<\/span>/.test(p) && !/icard[^"]*planned/.test(p) && !/Changes from the planned impact/.test(p) && /id="impact-key"[^>]*><span/.test(p), p.slice(0, 300) || "no Impact panel"]);
@@ -544,17 +544,17 @@ if (runs()) targets.filter(t => t.block === "plan").forEach(t => {
   const dSub = render("sub-impact", sub, "impact");
   if (dSub == null) nc.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]);
   else {
-    const p = inner(dSub, '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+    const p = inner(dSub, '<section class="bsub" role="tabpanel" id="p-impact"[^>]*>', "section");
     const cards = c => p.match(new RegExp(`<div class="bcard icard[^"]*"[^>]*data-compat="${c}"`, "g")) || [];
     nc.push(["Impact: the breaking entries are red cards (a breaking effect, a required adaptation that breaks, a removed surface, a raised step)", cards("breaking").length === 4 && cards("breaking").every(c => / cmp critical"/.test(c)), cards("breaking").join(" | ") || p.slice(0, 300)]);
     nc.push(["Impact: deprecations and other non-breaking changes worth noting are yellow cards", cards("notable").length === 3 && cards("notable").every(c => / cmp warning"/.test(c)), cards("notable").join(" | ")]);
     nc.push(["Impact: every other entry keeps its system's colour", cards("compatible").length === 3 && cards("compatible").every(c => !/ cmp /.test(c)), cards("compatible").join(" | ")]);
     nc.push(["Impact: the badges take the same colours, with their glyph and word", /class="badge critical"><b aria-hidden="true">!<\/b>breaking/.test(p) && /class="badge critical"><b aria-hidden="true">✕<\/b>removed/.test(p) && /class="badge warning"><b aria-hidden="true">⚠<\/b>deprecated/.test(p) && /class="badge critical"><b aria-hidden="true">!<\/b>required change/.test(p), "badge colours missing"]);
     nc.push(["Impact: a raised card says why in a pill, and the legend reads red and yellow as compatibility", /<span class="verdict-pill warning"><i aria-hidden="true">⚠<\/i>worth noting/.test(p) && /red: breaking/.test(p) && /yellow: worth noting/.test(p), text(inner(p, '<div class="legend" id="impact-key">', "div")).slice(0, 300)]);
-    const dT = render("tracking-impact", trk, "impact"), pT = inner(dT, '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+    const dT = render("tracking-impact", trk, "impact"), pT = inner(dT, '<section class="bsub" role="tabpanel" id="p-impact"[^>]*>', "section");
     nc.push(["Impact: a red or yellow card on a planned impact is solid, like every card", /class="bcard icard cmp critical"/.test(pT) && /class="bcard icard cmp warning"/.test(pT) && !/icard[^"]*planned/.test(pT), (pT.match(/class="bcard icard[^"]*"/g) || ["no card"]).slice(0, 4).join(" | ")]);
     const am = copy(ex); am.impact.changes = [{ what: "Verification case: a change from the planned impact.", why: "Verification case.", when: "landing" }];
-    const pA = inner(render("amended-impact", am, "impact"), '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+    const pA = inner(render("amended-impact", am, "impact"), '<section class="bsub" role="tabpanel" id="p-impact"[^>]*>', "section");
     nc.push(["Impact: an amended impact shows no standing pill and no list of changes from the plan", !/as built, amended/.test(pA) && !/Changes from the planned impact/.test(pA) && !/Verification case: a change from the planned impact/.test(pA) && /Downstream effects/.test(pA), text(pA).slice(0, 300)]);
     /* the As built tab shows how the impact differed from the plan (plan/RULES.md §2, Impact; GUIDANCE.md §1): impact.changes as
        solid cards in their system's colour (muted where none), never in the Impact tab's red or yellow, each linking the Impact card
@@ -597,7 +597,7 @@ if (runs()) targets.filter(t => t.block === "plan").forEach(t => {
     nc.push(["WIP: a halted issue board shows its detail beside the question it waits on", /class="wip-wait"[^>]*>Waiting on the user: Verification case: which refusal reply text/.test(sH) && /class="wip-detail"[^>]*>Verification case: stage C is written/.test(sH), text(sH).slice(0, 300)]);
     const hn = copy(hb); hn.wip.waitingOn = null; const sN = strip(render("issue-halted-nowait", hn, ""));
     nc.push(["WIP: a halted issue board with no question stated shows its detail once, as the wait line", /Waiting on the user: Verification case: stage C is written/.test(sN) && !/class="wip-detail"/.test(sN), text(sN).slice(0, 300)]);
-    const dDeep = inner(render("sub-deep", sub, "impact.api.0"), '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+    const dDeep = inner(render("sub-deep", sub, "impact.api.0"), '<section class="bsub" role="tabpanel" id="p-impact"[^>]*>', "section");
     nc.push(["a deep link to an Impact entry opens the Impact tab with that card selected", /class="bcard icard[^"]*\bsel\b[^"]*"[^>]*data-imp="api\.0"/.test(dDeep), (dDeep.match(/class="bcard icard[^"]*"[^>]*data-imp="api\.0"/) || ["no card"])[0]]);
 
     /* check-board.js fails an Impact tab that shows planning: a copy of the tracking board whose Impact cards are drawn dashed */
@@ -863,7 +863,7 @@ if (runs()) targets.filter(t => t.block === "plan").forEach(t => {
   const seen = [];
   Object.entries(B).forEach(([k, [d, want]], i) => {
     const dom = render("chip-" + i, d, "built"); if (dom == null) return;
-    const bi = inner(dom, '<div id="built-impact">', "div"), key = inner(dom, '<div class="legend" id="built-key">', "div"), imp = inner(dom, '<section class="view" role="tabpanel" id="p-impact"[^>]*>', "section");
+    const bi = inner(dom, '<div id="built-impact">', "div"), key = inner(dom, '<div class="legend" id="built-key">', "div"), imp = inner(dom, '<section class="bsub" role="tabpanel" id="p-impact"[^>]*>', "section");
     const others = Object.keys(CHIP).filter(s => s !== want);
     seen.push([k, CHIP[want].test(bi) && others.every(s => !CHIP[s].test(bi)) && KEY[want].test(key) && others.every(s => !KEY[s].test(key)) && !/class="q recon"/.test(imp), (bi.match(/<p class="q recon">[\s\S]*?<\/p>/) || ["no chip"])[0].slice(0, 200)]);
   });
