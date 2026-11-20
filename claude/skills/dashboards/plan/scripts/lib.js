@@ -752,7 +752,9 @@ function writeBlock(html, id, json) {
   const b = html.indexOf("</script>", a + OPEN.length);
   if (b < 0) throw new Error(`unterminated ${id} block`);
   // "</script" inside a JSON string would end the block early; "<\/script" is the same string once parsed.
-  const body = "\n" + json.replace(/<\/script/gi, "<\\/script").replace(/\s*$/, "") + "\n";
+  /* the block takes the page's line endings, its two boundaries and its lines alike, so a CRLF page stays CRLF throughout (hook-317) */
+  const eol = /\r\n/.test(html.slice(0, a) + html.slice(b)) ? "\r\n" : "\n";
+  const body = eol + json.replace(/<\/script/gi, "<\\/script").replace(/\s*$/, "").replace(/\r?\n/g, eol) + eol;
   return html.slice(0, a + OPEN.length) + body + html.slice(b);
 }
 
@@ -978,7 +980,8 @@ function outageSteps(pre, post, O, ev) {
    it to that sub-issue's tracking board: there the event is the unit's, so the board need not name it, and it changes nothing where the
    board holds no such time. Returns { refused } or { lines, moved, words }: the paths moved and what they are, in words, for the
    correction's entry. The board's unit rows (their mirrors, rebuilt at every embed) and its asBuilt (git's facts) are never moved. */
-const RETIME_NOT = ["run-restarted", "reseed", "seed", "unit-landed", "retime", "reword", "late-update"];
+/* backfill-start writes no time of its own: the unit's start it records is the unit's sized, retimed on the unit's board (its parentOf move) */
+const RETIME_NOT = ["run-restarted", "reseed", "seed", "unit-landed", "retime", "reword", "late-update", "backfill-start"];
 /* the trail entry an event writes (apply-event.js), by its label; on a tracking board, a unit's entry by its number */
 const RETIME_TRAIL = { sized: /^(?:sized|run started|re-?sized)\b/i, halted: /^halted\b/i, resumed: /^resumed\b/i, escalated: /^escalated\b/i,
   "research-planning": /^research planning\b/i, "research-started": /^research started\b/i, "research-returned": /^research returned\b/i,
@@ -1085,11 +1088,11 @@ const retimeWhat = (head, words) => { const w = (words || []).filter(Boolean), l
   return `${head}${list ? `; ${list} move${many ? "" : "s"} with it` : ""}.`; };
 /* ---------- The events whose record is the team's (dashboards-skill/reword-event; plan/RULES.md §4, the retime and reword rows) ----------
    A run's own events are every event but these: the team raises them itself (a stretch when the run was not running, the corrections, the Document
-   step's two team tasks, the land's steps, the filing of a tracking plan's units, the seedings). A run never retimes or rewords one of them; the
-   team, when a board correction asks for it, may retime one (not run-restarted, reseed, seed, unit-landed: RETIME_NOT), and rewords none (their text is
+   step's two team tasks, the land's steps, the filing of a tracking plan's units, the seedings, a unit's start backfilled). A run never retimes or rewords one of them; the
+   team, when a board correction asks for it, may retime one (not run-restarted, reseed, seed, unit-landed, backfill-start: RETIME_NOT), and rewords none (their text is
    composed by the scripts from the team's facts, never a run's report). The
    event's name marks it the team's, as this list does, since the board stores no sender per event. */
-const TEAM_RECORDS = ["run-restarted", "retime", "reword", "state-boards", "landing", "merge", "landed", "sub-issues-filed", "reseed", "seed", "unit-landed"];
+const TEAM_RECORDS = ["run-restarted", "retime", "reword", "state-boards", "landing", "merge", "landed", "sub-issues-filed", "reseed", "seed", "unit-landed", "backfill-start"];
 /* ---------- One event's recorded text reworded (reword; dashboards-skill/reword-event; plan/RULES.md §4, the reword row) ----------
    A run's report, a halt's question or what it waits on, as the event wrote it, is held in several places at once: the report closing several
    stages is each of those stages' report, the remediation's steps repeat the report that closed them, the step's detail is the report, and each
@@ -2291,7 +2294,7 @@ function archStagesFromTrail(labels) {
    (RETIRED_EVENTS), read and drawn, which apply-event.js refuses: no unit's board is laid ahead of its run. */
 const RETIRED_EVENTS = ["boards-created"];
 const EVENTS = ["sized", "halted", "resumed", "research-planning", "research-started", "research-returned", "verification-started", "researched",
-  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-stage", "late-update", "plan-accepted", "branch-cut", "implementation-stage", "step-complete", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted", "reseed", "seed", "unit-landed", "retime", "reword"];
+  "architecture-signed-off", "sub-issues-filed", "boards-created", "plan-stage", "late-update", "plan-accepted", "branch-cut", "implementation-stage", "step-complete", "qa-pass", "document", "escalated", "landing", "state-boards", "merge", "landed", "cancelled", "run-restarted", "reseed", "seed", "unit-landed", "retime", "reword", "backfill-start"];
 /* A row's as-built state before its outcome (plan/RULES.md §2, "Before the outcome"): derived from the implementation stages while the
    run is live. On an issue board, for a row wip.stages touches: "in-progress" when a current stage touches it, "partially-built" when a
    done stage touched it and a later stage still to come touches it, "pending" when only stages to come touch it; null otherwise (no
@@ -2626,5 +2629,84 @@ function ghMergeTime(repo, pr, merge) {
   } catch (e) { return out; }
 }
 
+/* ---------- The carry merges (plan/RULES.md §4, "Seeding at sized", "The carry merges"; the user's decision q-419 a, p79) ----------
+   A landing's view copy carried onto a tracked board (the seeding at sized and seed, and reseed) is merged into the tracked board, never written
+   over it: a landing that changed a tracked board after the copy was made (a docs-only landing, which raises no board event) keeps its change.
+   - What the landing owns is the copy's: status, wip, asBuilt, impact, trail (CARRY_OWNED), each Row's asBuilt (the as-built state of its part)
+     and the Merged milestone (the milestones of the built column, written at the landing).
+   - Everything else is the tracked board's, wherever it differs from the copy and the tracked board changed it since the landing; a part only
+     the copy changed is the copy's. "Since the landing" reads the base, the tracked board as committed at the landing's merge, of which the copy
+     and the tracked board both came; with no base, the tracked board wins on all of it that it holds, and a part it holds nothing for (absent or
+     null) is the copy's.
+   - Any other conflict is refused, nothing merged: two different boards (issue, kind, repository), a Row whose as-built state the copy holds that
+     the tracked board has removed since the landing (or, with no base, does not have), and a Row the tracked board added to a board the landing
+     has built, which no landing gave an as-built state.
+   The parts the embed writes again (links, issueBoards, roadmap, each unit's mirror and landing) are the tracked board's here and rewritten at the
+   embed that follows, the excerpts re-copied there from the documents in the tree (resolveBoard() with refresh). Returns { plan, conflicts, kept },
+   kept naming the tracked board's own changes it kept over the copy's, conflicts each a sentence; plan is null when there is a conflict. */
+const CARRY_OWNED = ["status", "wip", "asBuilt", "impact", "trail"], CARRY_GENERATED = ["links", "issueBoards", "roadmap"];
+function carryMerge(copy, tracked, base) {
+  const C = clone(copy), T = clone(tracked), B = isObj(base) ? clone(base) : null, conflicts = [], kept = [];
+  if (!isObj(C) || !isObj(T)) return { plan: null, conflicts: ["the copy or the tracked board is no board's data"], kept };
+  if (C.issue !== T.issue || (C.kind || "issue") !== (T.kind || "issue") || (C.repo && T.repo && C.repo !== T.repo))
+    return { plan: null, conflicts: [`the copy is #${C.issue}'s ${C.kind || "issue"} board${C.repo ? ` of ${C.repo}` : ""}, the tracked board #${T.issue}'s ${T.kind || "issue"} board${T.repo ? ` of ${T.repo}` : ""}`], kept };
+  const same = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b);
+  /* the generated parts of a unit Row are rewritten at the embed: never compared */
+  const bare = r => { if (isObj(r) && isObj(r.unit)) { delete r.unit.live; delete r.unit.landing; } return r; };
+  [C, T, B].forEach(p => { if (p && Array.isArray(p.rows)) p.rows.forEach(bare); });
+  /* one part not owned by the landing: the tracked board's where it changed it since the landing, else the copy's; an object key by key */
+  const pick = (t, c, b, at) => {
+    if (same(t, c)) return t;
+    if (isObj(t) && isObj(c) && (b === undefined || isObj(b))) {
+      const o = {}; [...new Set([...Object.keys(t), ...Object.keys(c)])].forEach(k => { const v = pick(t[k], c[k], isObj(b) ? b[k] : undefined, `${at}.${k}`); if (v !== undefined) o[k] = v; });
+      return o;
+    }
+    if (B && same(t, b)) return c;
+    /* with no base, a part the tracked board holds nothing for (absent or null: a unit its copy filed) is the copy's; a part it holds, its own */
+    if (!B && (t === undefined || t === null)) return c;
+    kept.push(at); return t;
+  };
+  const out = {}, keys = [...new Set([...Object.keys(T), ...Object.keys(C)])];
+  for (const k of keys) {
+    if (CARRY_OWNED.includes(k)) { if (C[k] !== undefined) out[k] = C[k]; continue; }
+    if (CARRY_GENERATED.includes(k)) { if (T[k] !== undefined) out[k] = T[k]; continue; }
+    if (k === "rows" || k === "milestones") { out[k] = undefined; continue; } /* its place kept, in the tracked board's order of keys; written below */
+    const v = pick(T[k], C[k], B ? B[k] : undefined, k); if (v !== undefined) out[k] = v;
+  }
+  /* the Merged milestone is the landing's; the other milestones as any other part */
+  if (T.milestones !== undefined || C.milestones !== undefined) {
+    const built = m => isObj(m) && m.column === "built", ms = p => p && Array.isArray(p.milestones) ? p.milestones : [];
+    const other = pick(ms(T).filter(m => !built(m)), ms(C).filter(m => !built(m)), B ? ms(B).filter(m => !built(m)) : undefined, "milestones");
+    out.milestones = [...other, ...ms(C).filter(built)];
+  }
+  /* the Rows, in the tracked board's order: each Row's asBuilt the copy's, its other parts as any other part */
+  if (T.rows !== undefined || C.rows !== undefined) {
+    const rs = p => p && Array.isArray(p.rows) ? p.rows.filter(isObj) : [], byId = (p, id) => rs(p).find(r => r.id === id);
+    const landedBuilt = C.status === "built" || ((C.wip || {}).step === "landed");
+    const rows = [];
+    rs(T).forEach(t => {
+      const c = byId(C, t.id), b = B ? byId(B, t.id) : undefined;
+      if (!c) {
+        /* a Row the copy does not have: the copy dropped it when the tracked board still holds it as the landing found it; else the tracked board's own */
+        if (b && same(t, b)) return;
+        if (!b && landedBuilt) { conflicts.push(`Row ${t.id} was added to the tracked board after #${T.issue} landed, and no landing gave it an as-built state`); return; }
+        rows.push(t); if (b) kept.push(`rows.${t.id}`); return;
+      }
+      const r = pick(Object.fromEntries(Object.entries(t).filter(([k]) => k !== "asBuilt")), Object.fromEntries(Object.entries(c).filter(([k]) => k !== "asBuilt")),
+        b ? Object.fromEntries(Object.entries(b).filter(([k]) => k !== "asBuilt")) : undefined, `rows.${t.id}`);
+      if (c.asBuilt !== undefined) r.asBuilt = c.asBuilt;
+      rows.push(r);
+    });
+    rs(C).filter(c => !byId(T, c.id)).forEach(c => {
+      /* a Row only the copy has: one the landing added is the copy's; one the tracked board removed since the landing, or with no base to tell, is a conflict */
+      if (B && !byId(B, c.id)) { rows.push(c); return; }
+      conflicts.push(`Row ${c.id} holds the landing's as-built state on the copy, and the tracked board ${B ? "has removed it since the landing" : "does not have it"}`);
+    });
+    out.rows = rows;
+  }
+  Object.keys(out).forEach(k => { if (out[k] === undefined) delete out[k]; });
+  return conflicts.length ? { plan: null, conflicts, kept } : { plan: out, conflicts, kept };
+}
+
 module.exports = { ...LV, ...PN, PLAN_STAGES, PLAN_STAGE_NAMES, PLAN_STAGE_BRIEFS, STAGE_ROUND, CHECK_RESULTS, planPassIds, planStagesLine, existingPlanSaid, planStagesOf, seedPlanStages, planStageId, planStageName, stageRan, checkResult, planWayBack, planStageMove, planStageLine, planStageLate, planStagesClose, PLAN_STAGE_LINE, planStagesFromTrail, ARCH_STAGES, ARCH_STAGE_BRIEFS, archStagesOf, ARCH_STAGE_LINE, archStagesFromTrail, renameInto, RENAME_BUDGET_MS, stageTable, stepsBelow, stepKids, walkSteps, stepShape, settleSteps, carrySteps, stepNameOf, completeStep, planStageTable, stageKey, stageRow, stageTableFields, catchUpStageTable, stampItem, backfillStages, STAGE_KINDS, refreshSystems, atomicWrite, lockTree, RETIRED_EVENTS, STEPS_BY_LEVEL, systemEntry, foundationPlan, foundationFilling, clearFoundation, ghIssue, firstParagraph, boardPath, LINK_KEYS, linkKeys, linkOf, qaShown, qaRoute, qaInPlace, inPlaceWords, ordinal, QA_PASS_RE, DEP_STATES, ORG_PARENT, LOCALITIES, depLocality, localityKind, depBuild, HOLD_STATES, holdState, filingGlow, unitFiled, unitBoarded, isUnitRef, blockerOf, mapUnitBlockers, filedSummary, filedSummaries, HISTORY_FIELDS, HISTORY_STEPS, qAnswered, askedOf, answerQuestions, syncAsked, STEP_ORDER, LANDING_STEPS, landingSteps, documentSteps, DOC_TASKS, DOC_TASK_NAMES, DOC_LANDING_TASK, TEAM_TASKS, shownStep, visitKey, freezeVisit, freezeSteps, waitsOnUser, waitByOk, isStopped, waitsOf, openWait, waitSteps, outagesOf, hasOutage, outageSteps, retimePlan, RETIME_NOT, retimeWords, retimeWhat, TEAM_RECORDS, rewordPlan, rewordDigest, rewordWhat, docCommitDone, landSent, timelineRows, finishedSteps, trailStep, milestoneStep, reconstructStep, reconstructSteps, roadmapFor, roadmapDocItem, fillRoadmap, okStamp, isTime, tlShade, APPROX_SOURCES, approxBounds, timelineApproxNote, timelineLanded, TRACE_STEPS, timelineTracers, TL_FAMILIES, tlFamily, timelineFamilies, timelineSteps, tlSpan, timelineTotal, timelineLeftOut, tlBoundText, timelineLines, gitTimes, ghMergeTime, commitStep, refNumberOf, refNumberShown, STMT_STATES, stmtList, verdictWritten, statementOutcome, recordedState, closedDuplicate, mdHeadings, parseRef, verdictEntry, VERDICT_KINDS, OPTION_VERDICTS, sectionOf, refLabel, statementRefs, readRef, copyExcerpts, excerptDrift, resolveBoard, BUILDING_STATES, stagedState, builtState, unitInRun, nextUnit, closedNotPlanned, leftForLater, UNIT_LANDED, BOARDLESS_STATES, namesIssue, boardlessState, GLOW_MAP, glowFor, glowMismatch, researchGlow, Q_STATES, Q_NEEDS_FINDINGS, qState, R_PHASES, researchRows, EVENTS, SIDECAR, sidecarText, readSidecar, PANEL_FIELDS, panelFacts, reconciliation, isNoChange, RECON_WORDS, signedOffParent,shownBranch, unitBranch,repoRoot, opt, flag, registry, headingSlugs, openTag, readBlock, writeBlock, findPlans, subIssueBoard, linkSubIssueBoards,
-  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, FILING_TIME, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir };
+  trackingLive, unitRun, subIssuePlan, unitRuns, mirrorUnitRuns, unitTests, mirrorUnitTests, unitLandingOf, unitLandings, mirrorUnitLandings, parentFolder, staleUnitRuns, stampMs, treeRoot, VIEW, viewParts, viewSource, viewBaseFolder, viewBaseHref, viewDirOf, VIEW_BASE_RE, withViewBase, planStamp, viewOf, notYetLanded, landedPending, unitLeft, FILING_TIME, setViewLinks, viewedFolder, viewLink, landVisit, boardFolders, boardLink, parentBoard, fixOfBoard, foldedIn, issueRefs, otherBoards, linkIssueBoards, sharedLinks, linkShared, SUB_BOARD_MARKER, ISSUE_BOARD_MARKER, linkRule, skillDir, carryMerge, CARRY_OWNED };

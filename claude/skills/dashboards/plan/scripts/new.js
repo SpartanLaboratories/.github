@@ -6,6 +6,9 @@
 //               [--title "Short name"] [--issue-title "The issue's title"] [--function "One paragraph"]
 //               [--baseline <sha>] [--date YYYY-MM-DD] [--branch <name>] [--systems slug,slug] [--step <step>] [--repo owner/name]
 //               [--at <ISO time>]   the sized event's time, the run's start (plan.sized, wip.since); default now
+// --step none lays the board not started: no step, no run's start, no event, no visit, nothing glowing (lib.js foundationPlan() with no step). It is
+// how a tracking board is laid after its units' runs started, its own planning steps not recorded; each unit's start is then recorded at its own
+// time by the team's backfill-start, in the order the units started (plan/RULES.md §4, the backfill-start row).
 // The repository root is --root, else the current directory. Systems take their names and colour slots from
 // docs/dashboards/systems.json. Refuses to overwrite. Anything not given stays a <placeholder> that check.js refuses.
 // With --parent, the new board links its parent's board (parent.board, set by embed.js only when the parent folder holds one), and
@@ -55,7 +58,7 @@ const now = (AT ? new Date(AT) : new Date()).toISOString().replace(/\.\d+Z$/, "Z
 /* the step it starts at, by default the research where its steps line has one, else the plan: a small fix runs no research, so its line has
    none and a --step research on it is refused (plan/RULES.md §3, §4) */
 const line = STEPS_BY_LEVEL[level ? parseInt(level, 10) : null] || STEPS_BY_LEVEL[kind === "tracking" ? 4 : 3];
-const step = opt(args, "step", line.includes("research") ? "research" : "plan"); // its wip.current comes from the step-to-column map (plan/RULES.md §3): lib.js glowFor()
+const stepArg = opt(args, "step", line.includes("research") ? "research" : "plan"), step = stepArg === "none" ? null : stepArg; // its wip.current comes from the step-to-column map (plan/RULES.md §3): lib.js glowFor()
 if (step === "research" && !line.includes("research")) { console.error("--step research: a small fix's steps line has no research step (it runs no research); lay it at plan"); process.exit(2); }
 const plan = foundationPlan(skeleton, {
   repo, issue, name, rel, kind, step, now,

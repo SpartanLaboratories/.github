@@ -247,6 +247,26 @@ module.exports = function casesSweep(X) {
     c.push(["embed.js refuses the board again, nothing written", e.status === 1 && /PRIVATE REPOSITORY: .*rows\[0\]\.gap\.summary/.test(e.stderr) && files(root, p.folder) === before, (e.stdout + e.stderr).slice(-300)]);
   });
 
+  /* board.js composes a halted Row's detail, "Waiting on you: " and the board's own waitingOn (or detail): the sweep lists the board's text, so the
+     composed text is known by the mark of the text it was composed from (privaterefs.js COMPOSED, sweeplib.js split()), on every path that reads the
+     repository work board (board.js, embed.js, check.js); never any other text that merely begins so */
+  guard("a halted Row's composed detail on the repository work board is kept by the mark of the board's own text (board.js \"Waiting on you: \")", c => {
+    const SW = require(sk("system/scripts/sweeplib.js")), PR = require(sk("system/scripts/privaterefs.js"));
+    const keep = { V: process.env.DASHBOARDS_VERIFY, S: process.env.DASHBOARDS_SWEEPS, P: process.env.DASHBOARDS_PRIVATES };
+    try {
+      const rec = path.join(sc, `record-composed-${++n}.json`); process.env.DASHBOARDS_VERIFY = "1"; process.env.DASHBOARDS_PRIVATES = FIXTURE; process.env.DASHBOARDS_SWEEPS = rec; SW.forget();
+      SW.writeRecord({ schema: SW.SCHEMA, sweeps: [{ rule: "private-repositories", swept: "2026-11-20T01:00:00Z", repositories: [{ repo: "acme/widgets", landed: null, texts: [SW.textHash(OLD)] }] }] }); SW.forget();
+      const wb = detail => ({ schema: "work-board/1", rows: [{ issue: 3, status: "halted", step: "halted", detail }] });
+      let lines = null, err = null; try { lines = PR.guardBoard(wb(`Waiting on you: ${OLD}`), "work-board", "board.json"); } catch (e) { err = e.message; }
+      c.push(["the composed detail is kept: warned, naming the sweep, not refused", !err && (lines || []).some(l => /^PRIVATE REPOSITORY, KEPT BY A SWEEP: board\.json .*rows\[0\]\.detail/.test(l)), js([err, lines])]);
+      const sp = SW.split(PR.RULE, PR.refsIn(wb(`Waiting on you: ${OLD}`), PR.privatesOf()));
+      c.push(["…on the checker's path too (refsIn, split)", sp.kept.length === 1 && !sp.fresh.length, js([sp.kept.length, sp.fresh.length])]);
+      const refusedFor = d => { try { PR.guardBoard(d, "work-board", "board.json"); return false; } catch (e) { return /^PRIVATE REPOSITORY: board\.json/.test(e.message); } };
+      c.push(["a composed detail from a text the sweep does not list: refused", refusedFor(wb("Waiting on you: The helpers moved to acme/VaultKeeper.")), "rows[0].detail"]);
+      c.push(["the same words anywhere but a Row's detail: refused (only the composition board.js makes is read so)", refusedFor({ schema: "work-board/1", rows: [{ issue: 3, note: `Waiting on you: ${OLD}` }] }), "rows[0].note"]);
+    } finally { ["V", "S", "P"].forEach(k => { const name = { V: "DASHBOARDS_VERIFY", S: "DASHBOARDS_SWEEPS", P: "DASHBOARDS_PRIVATES" }[k]; if (keep[k] === undefined) delete process.env[name]; else process.env[name] = keep[k]; }); SW.forget(); }
+  });
+
   return groups;
 };
 

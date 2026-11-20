@@ -106,13 +106,17 @@ function walk(v, at, key, fn) {
 /* A board's data on its way to be written: each quoted text that names a private repository elided in place; every other text that names
    one listed, for the writer to refuse. skip(at) leaves a path alone (a fill's identifiers, which find an item by the text it holds).
    Returns { elided: [{ at, n }], named: [{ at, keys }] }. */
+/* A text a writer composes from a board's own text (board.js: a halted row's detail, "Waiting on you: " and the board's waitingOn or detail) is known to a
+   sweep's warning stage by the text it was composed from too: h2, the mark of that text, which a sweep lists where it is on a board (sweeplib.js split()) */
+const COMPOSED = [{ kind: "work-board", at: /^rows\[\d+\]\.detail$/, prefix: "Waiting on you: " }];
+const composedMark = (kind, at, s) => { const c = COMPOSED.find(x => x.kind === kind && x.at.test(String(at || "")) && String(s).startsWith(x.prefix)); return c ? { h2: SW().textHash(String(s).slice(c.prefix.length)) } : {}; };
 function guardData(data, kind, privates, skip) {
   const k = kind === undefined ? kindOf(data) : kind, elided = [], named = [];
   if (!privates || !privates.size || data == null || typeof data !== "object") return { elided, named };
   walk(data, "", null, (s, at, key) => {
     if (skip && skip(at)) return undefined;
     if (isQuoted(k, at)) { const r = elidePrivate(s, privates); if (r.n) { elided.push({ at, n: r.n }); return r.text; } return undefined; }
-    const keys = stringRefs(s, key, privates); if (keys.length) named.push({ at, keys, h: SW().textHash(s) });
+    const keys = stringRefs(s, key, privates); if (keys.length) named.push({ at, keys, h: SW().textHash(s), ...composedMark(k, at, s) });
     return undefined;
   });
   return { elided, named };
@@ -122,7 +126,8 @@ function guardData(data, kind, privates, skip) {
 function refsIn(data, privates) {
   const out = [];
   if (!privates || !privates.size || data == null || typeof data !== "object") return out;
-  walk(JSON.parse(JSON.stringify(data)), "", null, (s, at, key) => { const keys = stringRefs(s, key, privates); if (keys.length) out.push({ at, keys, h: SW().textHash(s) }); return undefined; });
+  const k = kindOf(data);
+  walk(JSON.parse(JSON.stringify(data)), "", null, (s, at, key) => { const keys = stringRefs(s, key, privates); if (keys.length) out.push({ at, keys, h: SW().textHash(s), ...composedMark(k, at, s) }); return undefined; });
   return out;
 }
 /* Each line of a page's own text that names a private repository (the page with its data blocks emptied, sweeplib.js stripBlocks(); a state board's

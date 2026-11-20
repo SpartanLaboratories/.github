@@ -75,7 +75,8 @@ function kept(ruleId, h) {
 }
 function split(ruleId, list) {
   const out = { kept: [], fresh: [] };
-  (list || []).forEach(x => { const s = kept(ruleId, x && x.h); if (s) out.kept.push({ ...x, sweep: s }); else out.fresh.push(x); });
+  /* a composed text (privaterefs.js COMPOSED) is kept by the mark of the text it was composed from too, h2 */
+  (list || []).forEach(x => { const s = kept(ruleId, x && x.h) || (x && x.h2 ? kept(ruleId, x.h2) : null); if (s) out.kept.push({ ...x, sweep: s }); else out.fresh.push(x); });
   return out;
 }
 const keptWords = s => `already on a board when the rule was placed: the sweep of ${String(s.swept || "").slice(0, 10)} (${s.rule}) lists it in ${s.repo}, whose fixes have not landed; until they do it is warned, and only a text newly written is refused (GUIDANCE.md §11, "A rule that can fail boards")`;

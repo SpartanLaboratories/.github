@@ -213,6 +213,13 @@ stamped as `system/RULES.md` §10 says of a rebuild, not at step 3's single
 sha, and check them as step 5 does; the executor commits the result (the admin
 team's brief, Board-file conflicts).
 
+**A work-board rebuild after a sync.** When the team gives you generated
+work-board files the executor restored to `HEAD` because git refused a
+`prepare-landing` sync or a `sync-branch` over them, rebuild them in the
+worktree from the merged state (`embed.js`, `board.js`, `org-board.js`), check
+them as step 5 does, and leave them uncommitted for the run's document-landing
+commit (the admin team's brief, Board-file conflicts).
+
 ### Post-merge-refresh mode
 
 After the team has merged, in the main checkout at the merge commit: the landed

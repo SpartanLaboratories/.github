@@ -106,7 +106,10 @@
 // refresh's plan and the batch check, the links list, the ideas writer and its check, the Ideas Card and the Ideas Panel, the publish step. The
 // private repositories (verify/cases-private-names.js, plan/RULES.md §1): one rule, quoted names cut to "…", other text refused, the checks failing. The
 // sweep of a rule that can fail boards (verify/cases-sweep.js, GUIDANCE.md §11): the sweep, its record, and its warning stage, in which the checks warn
-// on a text already on a board and the writers refuse only a text newly written, until the fixes land. A
+// on a text already on a board and the writers refuse only a text newly written, until the fixes land, a halted row's composed detail on the repository work
+// board kept by its board's own text. The carry merges (verify/cases-carry-merge.js, plan/RULES.md §4): a landing's view copy merged into its tracked board,
+// never written over it, with the seeding order and writeBlock()'s line endings. The team-raised backfill-start (verify/cases-backfill-start.js, plan/RULES.md
+// §4): a unit's start recorded at its recorded time on a tracking board laid after it. A
 // template is recorded only when every check it runs passes: by default those that need no browser; with --browser its browser
 // passes and the rendered cases too.
 "use strict";
@@ -2502,6 +2505,19 @@ catch (e) { console.log(`FAILED   the private repositories' cases: ${e.message}`
    stage's end at the fixes' landing. It needs no browser, and runs on its own too. */
 if (runs()) try { require("./cases-sweep.js")({ sk, out, targets, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { console.log(`FAILED   the sweep's cases: ${e.message}`); linkFailures++; }
+
+/* The carry merges (verify/cases-carry-merge.js; plan/RULES.md §4, "The carry merges"; the user's decision q-419 a, p79): lib.js carryMerge() (what the landing
+   owns the copy's, what the tracked board changed since the landing its own, any other conflict refused), the seeding keeping a later docs landing's changes and
+   re-copying the excerpts, a conflict carrying neither copy of the landing, the seeding order (a tracking board written after the copies inside it, so its unit
+   keeps unit.landing), and lib.js writeBlock() in the page's line endings (hook-317). It needs no browser, and runs on its own too. */
+if (runs()) try { require("./cases-carry-merge.js")({ sk, out, targets, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { console.log(`FAILED   the carry merge cases: ${e.message}`); linkFailures++; }
+
+/* The team-raised backfill-start (verify/cases-backfill-start.js; plan/RULES.md §4, its row; the user's decision q-418 1a): a tracking board laid after its units
+   started, not started (new.js --step none), each unit's start recorded at its recorded time in the order the units started, a unit whose board has landed landed
+   at its merge by the standing rule, one correction entry each, a duplicate raised again, its refusals. It needs no browser, and runs on its own too. */
+if (runs()) try { require("./cases-backfill-start.js")({ sk, out, targets, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
+catch (e) { console.log(`FAILED   the backfill-start cases: ${e.message}`); linkFailures++; }
 
 /* A part (the header): its result, written whole (beside it, then renamed), and no rendering or record; the files it ran on must not have
    changed while it ran */
