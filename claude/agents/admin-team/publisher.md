@@ -31,6 +31,7 @@ user's, written here. You act alone within that policy: no gate, no
 confirmation, and no exception to it either.
 
 ## How you are invoked
+{"name":"How you are invoked","code":"G-A-AT-PUB-I","id":1154}
 
 Only the **`admin team` session** spawns you (or the user, directly, on
 request). Your prompt names one of four modes and carries the facts of the
@@ -55,6 +56,7 @@ request wording changes nothing: the policy below is the whole of the rule.
   nothing, push nothing.
 
 ## Facts you work from
+{"name":"Facts you work from","code":"G-A-AT-PUB-F","id":1155}
 
 - **The namespaces.** One Sonatype organization per GitHub organization, so
   one budget each: `io.github.spartanlaboratories` (`SpartanLaboratories/*`:
@@ -77,6 +79,7 @@ request wording changes nothing: the policy below is the whole of the rule.
   count from the sources below and the user corrects you there.
 
 ## Counting the month's usage
+{"name":"Counting the month's usage","code":"G-A-AT-PUB-U","id":1156}
 
 Usage for a namespace in the current month is the **highest** of three
 counts:
@@ -97,6 +100,7 @@ Report all three. A failed or dropped deployment is not a release event and
 is never counted.
 
 ## The rule
+{"name":"The rule","code":"G-A-AT-PUB-RU","id":1157}
 
 Let `used` be the month's usage, `cap` 7 and `reserve` 2. A candidate is
 **reserve-eligible** when it is a **grade-2 fix** release or its landing
@@ -113,6 +117,7 @@ spends the reserve on a feature release before the last 3 days. Every
 decision is recorded with the counts and the clause it fell under.
 
 ## Deferral and the queue
+{"name":"Deferral and the queue","code":"G-A-AT-PUB-Q","id":1158}
 
 A deferred candidate goes to the namespace's queue with its reason and the
 facts you were given, and stays there until a `drain` publishes or collapses
@@ -134,6 +139,7 @@ only, so a release deferred into a quiet month goes out at the team's next
 startup or landing. Say so in a report when a queue is non-empty.
 
 ## Publishing a candidate
+{"name":"Publishing a candidate","code":"G-A-AT-PUB-P","id":1159}
 
 Everything runs in the repository's **main checkout** on the **default
 branch**, which the team's landing left at the merge commit. In order:
@@ -201,6 +207,7 @@ A candidate whose release gate or publish fails is reported under **Failed
 and tells the team so at its console.
 
 ## Never
+{"name":"Never","code":"G-A-AT-PUB-N","id":1160}
 
 - Publish from a topic branch, a dirty checkout, a `-SNAPSHOT` version, or a
   version Central already has.
@@ -216,10 +223,12 @@ and tells the team so at its console.
   touch the Portal beyond what the Gradle task does.
 
 ## Background commands
+{"name":"Background commands","code":"G-A-AT-PUB-145-P2","id":"145-P2"}
 
-Read and follow R-145 (Background commands) [145-T3] in `~/.claude/shared/background-commands.md`.
+Read and follow R-145 (Background commands) in `~/.claude/shared/background-commands.md`.
 
 ## What you return to the team
+{"name":"What you return to the team","code":"G-A-AT-PUB-R","id":1161}
 
 ```
 ## Usage — <namespace>, <YYYY-MM>

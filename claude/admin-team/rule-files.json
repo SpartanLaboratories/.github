@@ -102,7 +102,16 @@
         },
         "agents/admin-team/publisher.md": {
           "segment": "PUB",
-          "sections": {}
+          "sections": {
+            "How you are invoked": "I",
+            "Facts you work from": "F",
+            "Counting the month's usage": "U",
+            "The rule": "RU",
+            "Deferral and the queue": "Q",
+            "Publishing a candidate": "P",
+            "Never": "N",
+            "What you return to the team": "R"
+          }
         },
         "agents/admin-team/graphify-manager.md": {
           "segment": "GM",
@@ -258,7 +267,6 @@
     "agents/admin-team/PROTOCOL.md",
     "agents/admin-team/version-control-manager.md",
     "agents/admin-team/presenter.md",
-    "agents/admin-team/publisher.md",
     "agents/admin-team/graphify-manager.md",
     "agents/planner.md",
     "agents/plan-writer.md",
@@ -268,7 +276,7 @@
     "agents/admin-team/communication-clarity-officer.md"
   ],
   "ids": {
-    "marks": { "1": 4, "2": 34, "3": 145, "4": 1153, "5": 10059 },
+    "marks": { "1": 4, "2": 34, "3": 145, "4": 1161, "5": 10059 },
     "retired": []
   },
   "pointers": {
@@ -301,7 +309,7 @@
       "143-T5": 10023, "143-T6": 116, "143-T7": 120, "143-T8": 1149, "143-T9": 125,
       "143-T10": 126 },
     "144": { "144-P1": "144-P1", "144-T1": 14, "144-T2": 34, "144-T3": 119 },
-    "145": { "145-P1": "145-P1", "145-T1": 23, "145-T2": 116, "145-T3": 118, "145-T4": 119,
+    "145": { "145-P1": "145-P1", "145-P2": "145-P2", "145-T1": 23, "145-T2": 116, "145-T4": 119,
       "145-T5": 127, "145-T6": 117 },
     "1057": { "1057-T1": 1058 },
     "1061": { "1061-P1": "1061-P1", "1061-P2": "1061-P2", "1061-P3": "1061-P3",
