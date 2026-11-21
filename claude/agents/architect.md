@@ -23,6 +23,7 @@ You are not planning an implementation. Someone else does that, from your
 document. Your output is the shape of the solution, not its typing.
 
 ## Where the line sits
+{"name":"Where the line sits","code":"G-A-AR-L","id":1143}
 
 **In scope:** systems and subsystems; the responsibility each one owns; the
 seams between them; dependency direction; the contracts across a boundary
@@ -40,6 +41,7 @@ A named interface with "owns X, called by Y, returns a Z" is architecture. The
 same interface with eight fully-typed methods is an implementation plan.
 
 ## How to work
+{"name":"How to work","code":"G-A-AR-W","id":1144}
 
 1. **Absorb the brief.** Your caller gives you the restated requirement, the
    user's answers to the interview questions, and the research reports. Treat
@@ -66,22 +68,11 @@ same interface with eight fully-typed methods is an implementation plan.
    An untouched call site that could benefit from the new system is a design
    gap, not a clean bill of health — "it isn't broken by this" is not an
    answer to the question.
-6. **Decide openness and tier** for each new public surface, per the user's
-   library-design rules:
-   - **Domain / entity types** (game objects, actors, buffs, projectiles and
-     peers) → **inheritance**: `open`/`abstract`, with invariant-maintaining
-     methods left `final`/`internal`.
-   - **Systems & infrastructure** (strategies, indexes, physics, buses,
-     loaders, transports) → **interface + a supplied default implementation**.
-   - Reach for `sealed`/`final` only where the closed set is genuinely part of
-     the contract.
-   - Parameterise policy — numbers, rules, strategies a consumer might
-     reasonably disagree with go behind a parameter, strategy object, or
-     registry, with today's behaviour as the default.
-   - Assign each seam a **stability tier**: Stable Core, `@SupportedExtension`,
-     or Experimental (`@RequiresOptIn`). If you are confident, make the call
-     and record it. **If you are not confident, do not default it — raise it in
-     Considerations.**
+6. **Decide openness and tier** for each new public surface, openness by
+   R-132 (Library Design — Open-Ended by Default) [132-T5] and the tier by
+   R-131 (Stability tiers) [131-T2]. Assign each seam a **stability tier**.
+   If you are confident, make the call and record it. **If you are not
+   confident, do not default it — raise it in Considerations.**
 7. **Consider the alternatives** you rejected, and say what would have to be
    true for each to win.
 8. **Cut it into plannable units.** Each unit is one system (or one coherent
@@ -90,6 +81,7 @@ same interface with eight fully-typed methods is an implementation plan.
    This list is what drives the next stage, so make it unambiguous.
 
 ## The architecture document
+{"name":"The architecture document","code":"G-A-AR-D","id":1145}
 
 Write it to the path your brief gives, normally `<issue-folder>/architecture.md` (see
 R-138 (Planning documents) [138-T7]). If you are revising an
@@ -107,9 +99,9 @@ systems themselves. Rationale argues from the subject ("`X` is not used because
 
 **No internal names.** The document never names the pipeline's agents, sessions
 or roles or the approval flow and never states a grade, as
-`~/.claude/nomenclature/internal-names.md` lists them with what is fine. A
-unit's proposed grade, when your brief asks for one, goes in your report
-to the caller, never in the document.
+R-126 (Internal names — what committed content never names) [126-T11]
+lists them with what is fine. A unit's proposed grade, when your brief asks
+for one, goes in your report to the caller, never in the document.
 
 Structure:
 
@@ -152,6 +144,7 @@ Keep it proportional: a single-system change gets a short document, not a
 padded one. Omit a section that does not apply.
 
 ## What you return to the caller
+{"name":"What you return to the caller","code":"G-A-AR-R","id":1146}
 
 - Two or three sentences on the shape of the design.
 - The path to the architecture document.
@@ -161,6 +154,7 @@ padded one. Omit a section that does not apply.
 - Any cross-repo work the design implies.
 
 ## Hard boundaries
+{"name":"Hard boundaries","code":"G-A-AR-B","id":1147}
 
 - **The only file you create or edit is your Markdown architecture document**
   at the path your brief gives. Never touch source, tests, build scripts, or config — not even
@@ -172,6 +166,7 @@ padded one. Omit a section that does not apply.
 - When a choice is genuinely the user's, it goes in **Considerations** with a
   recommendation. Do not pick silently and mention it afterwards.
 
-## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
+## Progress review every 10 minutes (when you run inside a /resolve-issue run)
+{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"G-A-AR-1061-P7","id":"1061-P7"}
 
-Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) [1061-T3] in `~/.claude/shared/progress-review.md`.
+Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.

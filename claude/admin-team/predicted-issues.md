@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":39,"last":"2026-11-21"}
+{"id":"p9","count":40,"last":"2026-11-21"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -297,6 +297,11 @@ The permission system raises the denial.
     (the entries for a deletion or a cleanup refused are about the permission system or the auto mode classifier, and
     about other actions); added as "A member's removal of its own scratch files, appended to another command, is stopped
     by the harness's built-in safety check".
+  - 2026-11-21, about 08:34Z, found at 16:22Z: the user's interrupt of the Coordinator's turn stopped a member's job running in
+    the background, with no notice of any kind, and the harness refused to resume it, a case no entry holds (the entry for
+    the team's session ending without a handoff is about the session ending, the entry for a member job ending on an API or
+    account error about a job that sends a failure notice and is resumed); added as "The user's interrupt of the
+    Coordinator's turn stops a member job running in the background, and no notice of it comes".
 
 ## A count changes in this mirrored file
 
@@ -1489,3 +1494,16 @@ A member ends a job by removing its own scratch files, appending the removal to 
 - **Encounters:**
   - 2026-11-21, about 03:11Z: an Archivist tracker job appended `rm -f "$S"/*.js "$S/predicted-issues.bak"`, with `$S` its scratchpad, to a validation command; in its words, the call was stopped "by the built-in safety check rather than the user", which "flagged the variable expansion; the whole call did not run." It did not retry the removal by any route, ran the validation again alone, and it passed. Its four working files stayed in the scratchpad. As the Archivist's report gave it, relayed by the Coordinator.
   - 2026-11-21, between about 03:27Z and 03:42Z: a Presenter job in its skills lane, verifying a change: "a command that would have run `rm -f diffs/*` (relative, after a `cd`) was refused: 'Dangerous rm operation detected: …'", and the path the check named was a `diffs` folder under the team's own folder, not the scratch folder the Presenter meant. In its words, "No removal was intended there; the diffs were overwritten by absolute path instead, and nothing was removed." The Coordinator adds that the working directory starts at the team's folder at each call, so the check resolved the relative path there, and that no such folder exists there: no harm. As the Presenter reported it and the Coordinator added, not re-checked by the Archivist.
+
+## The user's interrupt of the Coordinator's turn stops a member job running in the background, and no notice of it comes
+
+```json
+{"id":"p88","count":1,"last":"2026-11-21"}
+```
+
+When the user interrupts the Coordinator's turn at the console while a member's job runs in the background, the harness stops that job as well, and the Coordinator receives no notice of the stop: neither a completion notice nor a failure notice. The harness treats the job as cancelled by the user and does not resume it: a message to its executor is refused, and a new agent is launched only at the user's explicit word, whatever the user meant by the interrupt. Two harms follow: work the user wanted is cancelled without the user meaning it, and the Coordinator, with no notice, goes on reporting the job as running. It can recur at every interrupt while a member's job runs. It is not "The team's session ends without a handoff while jobs are running", where the team's own session ends; here the session goes on. Nor is it "A member job of the team ends early on an API or account error", where a failure notice comes and the job is resumed with its same id; here no notice comes and the job cannot be resumed. Nor "A command runs past the harness's time limit and the harness moves it to the background", which is about a single command and a job whose turn ends on its own. That the interrupt is the cause rests on the timing and on the harness's refusal; the Coordinator could not prove it otherwise, and the Archivist did not check it.
+
+- **Proposed resolution:** the practice the Coordinator has adopted: after any interrupted turn, and before it says a job is running, it checks each job the ledger shows started for its last sign of work (its scratch folder's last write, what it was to produce), tells the user which jobs the interrupt stopped, and starts one again only at the user's word. Whether that becomes a rule of the team's brief is put to the user as a question.
+- **Predicted:** the admin team, on meeting it, 2026-11-21.
+- **Encounters:**
+  - 2026-11-21, about 08:34Z: the Presenter's fix job on the issue-board template, started in the background at 07:48:32Z, stopped when the user interrupted the Coordinator's turn to retype a question; the Coordinator's call before the interrupt ran at 08:34:37Z and the one after at 08:35:14Z, and the last write in the job's scratch folder is at 08:34:39Z, in the 23rd part of its third verification round. No notice reached the Coordinator. Without checking, it told the user three times, at about 08:43Z, 08:52Z and 09:00Z, that the job was still running, and found the stop at 16:22Z, about eight hours later, when it started another job and read the clock. Its message to the job's executor at 16:25Z was refused by the harness: the agent was stopped and will not be resumed, its work is to be treated as cancelled. Nothing was lost or half-placed: the job worked on a copy and had placed nothing, and the live template, its verification record and the one working board are unchanged; the stopped job's scratch folder is left as it is. The Coordinator told the user, started no new job, and put two questions to the user: whether to start the fix job again, and whether a check for a stopped member job is written into the team's brief. As the team's ledger records it (its request and started lines, two coordinator notes, the job's waiting state and the two questions), read by the Archivist; the scratch folder's times, the absence of any notice and the harness's wording as the Coordinator reported them, not re-checked by the Archivist.
