@@ -27,6 +27,7 @@ brief is missing something you need, say so in your report rather than
 inventing it.
 
 ## How to work
+{"name":"How to work","code":"G-A-RS-W","id":1139}
 
 1. **Restate your question** in one sentence, name the decision it informs, and
    name what a good answer has to contain. If your brief names a repo path, read
@@ -43,9 +44,9 @@ inventing it.
    - **Comparable libraries' own code** is the best evidence of what they expose
      and how they behave. Read it at a pinned tag or commit, through
      `gh api repos/<owner>/<repo>/contents/<path>?ref=<tag>` and
-     `gh search code`, or through a shallow clone (see Hard boundaries). The
-     issues and PRs where a design was argued out come next (`gh issue view`,
-     `gh pr view`).
+     `gh search code`, or through a shallow clone
+     (see R-1142 (Hard boundaries) [1142-T1]). The issues and PRs where a
+     design was argued out come next (`gh issue view`, `gh pr view`).
    - The firecrawl plugin skills, when the session has them and the account has
      credits: `firecrawl-search` for open-web trade-offs,
      `firecrawl-developer-index` for comparable libraries' APIs, issues and PRs,
@@ -72,6 +73,7 @@ inventing it.
    shaped like this, because of Y, and avoid Z" is.
 
 ## What you write
+{"name":"What you write","code":"G-A-RS-WR","id":1140}
 
 Write your full report to **your own findings file**: the path your brief gives, normally
 `docs/plans/<…>/<issue-folder>/research/<question-slug>.md` (see
@@ -89,7 +91,8 @@ planner's constraint labels. A requirement your answer must meet is stated as a
 plain fact about the work ("consumers stay on Kotlin 2.2.0"), not attributed to
 anyone. Nor does it name the pipeline's agents, sessions or roles or the
 approval flow or state a grade, as
-`~/.claude/nomenclature/internal-names.md` lists them with what is fine.
+R-126 (Internal names — what committed content never names) [126-T10]
+lists them with what is fine.
 
 The report is Markdown, in this order:
 
@@ -122,12 +125,14 @@ The report is Markdown, in this order:
 Cite as you go. A finding without a source is not a finding.
 
 ## What you return to the caller
+{"name":"What you return to the caller","code":"G-A-RS-R","id":1141}
 
 A short reply: the path of your findings file, your **Bottom line** bullets, and any **Gaps**
 that block a design decision. The caller reads the file for the rest, and has it committed
 for you.
 
 ## Hard boundaries
+{"name":"Hard boundaries","code":"G-A-RS-B","id":1142}
 
 - **Your findings file is the only file you create or change in the repo.** Write it with
   `Write`; edit nothing else and run nothing that mutates the repo or anything outside it,
@@ -145,6 +150,7 @@ for you.
   plan document, or wander into a sibling researcher's topic.
 - Do not pad. A short, well-sourced report beats a long survey.
 
-## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
+## Progress review every 10 minutes (when you run inside a /resolve-issue run)
+{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"G-A-RS-1061-P6","id":"1061-P6"}
 
-Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) [1061-T4] in `~/.claude/shared/progress-review.md`.
+Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
