@@ -866,7 +866,8 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 /* Who feels it (plan/RULES.md §2, "Who feels it"): the impact's downstream entries on the party Orbits round the change (.party-orbit, one
    per kind of party, each named by its .orbit-label), beside their list. An entry Chip (.entry-chip) takes the Consequences sub-Tab's colour
    for its entry: red breaking, yellow worth noting, its system's colour otherwise (muted outside the repository's systems); each entry Chip
-   is numbered and its line in the list carries the entry's effect with its glyph and word, so no colour stands alone. Nothing is dashed: it
+   is numbered, stands again beside its line in the list (a <span> there, a <g> on its party Orbit), and that line carries the entry's effect
+   with its glyph and word, so no colour stands alone. Nothing is dashed: it
    shows the impact as it now stands, as Consequences does. */
 .who-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 32px;align-items:start}
 @media (max-width:900px){.who-wrap{grid-template-columns:minmax(0,1fr)}}
@@ -881,15 +882,15 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .who-orbits .entry-chip:focus-visible circle,.who-orbits .entry-chip.on circle{stroke:var(--on);stroke-width:3}
 .who-orbits .wc circle{fill:var(--ink)}
 .who-orbits .wc text{font:700 15px var(--display);fill:var(--surface)}
-.entry-chip,.who-list .wk{--sc:var(--c,var(--muted))}
-.entry-chip.critical,.who-list .wk.critical{--sc:var(--critical)}
-.entry-chip.warning,.who-list .wk.warning{--sc:var(--warning)}
+.entry-chip{--sc:var(--c,var(--muted))}
+.entry-chip.critical{--sc:var(--critical)}
+.entry-chip.warning{--sc:var(--warning)}
 .who-list{list-style:none;margin:0;padding:0;border-top:3px solid var(--rule)}
 .who-list>li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 10px;padding:10px 6px 11px 0;border-bottom:1px solid var(--line);cursor:pointer;min-width:0}
 .who-list>li:hover{background:var(--surface-2)}
 .who-list>li.on{background:var(--surface-2);outline:2px solid var(--on);outline-offset:-2px}
-.who-list .wk{width:24px;height:24px;border-radius:50%;background:var(--sc);color:var(--surface);font:700 13px/24px var(--display);text-align:center}
-.who-list .wk.warning{color:var(--on-warning)}
+.who-list .entry-chip{width:24px;height:24px;border-radius:50%;background:var(--sc);color:var(--surface);font:700 13px/24px var(--display);text-align:center}
+.who-list .entry-chip.warning{color:var(--on-warning)}
 .who-list .wh{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;min-width:0}
 .who-list .wh b{font:700 17px/1.2 var(--display);letter-spacing:.01em;color:var(--ink);overflow-wrap:anywhere}
 .who-list p{grid-column:2;margin:0;font-size:13.5px;color:var(--ink-2);overflow-wrap:anywhere}
@@ -1077,7 +1078,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
     <div class="legend" id="built-key"></div>
     </div>
     <div class="bsub" role="tabpanel" id="p-who" aria-labelledby="t-who" hidden>
-    <h2>Who feels it: who the change reaches, party Orbit by party Orbit</h2>
+    <h2>Who feels it: who the change reaches, Orbit by Orbit</h2>
     <p class="lede" id="who-lede"></p>
     <div id="who-body"></div>
     <div class="legend" id="who-key"></div>
@@ -3115,8 +3116,8 @@ function renderImpact(){
    change, one per kind of party: the innermost the systems (kind system), the middle the published artifacts (artifact), the outermost the
    repositories, consumers and operators (repository, consumer, operator; an entry of no known kind with them). The data holds no distance of
    its own: an entry's party Orbit is its kind. Each entry stands on its party Orbit as an entry Chip, numbered and coloured as its entry is on
-   Consequences (compatOf(): red breaking, yellow worth noting, its system's colour otherwise, muted outside the repository's systems); its
-   line in the list beside carries the entry's kind and effect Badges, so no colour stands alone. Under the party Orbits, the release the
+   Consequences (compatOf(): red breaking, yellow worth noting, its system's colour otherwise, muted outside the repository's systems), and
+   again, the same entry Chip, beside its line in the list, which carries the entry's kind and effect Badges, so no colour stands alone. Under the party Orbits, the release the
    change takes; under the list, what each party must do (impact.adaptation). It shows the impact as it now stands and no planning
    information: nothing dashed, no basis, no changes. A click on an entry Chip or a line selects both and opens the entry in the inspector
    (inspectImpact()). With no impact recorded it says so, as Consequences does. */
@@ -3136,17 +3137,17 @@ function renderWho(){
     const orbits=R.map(r=>`<path class="party-orbit" d="M${cx-r} ${cy} A${r} ${r} 0 0 1 ${cx+r} ${cy}"/>`).join("");
     /* each party Orbit named under the baseline, in the band between it and the party Orbit inside it */
     const labs=R.map((r,k)=>{ const x=cx-(r+(k?R[k-1]:30))/2; return `<text class="orbit-label" x="${x}" y="${cy+20}" text-anchor="middle">${WHO_ORBITS[k].lines.map((l,i)=>`<tspan x="${x}" dy="${i?14:0}">${esc(l)}</tspan>`).join("")}</text>`; }).join("");
-    const svg=`<svg viewBox="0 0 640 370" role="img" aria-label="Who the change reaches, party Orbit by party Orbit"><title>Who the change reaches, party Orbit by party Orbit</title>${orbits}${labs}<g class="wc"><circle cx="${cx}" cy="${cy-6}" r="28"/><text x="${cx}" y="${cy-1}" text-anchor="middle">#${esc(PLAN.issue)}</text></g>${chips}</svg>`;
+    const svg=`<svg viewBox="0 0 640 370" role="img" aria-label="Who the change reaches, Orbit by Orbit"><title>Who the change reaches, Orbit by Orbit</title>${orbits}${labs}<g class="wc"><circle cx="${cx}" cy="${cy-6}" r="28"/><text x="${cx}" y="${cy-1}" text-anchor="middle">#${esc(PLAN.issue)}</text></g>${chips}</svg>`;
     const rel=I.release&&IMP_BUMP[I.release.bump]?I.release:null;
-    const list=`<ol class="who-list">${ds.map(d=>`<li data-imp="downstream.${d.i}"><span class="wk${d.c==="compatible"?"":" "+COMPAT[d.c].cls}" data-sys="${esc(d.slug)}" aria-hidden="true">${d.n}</span><div class="wh"><b>${rich(d.x.who||"")}</b>${d.x.kind&&IMP_KIND[d.x.kind]?`<span class="badge">${esc(IMP_KIND[d.x.kind])}</span>`:""}${IMP_EFFECT[d.x.effect]?ibadge(IMP_EFFECT[d.x.effect]):""}${d.c==="compatible"||(IMP_EFFECT[d.x.effect]||{}).cls===COMPAT[d.c].cls?"":pill(COMPAT[d.c])}</div>${d.x.summary?`<p>${rich(d.x.summary)}</p>`:""}</li>`).join("")}</ol>`;
+    const list=`<ol class="who-list">${ds.map(d=>`<li data-imp="downstream.${d.i}"><span class="entry-chip${d.c==="compatible"?"":" "+COMPAT[d.c].cls}" data-sys="${esc(d.slug)}" aria-hidden="true">${d.n}</span><div class="wh"><b>${rich(d.x.who||"")}</b>${d.x.kind&&IMP_KIND[d.x.kind]?`<span class="badge">${esc(IMP_KIND[d.x.kind])}</span>`:""}${IMP_EFFECT[d.x.effect]?ibadge(IMP_EFFECT[d.x.effect]):""}${d.c==="compatible"||(IMP_EFFECT[d.x.effect]||{}).cls===COMPAT[d.c].cls?"":pill(COMPAT[d.c])}</div>${d.x.summary?`<p>${rich(d.x.summary)}</p>`:""}</li>`).join("")}</ol>`;
     const ad=impItems("adaptation");
     const adapt=ad.length?`<div class="who-adapt"><h3>What each must do</h3>${ad.map(x=>`<div>${IMP_NEED[x.need]?ibadge(IMP_NEED[x.need],x.need==="none"?"":`${IMP_NEED[x.need].label} change`,needCls(x)):""}<span><b>${rich(x.who||"")}.</b> ${rich(x.summary||"")}</span></div>`).join("")}</div>`:"";
     const relBox=rel?`<div class="who-rel"><b>${esc(releaseWords(rel))}</b>${rel.note?`<p>${rich(rel.note)}</p>`:""}</div>`:"";
     h=`${I.summary?`<p class="isum">${rich(I.summary)}</p>`:""}<div class="who-wrap"><div class="who-orbits">${svg}${relBox}</div><div>${list}${adapt}</div></div>`;
   }
   $("#who-body").innerHTML=h; paint($("#who-body"));
-  const pick=ref=>{ document.querySelectorAll("#who-body .entry-chip, #who-body .who-list>li").forEach(e=>e.classList.toggle("on",e.dataset.imp===ref)); INSPECTED={k:"imp",ref}; inspectImpact(ref); };
-  document.querySelectorAll("#who-body .entry-chip, #who-body .who-list>li").forEach(e=>{ e.addEventListener("click",ev=>{ if(ev.target.closest("a")) return; pick(e.dataset.imp); });
+  const pick=ref=>{ document.querySelectorAll("#who-body .who-orbits .entry-chip, #who-body .who-list>li").forEach(e=>e.classList.toggle("on",e.dataset.imp===ref)); INSPECTED={k:"imp",ref}; inspectImpact(ref); };
+  document.querySelectorAll("#who-body .who-orbits .entry-chip, #who-body .who-list>li").forEach(e=>{ e.addEventListener("click",ev=>{ if(ev.target.closest("a")) return; pick(e.dataset.imp); });
     if(e.classList.contains("entry-chip")) e.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); pick(e.dataset.imp); } }); });
   /* the legend: exactly what was drawn */
   const used=c=>ds.some(d=>d.c===c), sysSlugs=ds.filter(d=>d.c==="compatible"&&d.slug).map(d=>d.slug), outside=ds.some(d=>d.c==="compatible"&&!d.slug);

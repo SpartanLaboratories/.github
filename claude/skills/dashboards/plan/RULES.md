@@ -699,7 +699,7 @@ the Tabs' keys (`GUIDANCE.md` §6), each with its own Legend, in this order:
    (`artifact`), the outermost the repositories, consumers and operators (`repository`, `consumer`, `operator`; an entry of no known kind
    with them). Each entry stands on its party Orbit as an entry Chip (`.entry-chip`; each party Orbit `.party-orbit`), numbered, and takes
    its entry's colour on Consequences — red breaking, yellow worth noting, its system's colour otherwise, muted for a party outside the
-   repository's systems (`GUIDANCE.md` §1) — and its line in the list carries the entry's kind and effect Badges, and the compatibility
+   repository's systems (`GUIDANCE.md` §1) — and its line in the list, the same entry Chip beside it, carries the entry's kind and effect Badges, and the compatibility
    Pill where its effect Badge does not say it, so no colour stands alone. Under the party Orbits, the release the change takes (`impact.release`,
    the version Badge's words); under the list, what each party must do (`impact.adaptation`, each with its need Badge). It is a view of
    the impact as it now stands, as Consequences is, and carries no planning information: nothing dashed, no basis, no `changes[]`. A click on

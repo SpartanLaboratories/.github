@@ -77,7 +77,7 @@ run's latest report in the step Panel is the **Now Chip**.
 Where a template's CSS class names an element's kind it carries the type word, so a reader can tell
 the kind from the markup without the board: `.card`, `.chip`, `.badge`, `.cell`, `.ring`, `.arrow`,
 `.guarantee-card`, and `.kpi-tile` (a KPI Tile), `.verdict-pill` (a verdict Pill), `.dep-pill` (a
-DualStatePill), `.legend` (a Legend), `.stepbar` (a StepBar), `.wip-panel` (the WIP Panel), `.unit-card` (a unit Card in a tracking board's chain),
+DualStatePill), `.legend` (a Legend), `.stepbar` (a StepBar), `.wip-panel` (the WIP Panel), `.unit-card` (a unit Card in a tracking board's chain), `.party-orbit` (a party Orbit), `.entry-chip` (an entry Chip), `.orbit-label` (a party Orbit's Label),
 `.fullpulse` (a FullPulse),
 `.col-fullpulse` (a whole column's FullPulse), `.colcell-fullpulse` (a Cell carrying its column's
 FullPulse at phone width), `.upnext-ring` (the up-next Ring) and `.fillpulse` (the live dot's
@@ -97,7 +97,7 @@ defines it.
 
 | Term | Its purpose on the boards |
 |------|---------------------------|
-| **Chip** | an issue Chip, an issue by its number, opening its board, or the GitHub issue while it has none; the "part of" Chip, the parent issue, in the header; a branch Chip, the run's branch, in the header; the chain Chip, a tracking board's chain in its header: how many units have landed, which are in progress and which is up next; the org work board's unlinked Chip, saying a board is not linked yet; an entry Chip, a numbered mark on a party Orbit: a downstream entry by its number, opening it in the inspector, in its entry's colour on the Consequences sub-Tab where `ui.md`'s Chip is neutral |
+| **Chip** | an issue Chip, an issue by its number, opening its board, or the GitHub issue while it has none; the "part of" Chip, the parent issue, in the header; a branch Chip, the run's branch, in the header; the chain Chip, a tracking board's chain in its header: how many units have landed, which are in progress and which is up next; the org work board's unlinked Chip, saying a board is not linked yet; an entry Chip, a numbered mark on a party Orbit of the Who feels it sub-Tab, and beside its line in the list: a downstream entry by its number, opening it in the inspector, in the colour its entry has on the Consequences sub-Tab, not neutral as `ui.md`'s Chip is |
 | **CodeLabel** | a `code` span in the data, a path, a sha, a branch, a class; plain inside a Chip, a Pill, a Tile, a Badge or a Tag |
 | **Tracer** | from a KPI Tile up to the part of the Timeline Tile it belongs to (the steps that made the Tile's figure), in their kind of work's colour, labelled with how long that part took; under 760 px its label alone, on the Tile |
 
@@ -155,9 +155,13 @@ A plan document view shows a plan as a document, in one of two forms:
 
 ```jsonl
 {"term":"annotated plan","not":["commented plan","noted plan","as-built plan"]}
+{"term":"redline","not":["Diff","Change view","Comparison"]}
+{"term":"struck","not":["Removed"]}
 ```
 
 "commented plan" is retired, "noted plan" is retired and "as-built plan" is retired: each is an annotated plan.
+"Diff" is retired, "Change view" is retired and "Comparison" is retired: each is a redline.
+"Removed" is retired: it is struck text.
 
 Its parts:
 
@@ -167,3 +171,15 @@ Its parts:
 | **contents Disclosure** | an entry of the contents Panel that opens in place: its body, its **subcontents**, shown or hidden under it, independently of the other entries |
 | **margin Card** | an annotated plan's note in the margin, one per decided statement, in three kinds: built as planned (one folded line), amended, and changed course (the built statement with its departures) |
 | **unchanged-blocks Disclosure** | a redline's folded stretch, a run of unchanged blocks, labelled "N unchanged blocks", opened in place |
+
+```jsonl
+{"term":"contents Panel","not":["Contents area","Sidebar","TOC","Navigation"]}
+{"term":"contents Disclosure","not":["Expander"]}
+{"term":"margin Card","not":["Margin note","Annotation","Callout","Sticky"]}
+{"term":"unchanged-blocks Disclosure","not":["Hunk"]}
+```
+
+"Contents area" is retired, "Sidebar" is retired, "TOC" is retired and "Navigation" is retired: each
+is a contents Panel. "Expander" is retired: it is a contents Disclosure. "Margin note" is retired,
+"Annotation" is retired, "Callout" is retired and "Sticky" is retired: each is a margin Card.
+"Hunk" is retired: it is an unchanged-blocks Disclosure.

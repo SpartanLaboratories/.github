@@ -1,11 +1,16 @@
 // The cases of the element names checked (GUIDANCE.md §12, "The names, checked"; system/scripts/termrefs.js): the glossary,
 // ui.md and boards.md (each found as termrefs.js's glossaryFiles() says), is the only home of the names, and the scan parses them from it. Run by verify-templates.js (it passes its helpers in), or on its own
 // with no browser: node verify/cases-termrefs.js.
-// 1. The real glossary parses: its terms, the compound names, the class list, and every ruled-out word quoted as retired in the file that rules it out.
+// 1. The real glossary parses: its terms (the plan document views' among them), the compound names, the class list, and every ruled-out word quoted as
+//    retired in the file that rules it out.
 // 2. The parser keys on the rows: a rule line ({"name":…}) under a heading, a table row inside a fence, a bad line (named), a missing paragraph (named).
 // 3. The scan: a banned word (the finding tool's find, ../../../tools/finding/match.js, in the order the words stand), the everyday lower-case word left alone, the
-//    allowed longer name, code, a capitalised name in neither list, a listed one, a sentence's first word.
-// 4. The classes: a subject without its type word, a class beside its type word, a retired word, a template's class list read from the markup and the selectors.
+//    allowed longer name, code, a capitalised name in neither list, a listed one, a sentence's first word; a ruled-out word quoted and directly followed by
+//    "is retired" left alone, straight or curly, across a line break, its quotation marks written as entities in a board's HTML too, and found quoted anywhere else;
+//    the plan document views' ruled-out words as names, capitalised ("the Sidebar"), the everyday word left alone ("a sidebar").
+// 4. The classes: a subject without its type word, a class beside its type word, a retired word, a template's class list read from the markup and the selectors;
+//    the class list's party Orbit, entry Chip and party Orbit's Label (a bare .party, .entry or .orbit named), and the template's Who feels it under them, the
+//    number beside each line of its list an entry Chip too (the feature probe who-orbit-classes failing it under the older .wk).
 // 5. A term line's "case": case-sensitive by default, "case":"any" in any case (lower case, plural), its "allow" still exempting, a bad value named.
 // 6. check.js and check-board.js warn and fail nothing for it; a quoted title, a signature and a key are left out.
 // 7. glossaryFiles() finds each file on its own: boards.md in the organization repository's checkout (policy/nomenclature/), ui.md in SpartanUI's (docs/nomenclature/,
@@ -25,7 +30,7 @@ module.exports = function casesTermrefs(X) {
   guard("the glossary parses: its terms, the compound names, the class list and the ruled-out words", c => {
     c.push(["ui.md and boards.md are found and parse with no problem", !!G && !G.problems.length, js(G && G.problems)]);
     if (!G) return;
-    const want = ["Box", "Panel", "Tab", "Disclosure", "Card", "Tile", "Row", "Pill", "Chip", "ShareBar", "StepBar", "FullPulse", "Legend", "Switch", "Button", "system board", "tracking board", "org work board", "State boards", "sub-Tab", "Orbit", "annotated plan"];
+    const want = ["Box", "Panel", "Tab", "Disclosure", "Card", "Tile", "Row", "Pill", "Chip", "ShareBar", "StepBar", "FullPulse", "Legend", "Switch", "Button", "system board", "tracking board", "org work board", "State boards", "sub-Tab", "Orbit", "annotated plan", "redline", "struck", "contents Panel", "contents Disclosure", "margin Card", "unchanged-blocks Disclosure"];
     const miss = want.filter(t => !G.terms.has(t));
     c.push(["every row's bold first Cell is a term", !miss.length, js(miss)]);
     c.push(["Disclosure is in ui.md's section 2, so it is a type word; Box, of section 1, is not", G.typeWords.includes("Disclosure") && !G.typeWords.includes("Box") && G.terms.get("Disclosure").files.includes("ui.md"), js(G.typeWords)]);
@@ -42,6 +47,8 @@ module.exports = function casesTermrefs(X) {
     const sub = ["guarantee", "wip", "unit", "verdict", "kpi", "dep", "upnext"], gone2 = sub.filter(s => !G.subjects.has(s));
     c.push(["the subjects are read from the compounds and the class list", !gone2.length, js(gone2)]);
     c.push(["boards.md's class list is read, each class with its element", G.classes.some(x => x.cls === "kpi-tile" && x.subject === "kpi" && x.element === "KPI Tile") && G.classes.some(x => x.cls === "card" && x.subject === null), js(G.classes)]);
+    const orb = [["party-orbit", "party", "party Orbit"], ["entry-chip", "entry", "entry Chip"], ["orbit-label", "orbit", "party Orbit's Label"]], lost = orb.filter(([cls, s, el]) => !G.classes.some(x => x.cls === cls && x.subject === s && x.element === el) || !G.subjects.has(s));
+    c.push(["the class list holds .party-orbit (a party Orbit), .entry-chip (an entry Chip) and .orbit-label (a party Orbit's Label), their subjects party, entry and orbit", !lost.length, js(lost)]);
   });
 
   guard("the parser keys on the table rows, never on what follows a heading", c => {
@@ -64,10 +71,15 @@ module.exports = function casesTermrefs(X) {
       ["the Status Pill and a ProgressBar", [], ["Status Pill", "ProgressBar"]], ["the Guarantees Panel, the Verdict Cell, a FullPulse and a Timeline Tile", [], []], ["The Row was fixed. A Card too.", [], []], ["the Quality Reviews Tile", [], []], ["two Foo Tiles", [], ["Foo Tile"]], ["a status Pill, an issue Chip", [], []], ["Docker Image, Command Line", [], []], ["some-identifier/Bubble", [], []], ["ALL_CAPS", [], []],
       ["the Pages site and the Pages deployment", [], []], ["the CI, Pages and release workflows", ["Pages"], []],
       ["the sub-tabs and a sub-tab", ["sub-tabs", "sub-tab"], []], ["a sub-Tab, Sub-tab, the sub-tablist", [], []], ["a subtab", ["subtab"], []], ["a SubTab", ["SubTab"], ["SubTab"]],
-      ["the party Orbits and an entry Chip", [], []], ["a Foo Orbit", [], ["Foo Orbit"]]];
+      ["the party Orbits and an entry Chip", [], []], ["a Foo Orbit", [], ["Foo Orbit"]],
+      ['"Bubble" is retired', [], []], ['the "Bubble" here', ["Bubble"], []], ["“Glow” is\nretired, and “Page” is retired", [], []], ["the Bubble is retired", ["Bubble"], []], ['"Bubble" was retired', ["Bubble"], []],
+      ["the Sidebar", ["Sidebar"], []], ["a sidebar, a toc, a hunk, an annotation", [], []], ["Removed: two lines. Added: one.", ["Removed"], []], ["the TOC, a Hunk and a Margin note", ["TOC", "Hunk", "Margin note"], []],
+      ['"Removed" is retired: it is struck text.', [], []]];
     const wrong = cases.filter(([t, b, u]) => js(banned(t)) !== js(b) || js(unknown(t)) !== js(u)).map(([t, b, u]) => [t, banned(t), unknown(t), b, u]);
     c.push(["each text reads as it should: a banned word, a name in neither list, the everyday word, the allowed name, code and a function word left alone", !wrong.length, js(wrong)]);
     const hits = T.termRefsIn({ title: "A Bubble in the title", $comment: "a Bubble", Bubble: "a key", rows: [{ a: "the Glow" }, "the Page"] }, "", [], at => at === "title", G);
+    const shown = h => banned(T.shownText(h)), ent = [["<p>&ldquo;Bubble&rdquo; is retired, &quot;Page&quot; is retired, &#8220;Glow&#8221; is retired</p>", []], ["<p>the &quot;Bubble&quot; here</p>", ["Bubble"]]], wrongE = ent.filter(([x, w]) => js(shown(x)) !== js(w)).map(([x, w]) => [x, shown(x), w]);
+    c.push(["a board's shown text: a word quoted as retired left alone with its quotation marks written as entities, the word quoted otherwise found", !wrongE.length, js(wrongE)]);
     c.push(["a skipped path, $comment and a key are left out; every other string is read, with its path", js(hits.map(h => [h.at, h.hit])) === js([["rows[0].a", "Glow"], ["rows[1]", "Page"]]), js(hits)]);
     c.push(["a board's shown text: scripts, styles, comments, code and a quoted title out; two neighbouring Labels are no compound", !/Bubble/.test(T.shownText("<style>.a{content:'Bubble'}</style><script>var a='Bubble'</script><!-- Bubble --><code>Bubble</code><a data-board=\"3\">Bubble</a><span data-issue-title>Bubble</span>")) && !unknown(T.shownText("<a>Design</a><a>Timeline</a>")).length, ""]);
   });
@@ -75,12 +87,18 @@ module.exports = function casesTermrefs(X) {
   guard("the classes: named without their type word", c => {
     if (!G) { c.push(["the glossary is read", false, ""]); return; }
     const cl = h => T.classRefs(h, G).map(x => `${x.cls}:${x.why}`);
-    const flagged = [['<i class="kpi">', ["kpi:subject"]], ["<style>.kpi{color:red}</style>", ["kpi:subject"]], ['<i class="glow">', ["glow:retired"]], ["<style>.bubble .x{a:b}</style>", ["bubble:retired"]], ['`<i class="dep${x?" a":""}">`', ["dep:subject"]]];
-    const clean = ['<i class="kpi-tile">', '<i class="chip now">', '<i class="cell verdict">', '<i class="wipcard unit">', "<style>.chip.now{a:b}</style>", '<i class="other">', '<path class="party-orbit">', '<text class="orbit-label">', '<g class="entry-chip warning">', "<style>.who-orbits .entry-chip circle{a:b}</style>"];
+    const flagged = [['<i class="kpi">', ["kpi:subject"]], ["<style>.kpi{color:red}</style>", ["kpi:subject"]], ['<i class="glow">', ["glow:retired"]], ["<style>.bubble .x{a:b}</style>", ["bubble:retired"]], ['`<i class="dep${x?" a":""}">`', ["dep:subject"]],
+      ['<i class="entry">', ["entry:subject"]], ['<span class="party">', ["party:subject"]], ["<style>.orbit{a:b}</style>", ["orbit:subject"]]];
+    const clean = ['<i class="kpi-tile">', '<i class="chip now">', '<i class="cell verdict">', '<i class="wipcard unit">', "<style>.chip.now{a:b}</style>", '<i class="other">', '<path class="party-orbit">', '<text class="orbit-label">', '<g class="entry-chip warning">', "<style>.who-orbits .entry-chip circle{a:b}</style>", '<span class="entry-chip critical">', "<style>.who-list .entry-chip.warning{a:b}</style>"];
     const wrong = [...flagged.filter(([h, w]) => js(cl(h)) !== js(w)).map(([h, w]) => [h, cl(h), w]), ...clean.filter(h => cl(h).length).map(h => [h, cl(h)])];
     c.push(["a subject and a retired word are named; a class with, or standing beside, a type word is not", !wrong.length, js(wrong)]);
     const pb = rd(sk("plan/template/dashboard.html"));
     c.push(["the current template's class list is read from its markup and its selectors", T.classesOf(pb).has("kpi-tile") && T.classesOf(pb).has("stepbar"), ""]);
+    const pc = T.classesOf(pb), who = ["party-orbit", "orbit-label", "entry-chip"].filter(x => !pc.has(x));
+    c.push(["the template's Who feels it uses .party-orbit, .orbit-label and .entry-chip, the number beside a line of its list an entry Chip too, and no class names a kind without its type word", !who.length && !pc.has("wk") && /<span class="entry-chip\$\{/.test(pb) && !T.classRefs(pb, G).length, js([who, pc.has("wk"), T.classRefs(pb, G)])]);
+    const P = require(sk("system/scripts/features.js")), wo = h => P.probe(h, "plan-board").filter(m => m.id === "who-orbit-classes");
+    const olden = pb.split(".who-list .entry-chip").join(".who-list .wk").split('<span class="entry-chip${').join('<span class="wk${'), was = wo(olden);
+    c.push(["the feature probe who-orbit-classes passes the template and fails it with the list's number under the older .wk, naming it", !wo(pb).length && was.length === 1 && /\(\.wk\)/.test(was[0].why), js([wo(pb), was])]);
   });
 
   guard("a term line's case: case-sensitive by default, \"case\":\"any\" in any case", c => {
@@ -117,6 +135,9 @@ module.exports = function casesTermrefs(X) {
     const bare = wr(path.join(sc, "state2", "index.html"), rd(sk("system/template/system.html")));
     const b0 = run("system/scripts/check-board.js", [bare, "--auto", "--no-browser"]);
     c.push(["…and its verdict is the same with them", b.status === b0.status, `${b0.status} → ${b.status}`]);
+    const ret = wr(path.join(sc, "state3", "index.html"), rd(sk("system/template/system.html")).replace("</body>", '<p>"Bubble" is retired, &ldquo;Page&rdquo; is retired</p><i class="entry"></i><b class="entry-chip warning"></b></body>'));
+    const b3 = run("system/scripts/check-board.js", [ret, "--auto", "--no-browser"]), l3 = (b3.stdout || "").split(/\r?\n/).filter(l => /TERM /.test(l));
+    c.push(["check-board.js: a word quoted as retired gives no TERM BANNED WORD; a bare .entry a TERM CLASS, its entry Chip beside a colour none", !l3.some(l => /TERM BANNED/.test(l)) && l3.some(l => /warning: TERM CLASS: .*\.entry \(Chip\)/.test(l)) && !l3.some(l => /\.entry-chip/.test(l)) && b3.status === b0.status, js([l3, b3.status])]);
     fs.rmSync(sc, { recursive: true, force: true });
   });
 

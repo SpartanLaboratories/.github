@@ -247,6 +247,8 @@ N.grades.forEach(r => r.words.forEach(w => {
   const T = (t, o) => M.termRefs(t, Object.assign({ loaded: V, lists: ["vocabulary"] }, o));
   ok(T("a Bubble here").length === 1 && T("a Bubble here")[0].sayInstead === "Card", "a ruled-out word as capitalised found, its term the wording");
   ok(T("Bubbles everywhere").length === 1, "a ruled-out word's plural found");
+  ok(T('"Bubble" is retired: what it named is a Card.').length === 0 && T("“Bubble” is\nretired, and so is it").length === 0, "a ruled-out word quoted and directly followed by \"is retired\" not found");
+  ok(T('open the "Bubble" now').length === 1 && T("the Bubble is retired").length === 1 && T('"Bubble" was retired').length === 1, "a ruled-out word quoted elsewhere, or followed by \"is retired\" unquoted, found");
   ok(T("a bubble here").length === 0, "the everyday word in lower case not found");
   ok(T("a box and a BOX").length === 2, "case any: found in any case");
   ok(T("the Bubble Chart").length === 0, "an allowed longer name not found");

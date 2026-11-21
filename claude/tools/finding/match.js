@@ -135,6 +135,8 @@ function termPatterns(L, which) {
   }));
   return out;
 }
+/* a ruled-out word that a vocabulary names as retired: in double quotes, straight or curly, directly followed by "is retired" */
+const retiring = (s, index, end) => /["“]$/.test(s.slice(Math.max(0, index - 1), index)) && /^["”]\s+is\s+retired\b/.test(s.slice(end, end + 40));
 /* Every word a term line rules out, in a text: finds, list the vocabulary's file name and entry the term */
 function termRefs(text, opts) {
   opts = opts || {};
@@ -145,7 +147,10 @@ function termRefs(text, opts) {
   termPatterns(L, which).forEach(p => {
     let s = t; p.allow.forEach(a => { s = s.replace(a, blank); });
     p.re.lastIndex = 0; let m;
-    while ((m = p.re.exec(s))) out.push({ index: m.index, end: m.index + m[0].length, hit: m[0], list: p.list, entry: p.entry, word: p.word, sayInstead: p.sayInstead, warn: false });
+    while ((m = p.re.exec(s))) {
+      if (retiring(s, m.index, m.index + m[0].length)) continue;
+      out.push({ index: m.index, end: m.index + m[0].length, hit: m[0], list: p.list, entry: p.entry, word: p.word, sayInstead: p.sayInstead, warn: false });
+    }
   });
   return out.sort((a, b) => a.index - b.index || b.end - a.end);
 }

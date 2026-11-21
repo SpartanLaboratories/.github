@@ -444,12 +444,13 @@ const FEATURES = [
   /* dated 62, as the sub-Tab it draws on (the user's decisions of 2026-11-21, console/subtab-terms/3 and /4): Who feels it's arcs are party Orbits and
      its numbered marks entry Chips, each a class carrying its type word (policy/nomenclature/boards.md, "Board UI"): .party-orbit inside .who-orbits,
      its name .orbit-label, and .entry-chip, the Legend's keys alike; never the older .who-rings, .ring there, .ringlab, .wn, .wring and .wnode.
-     Class names only, drawn as before: a board drawn before them keeps them until its next re-render; a landed issue board is kept as it landed. */
-  { id: "who-orbit-classes", name: "Who feels it's party Orbits and entry Chips each a class carrying its type word: .party-orbit (inside .who-orbits, named by .orbit-label) and .entry-chip, the Legend's keys alike (never .who-rings, .ringlab, .wn, .wring, .wnode)", since: 62, types: ["plan-board"],
+     The number beside each line of the list is an entry Chip too (the user's decision of 2026-11-21, console/who-feels-it/1): .entry-chip
+     there, never the older .wk. Class names only, drawn as before: a board drawn before them keeps them until its next re-render; a landed issue board is kept as it landed. */
+  { id: "who-orbit-classes", name: "Who feels it's party Orbits and entry Chips each a class carrying its type word: .party-orbit (inside .who-orbits, named by .orbit-label) and .entry-chip, on the Orbits and beside the list's lines, the Legend's keys alike (never .who-rings, .ringlab, .wn, .wring, .wnode, .wk)", since: 62, types: ["plan-board"],
     notFor: { system: "no As built Tab: a state board shows the code at a commit", supersystem: "no As built Tab: a state board shows the code at a commit", "work-board": "no As built Tab: one row per run, each run's impact on its own board" },
-    test: h => { const s = scripts(h), c = css(h), old = c.match(/\.(?:who-rings|ringlab|wn|wring|wnode)(?![-\w])/g) || [];
-      return need(!old.length && /\.who-orbits \.party-orbit\{/.test(c) && /\.who-orbits \.orbit-label\{/.test(c) && /\.who-orbits \.entry-chip circle\{/.test(c) && /\.legend i\.party-orbit\{/.test(c) && /\.legend i\.entry-chip\{/.test(c)
-        && /<path class="party-orbit" /.test(s) && /<text class="orbit-label" /.test(s) && /<g class="entry-chip\$\{/.test(s) && /<div class="who-orbits">/.test(s),
+    test: h => { const s = scripts(h), c = css(h), old = c.match(/\.(?:who-rings|ringlab|wn|wring|wnode|wk)(?![-\w])/g) || [];
+      return need(!old.length && /\.who-orbits \.party-orbit\{/.test(c) && /\.who-orbits \.orbit-label\{/.test(c) && /\.who-orbits \.entry-chip circle\{/.test(c) && /\.who-list \.entry-chip\{/.test(c) && /\.legend i\.party-orbit\{/.test(c) && /\.legend i\.entry-chip\{/.test(c)
+        && /<path class="party-orbit" /.test(s) && /<text class="orbit-label" /.test(s) && /<g class="entry-chip\$\{/.test(s) && /<span class="entry-chip\$\{/.test(s) && /<div class="who-orbits">/.test(s),
         `Who feels it draws its party Orbits and entry Chips under the older classes (${[...new Set(old)].join(", ") || "no .party-orbit, .orbit-label or .entry-chip"}): re-render the board onto the template`); } },
   /* dated 60: the parts of a split qa or remediation visit headed in a finished step's Panel as the
      Timeline Tile's Legend names them */

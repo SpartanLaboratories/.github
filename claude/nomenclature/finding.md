@@ -176,4 +176,7 @@ A word a board term rules out is matched as written and capitalised, a plural to
 proper noun, and the everyday word stays lower case. A term whose line says `"case":"any"` rules
 its words out in any case, and its `"allow"`, a longer name that holds a ruled-out word and is
 something else, is read the same way. In this scan backtick spans, Markdown link targets, URLs and
-paths are code, never prose, and a string that is all identifier is left alone.
+paths are code, never prose, and a string that is all identifier is left alone. A ruled-out word in
+double quotes, straight or curly, directly followed by "is retired" is its vocabulary naming the
+word it retires, and no find (`"Page" is retired: it never names a board`); the word quoted anywhere
+else is a find (`a "Page" of the site`).

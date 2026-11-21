@@ -121,11 +121,12 @@ function termRefsIn(v, at, found, skip, G) {
   else if (v && typeof v === "object") Object.keys(v).forEach(k => { if (k !== "$comment") termRefsIn(v[k], at ? `${at}.${k}` : k, found, skip, G); });
   return found;
 }
-/* The text a board's HTML shows without a browser: its scripts, styles, comments, code and quoted titles out; a tag is a line break, so two neighbouring Labels are no compound */
+/* The text a board's HTML shows without a browser: its scripts, styles, comments, code and quoted titles out; a tag is a line break, so two neighbouring Labels are no compound;
+   a quotation mark written as an entity is read as the mark it shows, so the tool sees a word quoted as retired as the reader does */
 function shownText(html) {
   return String(html || "").replace(/<script\b[\s\S]*?<\/script>/gi, " ").replace(/<style\b[\s\S]*?<\/style>/gi, " ").replace(/<!--[\s\S]*?-->/g, " ").replace(/<(code|pre)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
     .replace(/<a\b[^>]*\bdata-board="\d+"[^>]*>[\s\S]*?<\/a>/gi, " ").replace(/<([a-z0-9]+)\b[^>]*\bdata-issue-title\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<[^>]+>/g, "\n").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'").replace(/&[a-z]+;|&#\d+;/gi, " ").replace(/[ \t]+/g, " ");
+    .replace(/<[^>]+>/g, "\n").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'").replace(/&quot;|&#34;/g, '"').replace(/&ldquo;|&#8220;/g, "“").replace(/&rdquo;|&#8221;/g, "”").replace(/&[a-z]+;|&#\d+;/gi, " ").replace(/[ \t]+/g, " ");
 }
 /* The classes a board's markup and styles use: Map(class → the class lists it stands in): class="…" attributes (a generated one too, its ${…} parts left out) and the selectors of its <style> blocks */
 function classesOf(html) {

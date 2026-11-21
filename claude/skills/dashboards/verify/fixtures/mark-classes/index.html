@@ -865,7 +865,8 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 /* Who feels it (plan/RULES.md §2, "Who feels it"): the impact's downstream entries on the party Orbits round the change (.party-orbit, one
    per kind of party, each named by its .orbit-label), beside their list. An entry Chip (.entry-chip) takes the Consequences sub-Tab's colour
    for its entry: red breaking, yellow worth noting, its system's colour otherwise (muted outside the repository's systems); each entry Chip
-   is numbered and its line in the list carries the entry's effect with its glyph and word, so no colour stands alone. Nothing is dashed: it
+   is numbered, stands again beside its line in the list (a <span> there, a <g> on its party Orbit), and that line carries the entry's effect
+   with its glyph and word, so no colour stands alone. Nothing is dashed: it
    shows the impact as it now stands, as Consequences does. */
 .who-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 32px;align-items:start}
 @media (max-width:900px){.who-wrap{grid-template-columns:minmax(0,1fr)}}
@@ -880,15 +881,15 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .who-orbits .entry-chip:focus-visible circle,.who-orbits .entry-chip.on circle{stroke:var(--on);stroke-width:3}
 .who-orbits .wc circle{fill:var(--ink)}
 .who-orbits .wc text{font:700 15px var(--display);fill:var(--surface)}
-.entry-chip,.who-list .wk{--sc:var(--c,var(--muted))}
-.entry-chip.critical,.who-list .wk.critical{--sc:var(--critical)}
-.entry-chip.warning,.who-list .wk.warning{--sc:var(--warning)}
+.entry-chip{--sc:var(--c,var(--muted))}
+.entry-chip.critical{--sc:var(--critical)}
+.entry-chip.warning{--sc:var(--warning)}
 .who-list{list-style:none;margin:0;padding:0;border-top:3px solid var(--rule)}
 .who-list>li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 10px;padding:10px 6px 11px 0;border-bottom:1px solid var(--line);cursor:pointer;min-width:0}
 .who-list>li:hover{background:var(--surface-2)}
 .who-list>li.on{background:var(--surface-2);outline:2px solid var(--on);outline-offset:-2px}
-.who-list .wk{width:24px;height:24px;border-radius:50%;background:var(--sc);color:var(--surface);font:700 13px/24px var(--display);text-align:center}
-.who-list .wk.warning{color:var(--on-warning)}
+.who-list .entry-chip{width:24px;height:24px;border-radius:50%;background:var(--sc);color:var(--surface);font:700 13px/24px var(--display);text-align:center}
+.who-list .entry-chip.warning{color:var(--on-warning)}
 .who-list .wh{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;min-width:0}
 .who-list .wh b{font:700 17px/1.2 var(--display);letter-spacing:.01em;color:var(--ink);overflow-wrap:anywhere}
 .who-list p{grid-column:2;margin:0;font-size:13.5px;color:var(--ink-2);overflow-wrap:anywhere}
