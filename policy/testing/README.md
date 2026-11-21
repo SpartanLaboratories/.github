@@ -63,3 +63,24 @@ Example: `com.acme.order.OrderCalculator` → its component tests live in
 one test class per file still applies. Where a build tool supports it, bind each folder to
 its own test task/tag (e.g. JUnit `@Tag`, a Gradle source set) so CI can run the gating and
 component sets on every commit and reserve the project-wide sets and uat for release gates.
+
+## Java
+<!-- {"name":"Java","code":"P-T-J","id":1162} -->
+
+Tests that run on the JVM use JUnit 5, and MockK for mocks. MockK publishes for the JVM alone, so
+it mocks only in tests that run on the JVM.
+
+## Multiplatform
+<!-- {"name":"Multiplatform","code":"P-T-MP","id":1163} -->
+
+A multiplatform module's shared tests use `kotlin.test`, and stand in for a collaborator with a
+hand-written fake. A property test among them may use Kotest's property-testing library,
+`io.kotest:kotest-property`, on top of `kotlin.test`, with a fixed seed.
+
+- `kotest-property` brings in Kotest's engine and assertions libraries (`kotest-framework-engine`,
+  `kotest-assertions-core`) as transitive dependencies, though it needs neither Kotest's framework
+  nor its Gradle plugin.
+- Kotest 6.2 requires Kotlin 2.2.0 or later and states no support for Kotlin 2.4, whose compiler is
+  expected, not confirmed, to read its libraries.
+- Its use beside `kotlin.test` rests on Kotest's documentation and published metadata; the first
+  repository to adopt it confirms it with a build on its own Kotlin version and targets.

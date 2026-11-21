@@ -48,8 +48,9 @@ Central, and signs every publication.
 ## Tests
 <!-- {"name":"Tests","code":"P-B-MP-TE","id":1095} -->
 
-Every multiplatform library's shared tests use `kotlin.test`, and its tests on the JVM run on
-JUnit 5.
+Every multiplatform library's shared tests follow
+[R-1163 (Multiplatform)](../testing/README.md#multiplatform "1163-T1"), and its tests on the JVM
+[R-1162 (Java)](../testing/README.md#java "1162-T1").
 
 ## Logging
 <!-- {"name":"Logging","code":"P-B-MP-30-P1","id":"30-P1"} -->
