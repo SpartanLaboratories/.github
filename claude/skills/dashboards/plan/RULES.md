@@ -481,8 +481,8 @@ for later. `plan/scripts/lib.js` `leftForLater()` and the template's `leftForLat
 
 Beside the four columns, **Consequences** (named Impact before admin-team/dashboards-skill/35: its ids `t-impact` and
 `p-impact`, its `#impact.<entry>` deep links and the data key `impact` are kept, so no board's data changes; a Tab of its own until the
-user's direction of 2026-11-20, the As built Tab's third sub-tab since, §2, "The As built Tab's sub-tabs", and what these rules say of the
-Consequences Tab holds for that sub-tab), says what the change means
+user's direction of 2026-11-20, the As built Tab's third sub-Tab since, §2, "The As built Tab's sub-Tabs", and what these rules say of the
+Consequences Tab holds for that sub-Tab), says what the change means
 outside itself, from `plan.json` `impact`, read from the folder's `consequences.md` (`impact.md` in a folder older than the rename, read the
 same; `consequences.md` wins where both are there). It is a general representation like the rest of the board: summaries and
 links to the Markdown section that holds the detail, never listings. **Known gaps live only in `consequences.md`**: a plan and an
@@ -610,10 +610,10 @@ not show, such as a lettered or strict-version requirement; a conversion step or
 
 Right of the As built Tab, on an issue board, a sub-issue's board and a tracking board (not on the repository work board, which is one Row per run,
 nor on a state board, which shows the code at a commit), a core Tab, **Tests**, says which tests the change touches and how they ran, from
-`plan.json` `tests`. It has four sub-tabs, a tablist of their own (the same keys as the Tabs, `GUIDANCE.md` §6; `#tests.<sub-tab>`
+`plan.json` `tests`. It has four sub-Tabs, a tablist of their own (the same keys as the Tabs, `GUIDANCE.md` §6; `#tests.<sub-Tab>`
 deep-links one):
 
-| Sub-tab | Holds | From |
+| Sub-Tab | Holds | From |
 |---|---|---|
 | **Added** | the test classes new on the branch | the git diff of the branch against its base; it grows with each implementation stage |
 | **Amended** | the existing test classes the branch changed | the same diff, growing the same way |
@@ -626,8 +626,8 @@ order, and coloured by it: a neutral ramp from gating (faintest) to uat (the ful
 system colour nor a status colour on a set (`GUIDANCE.md` §1). Each class shows its simple name, its package, its module, its test count,
 the stage that added or changed it, its **latest result** with its counts and its qa pass (a status Pill with its glyph and word: `✓ passed`
 green, `✕ failed` red, `↷ skipped` neutral, `… not run yet` neutral and dashed: pending) and the **board Rows it verifies**, each opening the
-Row on the Design Tab. A class opens in the inspector. Every sub-tab carries its own Legend: the sets and the results it drew, and the
-dashed "nothing recorded yet" while the run is live and a sub-tab is empty (a board that has landed or was cancelled says "None recorded",
+Row on the Design Tab. A class opens in the inspector. Every sub-Tab carries its own Legend: the sets and the results it drew, and the
+dashed "nothing recorded yet" while the run is live and a sub-Tab is empty (a board that has landed or was cancelled says "None recorded",
 solid). The lede says only what to click.
 
 **The data.** `tests` is `{base, updated, added[], amended[], relevant[], other}`: `base` the ref the diff is taken against, `updated` the
@@ -664,7 +664,7 @@ unit's board.
 
 The board's Tabs are **Design** (the four columns; named Timeline before admin-team/dashboards-skill/34, and a link to `#timeline` or
 `#p-timeline` still opens it), **Timeline** (the Timeline Tile and the KPI Tiles, §2, "The Timeline Tab"; its ids `t-steps` and `p-steps`, its link `#steps`, as
-`#timeline` keeps opening Design), **Decisions**, **As built** (its three sub-tabs, below: **Final state**, column 4's
+`#timeline` keeps opening Design), **Decisions**, **As built** (its three sub-Tabs, below: **Final state**, column 4's
 Cards, then how the impact differed from the plan, §2; **Who feels it**; **Consequences**), **Tests** (above) and **Source**; a tracking board adds **Landing Order**. On the Design Tab the four phase columns read as
 columns: each stands between hairline column rules under a heavy, sticky head (its number, its name, its
 question, its milestone). The rules are layout, not an encoding: they take no colour of their own,
@@ -685,34 +685,35 @@ the look is kept as it was (the user's direction of 2026-11-20, console/board-lo
 stage list, the step Panel's Disclosures and nested steps, the Now Chip, the charging Arrow and every mark keep their form, and take the
 look's faces, rules and tokens only.
 
-### The As built Tab's sub-tabs
+### The As built Tab's sub-Tabs
 
-The As built Tab has three **sub-tabs** (the user's direction of 2026-11-20, console/board-as-built-subtabs), a tablist of their own with
+The As built Tab has three **sub-Tabs** (the user's direction of 2026-11-20, console/board-as-built-subtabs), a tablist of their own with
 the Tabs' keys (`GUIDANCE.md` §6), each with its own Legend, in this order:
 
 1. **Final state** — what the As built Tab showed before: column 4's Cards with their filter, then how the impact differed from the plan,
    under its reconciliation Chip (§2, "Consequences"). Where these rules say the As built Tab of the Cards, the impact changes or the
-   reconciliation Chip, they mean this sub-tab. Its ids are `t-built-final` and `p-built-final`; `#built` and `#built-final` open it.
-2. **Who feels it** — the impact's downstream entries (`impact.downstream`) drawn ring by ring round the change, beside their list (the
-   display of the user's case-file draft for #99, carried into the board). The data holds no distance of its own, so the ring is the
-   entry's `kind`: the inner ring the systems (`system`), the middle the published artifacts (`artifact`), the outer the repositories,
-   consumers and operators (`repository`, `consumer`, `operator`; an entry of no known kind with them). Each mark is numbered and takes
+   reconciliation Chip, they mean this sub-Tab. Its ids are `t-built-final` and `p-built-final`; `#built` and `#built-final` open it.
+2. **Who feels it** — the impact's downstream entries (`impact.downstream`) drawn on the party Orbits round the change, one party Orbit
+   per kind of party, beside their list (the display of the user's case-file draft for #99, carried into the board). The data holds no
+   distance of its own, so an entry's party Orbit is its `kind`: the innermost the systems (`system`), the middle the published artifacts
+   (`artifact`), the outermost the repositories, consumers and operators (`repository`, `consumer`, `operator`; an entry of no known kind
+   with them). Each entry stands on its party Orbit as an entry Chip (`.entry-chip`; each party Orbit `.party-orbit`), numbered, and takes
    its entry's colour on Consequences — red breaking, yellow worth noting, its system's colour otherwise, muted for a party outside the
    repository's systems (`GUIDANCE.md` §1) — and its line in the list carries the entry's kind and effect Badges, and the compatibility
-   Pill where its effect Badge does not say it, so no colour stands alone. Under the rings, the release the change takes (`impact.release`,
+   Pill where its effect Badge does not say it, so no colour stands alone. Under the party Orbits, the release the change takes (`impact.release`,
    the version Badge's words); under the list, what each party must do (`impact.adaptation`, each with its need Badge). It is a view of
    the impact as it now stands, as Consequences is, and carries no planning information: nothing dashed, no basis, no `changes[]`. A click on
-   a mark or a line selects both and opens the entry in the inspector, as its Card on Consequences does. With no impact recorded it says
+   an entry Chip or a line selects both and opens the entry in the inspector, as its Card on Consequences does. With no impact recorded it says
    so, as Consequences does; with no downstream entry it says that, with the `none` statement and the source. Its ids are `t-who` and
    `p-who`, its link `#who`.
-3. **Consequences** — the Consequences Tab of §2, "Consequences", unchanged, a sub-tab now: its ids `t-impact` and `p-impact`, its links
+3. **Consequences** — the Consequences Tab of §2, "Consequences", unchanged, a sub-Tab now: its ids `t-impact` and `p-impact`, its links
    `#impact` and `#impact.<entry>` and its data key `impact` are kept, so every link that opened it opens it still, under As built.
 
-A click on **As built** shows the sub-tab shown last (Final state at first); a link names its own. **Before anything is built** — before
+A click on **As built** shows the sub-Tab shown last (Final state at first); a link names its own. **Before anything is built** — before
 the plan is accepted, `impact` is `null` — Final state shows column 4 as it stands (every Cell pending, dashed) and no impact section, and
 Who feels it and Consequences each say that no downstream impact is recorded yet and where it will come from. From the plan's acceptance
 until the landing, Who feels it and Consequences show the impact as best known (on the plan's basis until it is reconciled), with no
-planning information, and Final state shows how it differs from the plan so far. On a **tracking board** the three sub-tabs are the same:
+planning information, and Final state shows how it differs from the plan so far. On a **tracking board** the three sub-Tabs are the same:
 Final state its unit Cards and the initiative's impact changes, then each unit's; Who feels it the initiative's own downstream entries;
 Consequences the initiative's impact and its Units section. A Tab's lede is at most one short line, and only for what its
 graphic and Legend do not show (`GUIDANCE.md` §2); the repository work board's Runs lede too.

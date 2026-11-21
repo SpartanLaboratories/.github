@@ -847,7 +847,7 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .bcard.ichg .bh .nm{font-weight:600}
 .bcard .meta a.goimp{white-space:normal;overflow-wrap:anywhere}
 
-/* The Tests tab (plan/RULES.md §2, "The Tests tab"): four sub-tabs, Added, Amended, Relevant and Other; each class grouped and coloured
+/* The Tests tab (plan/RULES.md §2, "The Tests tab"): four sub-Tabs, Added, Amended, Relevant and Other; each class grouped and coloured
    by its test set, a neutral ramp from gating (faintest) to uat (full ink, in either theme), so no system colour and no status colour is spent on
    it (GUIDANCE.md §1); its latest result a status pill (passed green, failed red, skipped neutral, not run yet dashed: pending); Other
    counts only, solid neutral: not run, untouched by this change. */
@@ -860,29 +860,30 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .stabs .stab[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .stabs .stab:hover:not([aria-selected="true"]){background:var(--surface-2)}
 .stabs .stab small{font-size:11px;margin-left:5px;opacity:.85}
-/* the As built tab's sub-tabs (plan/RULES.md §2): the Tests tab's sub-tab look; each sub-tab's heading under the tablist */
+/* the As built tab's sub-Tabs (plan/RULES.md §2): the Tests tab's sub-Tab look; each sub-Tab's heading under the tablist */
 #built-tabs{margin:0 0 16px}
 .bsub>h2{margin-top:0}
-/* Who feels it (plan/RULES.md §2, "Who feels it"): the impact's downstream entries ring by ring round the change, beside their list. A mark
-   takes the Consequences sub-tab's colour for its entry: red breaking, yellow worth noting, its system's colour otherwise (muted outside
-   the repository's systems); each mark is numbered and its line in the list carries the entry's effect with its glyph and word, so no colour
-   stands alone. Nothing is dashed: it shows the impact as it now stands, as Consequences does. */
+/* Who feels it (plan/RULES.md §2, "Who feels it"): the impact's downstream entries on the party Orbits round the change (.party-orbit, one
+   per kind of party, each named by its .orbit-label), beside their list. An entry Chip (.entry-chip) takes the Consequences sub-Tab's colour
+   for its entry: red breaking, yellow worth noting, its system's colour otherwise (muted outside the repository's systems); each entry Chip
+   is numbered and its line in the list carries the entry's effect with its glyph and word, so no colour stands alone. Nothing is dashed: it
+   shows the impact as it now stands, as Consequences does. */
 .who-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 32px;align-items:start}
 @media (max-width:900px){.who-wrap{grid-template-columns:minmax(0,1fr)}}
-.who-rings svg{display:block;width:100%;max-width:640px;height:auto}
-.who-rings .ring{fill:none;stroke:var(--line);stroke-width:1.5}
-.who-rings .ringlab{font:600 11.5px var(--display);letter-spacing:.1em;text-transform:uppercase;fill:var(--muted)}
-.who-rings .wn circle{fill:var(--sc);stroke:var(--surface);stroke-width:2}
-.who-rings .wn text{font:700 13px var(--display);fill:var(--surface);pointer-events:none}
-.who-rings .wn.warning text{fill:var(--on-warning)}
-.who-rings .wn{cursor:pointer}
-.who-rings .wn:focus{outline:none}
-.who-rings .wn:focus-visible circle,.who-rings .wn.on circle{stroke:var(--on);stroke-width:3}
-.who-rings .wc circle{fill:var(--ink)}
-.who-rings .wc text{font:700 15px var(--display);fill:var(--surface)}
-.wn,.who-list .wk{--sc:var(--c,var(--muted))}
-.wn.critical,.who-list .wk.critical,.legend i.wnode.critical{--sc:var(--critical)}
-.wn.warning,.who-list .wk.warning,.legend i.wnode.warning{--sc:var(--warning)}
+.who-orbits svg{display:block;width:100%;max-width:640px;height:auto}
+.who-orbits .party-orbit{fill:none;stroke:var(--line);stroke-width:1.5}
+.who-orbits .orbit-label{font:600 11.5px var(--display);letter-spacing:.1em;text-transform:uppercase;fill:var(--muted)}
+.who-orbits .entry-chip circle{fill:var(--sc);stroke:var(--surface);stroke-width:2}
+.who-orbits .entry-chip text{font:700 13px var(--display);fill:var(--surface);pointer-events:none}
+.who-orbits .entry-chip.warning text{fill:var(--on-warning)}
+.who-orbits .entry-chip{cursor:pointer}
+.who-orbits .entry-chip:focus{outline:none}
+.who-orbits .entry-chip:focus-visible circle,.who-orbits .entry-chip.on circle{stroke:var(--on);stroke-width:3}
+.who-orbits .wc circle{fill:var(--ink)}
+.who-orbits .wc text{font:700 15px var(--display);fill:var(--surface)}
+.entry-chip,.who-list .wk{--sc:var(--c,var(--muted))}
+.entry-chip.critical,.who-list .wk.critical{--sc:var(--critical)}
+.entry-chip.warning,.who-list .wk.warning{--sc:var(--warning)}
 .who-list{list-style:none;margin:0;padding:0;border-top:3px solid var(--rule)}
 .who-list>li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 10px;padding:10px 6px 11px 0;border-bottom:1px solid var(--line);cursor:pointer;min-width:0}
 .who-list>li:hover{background:var(--surface-2)}
@@ -899,8 +900,8 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .who-adapt h3{font:700 16px var(--display);letter-spacing:.02em;margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid var(--rule)}
 .who-adapt div{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--hair);font-size:13.5px;color:var(--ink-2)}
 .who-adapt div b{color:var(--ink)}
-.legend i.wnode{width:12px;height:12px;border:0;border-radius:50%;background:var(--sc,var(--c,var(--muted)))}
-.legend i.wring{width:22px;height:11px;border:1.5px solid var(--line);border-bottom:0;border-radius:11px 11px 0 0;background:none}
+.legend i.entry-chip{width:12px;height:12px;border:0;border-radius:50%;background:var(--sc,var(--c,var(--muted)))}
+.legend i.party-orbit{width:22px;height:11px;border:1.5px solid var(--line);border-bottom:0;border-radius:11px 11px 0 0;background:none}
 .legend i.wcen{width:12px;height:12px;border:0;border-radius:50%;background:var(--ink)}
 .tsub .empty{font-size:13.5px;color:var(--muted);margin:0 0 10px;padding:6px 10px;border:1px solid var(--line);border-radius:0}
 .tsub .empty.pend{border-style:dashed}
@@ -1015,8 +1016,8 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
 <section class="wip wip-panel" id="wip" aria-label="Work in progress"></section>
 
 <!-- fill: three views of the same rows, the Tests (plan.json "tests"; a tracking board its units' unit.tests), the As built Tab's three
-     sub-tabs (Final state; Who feels it and Consequences, both from plan.json "impact") and the source; a tracking board adds Landing
-     Order. Every tab carries a legend, every sub-tab of Tests and of As built its own. -->
+     sub-Tabs (Final state; Who feels it and Consequences, both from plan.json "impact") and the source; a tracking board adds Landing
+     Order. Every tab carries a legend, every sub-Tab of Tests and of As built its own. -->
 <div class="tabs" role="tablist" aria-label="Views">
   <button class="tab" role="tab" id="t-design" aria-controls="p-design" aria-selected="true">Design</button>
   <button class="tab" role="tab" id="t-steps" aria-controls="p-steps" aria-selected="false">Timeline</button>
@@ -1058,8 +1059,8 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
     <div class="legend" id="decisions-key"></div>
   </section>
 
-  <!-- the As built tab (plan/RULES.md §2, "The As built Tab's sub-tabs"): three sub-tabs, a tablist of their own, Final state (the rows as
-       built and how the impact differed from the plan), Who feels it (the impact's downstream entries ring by ring) and Consequences (the
+  <!-- the As built tab (plan/RULES.md §2, "The As built Tab's sub-Tabs"): three sub-Tabs, a tablist of their own, Final state (the rows as
+       built and how the impact differed from the plan), Who feels it (the impact's downstream entries on their party Orbits) and Consequences (the
        impact as it now stands; its ids t-impact and p-impact and its links #impact and #impact.<entry> kept); each carries its own legend -->
   <section class="view" role="tabpanel" id="p-built" aria-labelledby="t-built" hidden>
     <div class="seg stabs" role="tablist" aria-label="As built" id="built-tabs">
@@ -1076,7 +1077,7 @@ footer a{text-decoration:none;border-bottom:1px solid var(--line)}
     <div class="legend" id="built-key"></div>
     </div>
     <div class="bsub" role="tabpanel" id="p-who" aria-labelledby="t-who" hidden>
-    <h2>Who feels it: who the change reaches, ring by ring</h2>
+    <h2>Who feels it: who the change reaches, party Orbit by party Orbit</h2>
     <p class="lede" id="who-lede"></p>
     <div id="who-body"></div>
     <div class="legend" id="who-key"></div>
@@ -2863,7 +2864,7 @@ const resOf=e=>{ const r=e&&e.result&&typeof e.result==="object"?e.result:null; 
 const resNote=e=>{ const r=e&&e.result; return r&&typeof r.note==="string"&&r.note.trim()?r.note.trim():""; };
 const resWord=e=>{ const k=resOf(e), r=(e&&e.result)||{}, n=[["passed",r.passed],["failed",r.failed],["skipped",r.skipped]].filter(([,c])=>Number.isInteger(c)&&c>0); return k==="not-run"?TRES[k].label:`${TRES[k].label}${n.length&&!(n.length===1&&n[0][0]===k)?` · ${n.map(([w,c])=>`${c} ${w}`).join(", ")}`:""}`; };
 let TESTS_SUB="added";
-/* the classes of a sub-tab: the board's own, or on a tracking board every unit's, each with its unit */
+/* the classes of a sub-Tab: the board's own, or on a tracking board every unit's, each with its unit */
 const testsOf=()=>PLAN.tests&&typeof PLAN.tests==="object"&&!Array.isArray(PLAN.tests)?PLAN.tests:null;
 const testKey=x=>`${x.u?x.u.id+"/":""}${x.sub}:${x.e.module||""}::${x.e.class}`;
 function testItems(sub){ const own=(T,u)=>(T&&Array.isArray(T[sub])?T[sub]:[]).filter(e=>e&&typeof e==="object"&&typeof e.class==="string"&&e.class).map(e=>({e,sub,u}));
@@ -2888,7 +2889,7 @@ function testCard(x,used){ const e=x.e, lv=tlOf(e), rk=resOf(e), rows=testRows(x
   return `<div class="tcard tl-${lv}" role="button" tabindex="0" data-tk="${esc(testKey(x))}" aria-label="${esc(e.class)}: ${esc(TLV[lv])}, ${esc(TRES[rk].label)}"><div class="th"><code class="cn" title="${esc(e.class)}">${esc(simpleName(e.class))}</code>${pill(TRES[rk],"",resWord(e))}</div>${pkgOf(e.class)?`<div class="pk">${esc(pkgOf(e.class))}</div>`:""}<div class="tm">${[e.module?esc(e.module):"",Number.isInteger(e.tests)?`${e.tests} test${e.tests===1?"":"s"}`:"tests not counted",e.stage?`stage ${esc(e.stage)}`:"",e.result&&e.result.pass?esc(passName(e.result.pass)):""].filter(Boolean).join(" · ")}</div>${resNote(e)?`<div class="tn">${rich(resNote(e))}</div>`:""}${rows?`<div class="tr">${rows}</div>`:""}${x.u?`<div class="tu">unit ${unitPairTests(x.u,x.sub)}</div>`:""}</div>`; }
 function testGroups(items,used){ return TLV_ORDER.map(lv=>{ const g=items.filter(x=>tlOf(x.e)===lv); if(!g.length) return ""; const n=g.reduce((s,x)=>s+(Number.isInteger(x.e.tests)?x.e.tests:0),0);
   return `<div class="tgroup"><h3 class="tlh"><i class="tlk tl-${lv}" aria-hidden="true"></i>${esc(TLV[lv])} <small>${g.length} class${g.length===1?"":"es"}${n?` · ${n} test${n===1?"":"s"}`:""}</small></h3><div class="tcards">${g.map(x=>testCard(x,used)).join("")}</div></div>`; }).join(""); }
-/* a tracking board's units, each with what the sub-tab holds of it and its title opening its own board's Tests tab */
+/* a tracking board's units, each with what the sub-Tab holds of it and its title opening its own board's Tests tab */
 function testUnits(sub,used){ const units=ROWS.filter(r=>r.unit); if(!units.length) return "";
   /* the units whose boards record tests, one line each; the rest named together in one line */
   const rec=units.filter(r=>r.unit.tests&&typeof r.unit.tests==="object"), none=units.filter(r=>!rec.includes(r));
@@ -2935,7 +2936,7 @@ function inspectTest(tk){ const x=findTest(tk); if(!x){ INSPECTED=null; inspect(
   inspect(`<div class="kicker">TESTS · ${esc((TEST_SUBS.find(s=>s.k===x.sub)||{}).label||"").toUpperCase()}</div><div class="name"><code>${esc(e.class)}</code></div><div class="vis"><span class="tlchip"><i class="tlk tl-${lv}" aria-hidden="true"></i>${esc(TLV[lv])}</span> ${pill(TRES[resOf(e)],"",resWord(e))}</div>${e.path?`<p class="lead"><code>${esc(e.path)}</code></p>`:""}<dl>${e.module?`<dt>Module</dt><dd><code>${esc(e.module)}</code></dd>`:""}<dt>Tests</dt><dd>${Number.isInteger(e.tests)?esc(e.tests):"not counted"}</dd><dt>Latest result</dt><dd>${esc(resWord(e))}${r.pass?` · ${esc(passName(r.pass))}`:""}${r.at?` · ${when(r.at)}`:""}${resNote(e)?`<br>${rich(resNote(e))}`:""}</dd>${rows?`<dt>Board rows it verifies</dt><dd>${rows}</dd>`:""}${e.stage?`<dt>Stage</dt><dd>${esc(e.stage)}</dd>`:""}${x.u?`<dt>Unit</dt><dd>${unitPairTests(x.u,x.sub)}</dd>`:""}</dl>`);
   bindGoRow($("#insp-body")); }
 const stabs=[...document.querySelectorAll("#tests-tabs .stab")];
-/* a sub-tab of the Tests tab; selecting one from elsewhere shows the Tests tab first (keep: a redraw, which leaves the tab as it is) */
+/* a sub-Tab of the Tests tab; selecting one from elsewhere shows the Tests tab first (keep: a redraw, which leaves the tab as it is) */
 function showTestsSub(k,keep){ if(!TEST_SUBS.some(s=>s.k===k)) k="added"; TESTS_SUB=k;
   if(!keep&&CUR_TAB!=="tests") show("t-tests");
   stabs.forEach(t=>{ const on=t.id==="t-tests-"+k; t.setAttribute("aria-selected",String(on)); t.tabIndex=on?0:-1; const p=document.getElementById(t.getAttribute("aria-controls")); if(p) p.hidden=!on; }); }
@@ -3109,54 +3110,55 @@ function renderImpact(){
   if(noneBox) key+=`<span><i class="inb"></i>box: no downstream impact recorded${I?"":" yet"}</span>`;
   $("#impact-key").innerHTML=key; paint($("#impact-key"));
 }
-/* ---------- Who feels it (plan/RULES.md §2, "Who feels it"; the As built tab's second sub-tab) ----------
-   The impact's downstream entries, read from plan.json "impact" as the Consequences sub-tab reads them, drawn ring by ring round the change:
-   the inner ring the systems (kind system), the middle the published artifacts (artifact), the outer the repositories, consumers and
-   operators (repository, consumer, operator; an entry of no known kind with them). The data holds no distance of its own: the ring is the
-   entry's kind. Each mark is numbered and coloured as its entry is on Consequences (compatOf(): red breaking, yellow worth noting, its
-   system's colour otherwise, muted outside the repository's systems); its line in the list beside carries the entry's kind and effect
-   Badges, so no colour stands alone. Under the list, the release the change takes and what each party must do (impact.adaptation). It
-   shows the impact as it now stands and no planning information: nothing dashed, no basis, no changes. A click on a mark or a line selects
-   both and opens the entry in the inspector (inspectImpact()). With no impact recorded it says so, as Consequences does. */
-const WHO_RINGS=[{label:"systems",lines:["systems"],kinds:["system"]},{label:"published artifacts",lines:["published","artifacts"],kinds:["artifact"]},{label:"repositories, consumers, operators",lines:["repositories,","consumers,","operators"],kinds:["repository","consumer","operator"]}];
-const whoRing=x=>{ const k=WHO_RINGS.findIndex(g=>g.kinds.includes(x&&x.kind)); return k<0?2:k; };
+/* ---------- Who feels it (plan/RULES.md §2, "Who feels it"; the As built tab's second sub-Tab) ----------
+   The impact's downstream entries, read from plan.json "impact" as the Consequences sub-Tab reads them, drawn on the party Orbits round the
+   change, one per kind of party: the innermost the systems (kind system), the middle the published artifacts (artifact), the outermost the
+   repositories, consumers and operators (repository, consumer, operator; an entry of no known kind with them). The data holds no distance of
+   its own: an entry's party Orbit is its kind. Each entry stands on its party Orbit as an entry Chip, numbered and coloured as its entry is on
+   Consequences (compatOf(): red breaking, yellow worth noting, its system's colour otherwise, muted outside the repository's systems); its
+   line in the list beside carries the entry's kind and effect Badges, so no colour stands alone. Under the party Orbits, the release the
+   change takes; under the list, what each party must do (impact.adaptation). It shows the impact as it now stands and no planning
+   information: nothing dashed, no basis, no changes. A click on an entry Chip or a line selects both and opens the entry in the inspector
+   (inspectImpact()). With no impact recorded it says so, as Consequences does. */
+const WHO_ORBITS=[{label:"systems",lines:["systems"],kinds:["system"]},{label:"published artifacts",lines:["published","artifacts"],kinds:["artifact"]},{label:"repositories, consumers, operators",lines:["repositories,","consumers,","operators"],kinds:["repository","consumer","operator"]}];
+const whoOrbit=x=>{ const k=WHO_ORBITS.findIndex(g=>g.kinds.includes(x&&x.kind)); return k<0?2:k; };
 function renderWho(){
-  const I=IMPACT, ds=impItems("downstream").map((x,i)=>({x,i,n:i+1,ring:whoRing(x),c:compatOf("downstream",x),slug:impSlug(x)}));
-  $("#who-lede").textContent=ds.length?"Each ring is a kind of party further from the change; click a mark or a line for its entry.":"";
+  const I=IMPACT, ds=impItems("downstream").map((x,i)=>({x,i,n:i+1,orbit:whoOrbit(x),c:compatOf("downstream",x),slug:impSlug(x)}));
+  $("#who-lede").textContent=ds.length?"Each party Orbit is a kind of party further from the change; click an entry Chip or a line for its entry.":"";
   let h="";
   if(!I) h=`<div class="inone"><p class="lead">No downstream impact recorded yet.</p><p>Filled from <code>consequences.md</code> when the plan is accepted, as Consequences is.</p></div>`;
   else if(!ds.length) h=`<div class="inone"><p class="lead">No downstream entry recorded.</p>${I.none?`<p>${rich(I.none)}</p>`:""}<p>Source: ${I.source?refHtml(I.source):"not stated"}.</p></div>`;
   if(I&&ds.length){
     const cx=320,cy=318,R=[100,190,280],nodeR=15;
-    let marks="";
-    [0,1,2].forEach(k=>{ const on=ds.filter(d=>d.ring===k); on.forEach((d,j)=>{ const a=Math.PI*(1-(j+1)/(on.length+1)), px=cx+R[k]*Math.cos(a), py=cy-R[k]*Math.sin(a);
-      marks+=`<g class="wn${d.c==="compatible"?"":" "+COMPAT[d.c].cls}" data-sys="${esc(d.slug)}" data-imp="downstream.${d.i}" tabindex="0" role="button" aria-label="${d.n}: ${esc(String(d.x.who||"").replace(/`/g,""))}${d.c==="compatible"?"":", "+COMPAT[d.c].label}"><circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${nodeR}"/><text x="${px.toFixed(1)}" y="${(py+4.5).toFixed(1)}" text-anchor="middle">${d.n}</text></g>`; }); });
-    const rings=R.map(r=>`<path class="ring" d="M${cx-r} ${cy} A${r} ${r} 0 0 1 ${cx+r} ${cy}"/>`).join("");
-    /* each ring named under the baseline, in the band between it and the ring inside it */
-    const labs=R.map((r,k)=>{ const x=cx-(r+(k?R[k-1]:30))/2; return `<text class="ringlab" x="${x}" y="${cy+20}" text-anchor="middle">${WHO_RINGS[k].lines.map((l,i)=>`<tspan x="${x}" dy="${i?14:0}">${esc(l)}</tspan>`).join("")}</text>`; }).join("");
-    const svg=`<svg viewBox="0 0 640 370" role="img" aria-label="Who the change reaches, ring by ring"><title>Who the change reaches, ring by ring</title>${rings}${labs}<g class="wc"><circle cx="${cx}" cy="${cy-6}" r="28"/><text x="${cx}" y="${cy-1}" text-anchor="middle">#${esc(PLAN.issue)}</text></g>${marks}</svg>`;
+    let chips="";
+    [0,1,2].forEach(k=>{ const on=ds.filter(d=>d.orbit===k); on.forEach((d,j)=>{ const a=Math.PI*(1-(j+1)/(on.length+1)), px=cx+R[k]*Math.cos(a), py=cy-R[k]*Math.sin(a);
+      chips+=`<g class="entry-chip${d.c==="compatible"?"":" "+COMPAT[d.c].cls}" data-sys="${esc(d.slug)}" data-imp="downstream.${d.i}" tabindex="0" role="button" aria-label="${d.n}: ${esc(String(d.x.who||"").replace(/`/g,""))}${d.c==="compatible"?"":", "+COMPAT[d.c].label}"><circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${nodeR}"/><text x="${px.toFixed(1)}" y="${(py+4.5).toFixed(1)}" text-anchor="middle">${d.n}</text></g>`; }); });
+    const orbits=R.map(r=>`<path class="party-orbit" d="M${cx-r} ${cy} A${r} ${r} 0 0 1 ${cx+r} ${cy}"/>`).join("");
+    /* each party Orbit named under the baseline, in the band between it and the party Orbit inside it */
+    const labs=R.map((r,k)=>{ const x=cx-(r+(k?R[k-1]:30))/2; return `<text class="orbit-label" x="${x}" y="${cy+20}" text-anchor="middle">${WHO_ORBITS[k].lines.map((l,i)=>`<tspan x="${x}" dy="${i?14:0}">${esc(l)}</tspan>`).join("")}</text>`; }).join("");
+    const svg=`<svg viewBox="0 0 640 370" role="img" aria-label="Who the change reaches, party Orbit by party Orbit"><title>Who the change reaches, party Orbit by party Orbit</title>${orbits}${labs}<g class="wc"><circle cx="${cx}" cy="${cy-6}" r="28"/><text x="${cx}" y="${cy-1}" text-anchor="middle">#${esc(PLAN.issue)}</text></g>${chips}</svg>`;
     const rel=I.release&&IMP_BUMP[I.release.bump]?I.release:null;
     const list=`<ol class="who-list">${ds.map(d=>`<li data-imp="downstream.${d.i}"><span class="wk${d.c==="compatible"?"":" "+COMPAT[d.c].cls}" data-sys="${esc(d.slug)}" aria-hidden="true">${d.n}</span><div class="wh"><b>${rich(d.x.who||"")}</b>${d.x.kind&&IMP_KIND[d.x.kind]?`<span class="badge">${esc(IMP_KIND[d.x.kind])}</span>`:""}${IMP_EFFECT[d.x.effect]?ibadge(IMP_EFFECT[d.x.effect]):""}${d.c==="compatible"||(IMP_EFFECT[d.x.effect]||{}).cls===COMPAT[d.c].cls?"":pill(COMPAT[d.c])}</div>${d.x.summary?`<p>${rich(d.x.summary)}</p>`:""}</li>`).join("")}</ol>`;
     const ad=impItems("adaptation");
     const adapt=ad.length?`<div class="who-adapt"><h3>What each must do</h3>${ad.map(x=>`<div>${IMP_NEED[x.need]?ibadge(IMP_NEED[x.need],x.need==="none"?"":`${IMP_NEED[x.need].label} change`,needCls(x)):""}<span><b>${rich(x.who||"")}.</b> ${rich(x.summary||"")}</span></div>`).join("")}</div>`:"";
     const relBox=rel?`<div class="who-rel"><b>${esc(releaseWords(rel))}</b>${rel.note?`<p>${rich(rel.note)}</p>`:""}</div>`:"";
-    h=`${I.summary?`<p class="isum">${rich(I.summary)}</p>`:""}<div class="who-wrap"><div class="who-rings">${svg}${relBox}</div><div>${list}${adapt}</div></div>`;
+    h=`${I.summary?`<p class="isum">${rich(I.summary)}</p>`:""}<div class="who-wrap"><div class="who-orbits">${svg}${relBox}</div><div>${list}${adapt}</div></div>`;
   }
   $("#who-body").innerHTML=h; paint($("#who-body"));
-  const pick=ref=>{ document.querySelectorAll("#who-body .wn, #who-body .who-list>li").forEach(e=>e.classList.toggle("on",e.dataset.imp===ref)); INSPECTED={k:"imp",ref}; inspectImpact(ref); };
-  document.querySelectorAll("#who-body .wn, #who-body .who-list>li").forEach(e=>{ e.addEventListener("click",ev=>{ if(ev.target.closest("a")) return; pick(e.dataset.imp); });
-    if(e.classList.contains("wn")) e.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); pick(e.dataset.imp); } }); });
+  const pick=ref=>{ document.querySelectorAll("#who-body .entry-chip, #who-body .who-list>li").forEach(e=>e.classList.toggle("on",e.dataset.imp===ref)); INSPECTED={k:"imp",ref}; inspectImpact(ref); };
+  document.querySelectorAll("#who-body .entry-chip, #who-body .who-list>li").forEach(e=>{ e.addEventListener("click",ev=>{ if(ev.target.closest("a")) return; pick(e.dataset.imp); });
+    if(e.classList.contains("entry-chip")) e.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); pick(e.dataset.imp); } }); });
   /* the legend: exactly what was drawn */
   const used=c=>ds.some(d=>d.c===c), sysSlugs=ds.filter(d=>d.c==="compatible"&&d.slug).map(d=>d.slug), outside=ds.some(d=>d.c==="compatible"&&!d.slug);
   const effects=[...new Set(ds.map(d=>IMP_EFFECT[d.x.effect]?d.x.effect:null).filter(Boolean))];
   const needs=[...new Set(impItems("adaptation").map(x=>IMP_NEED[x.need]?x.need+"|"+needCls(x):null).filter(Boolean))];
   let key="";
   if(ds.length){
-    key+=`<span><i class="wcen"></i>the change, at the centre</span><span><i class="wring"></i>a ring: one kind of party, further from the change outwards</span>`;
-    if(used("breaking")) key+=`<span><i class="wnode critical"></i>red: breaking, a consumer breaks unless it adapts</span>`;
-    if(used("notable")) key+=`<span><i class="wnode warning"></i>yellow: worth noting, a deprecation or other non-breaking change</span>`;
-    if(sysSlugs.length) key+=sysKey(sysSlugs,"wnode");
-    if(outside) key+=`<span><i class="wnode" style="--c:var(--muted)"></i>outside this repository's systems</span>`;
+    key+=`<span><i class="wcen"></i>the change, at the centre</span><span><i class="party-orbit"></i>a party Orbit: one kind of party, further from the change outwards</span>`;
+    if(used("breaking")) key+=`<span><i class="entry-chip critical"></i>red: breaking, a consumer breaks unless it adapts</span>`;
+    if(used("notable")) key+=`<span><i class="entry-chip warning"></i>yellow: worth noting, a deprecation or other non-breaking change</span>`;
+    if(sysSlugs.length) key+=sysKey(sysSlugs,"entry-chip");
+    if(outside) key+=`<span><i class="entry-chip" style="--c:var(--muted)"></i>outside this repository's systems</span>`;
     if(ds.some(d=>d.c!=="compatible"&&(IMP_EFFECT[d.x.effect]||{}).cls!==COMPAT[d.c].cls)) ["breaking","notable"].filter(used).forEach(k=>{ key+=`<span>${pill(COMPAT[k])} the entry's compatibility, where its effect Badge does not say so</span>`; });
     key+=effects.map(k=>`<span>${ibadge(IMP_EFFECT[k])} effect downstream</span>`).join("");
     key+=needs.map(kc=>{ const [k,c]=kc.split("|"); return `<span>${ibadge(IMP_NEED[k],k==="none"?"":`${IMP_NEED[k].label} change`,c)} what a party must change${c==="critical"?": not adapting breaks it":c==="warning"?": it does not break":""}</span>`; }).join("");
@@ -3276,7 +3278,7 @@ if(!TRACKING){ const t=$("#t-landing-order"), p=$("#p-landing-order"); if(t) t.r
 const tabs=[...document.querySelectorAll(".tab")];
 const DEFAULT_INSPECT={design:"<p>Click a cell for its detail: the gap's evidence, an option's reasons, the verdict's steps, tests and risks, or the as-built changes with their reasons. Each cell links the Markdown section that holds the rest.</p>",decisions:"<p>Click a row for the option's full reasons and the options it was weighed against.</p>",built:"<p>Click a card for the row's files, commits, verification and every change from the verdict. Each impact change opens the Impact card it changed.</p>",who:"<p>Click a mark or a line for its entry: the party affected, its system, its effect, and the Markdown section that holds the rest.</p>",impact:"<p>Click a card for its detail: the party affected or the surface that moves, its system, its tier, and the Markdown section that holds the rest.</p>",tests:"<p>Click a class for its detail: its path, its module and test set, its test count, its latest result and the board rows it verifies.</p>","landing-order":"<p>Click a unit for its as-built state, its issue and its board or folder, and its run in full.</p>",source:"<p>The committed <code>plan.json</code>. Edit the file, then run <code>plan/scripts/embed.js</code> on the folder.</p>"};
 let CUR_TAB="";
-/* the As built tab's sub-tabs (plan/RULES.md §2): "built" is Final state (its ids t-built-final / p-built-final; t-built itself opens it),
+/* the As built tab's sub-Tabs (plan/RULES.md §2): "built" is Final state (its ids t-built-final / p-built-final; t-built itself opens it),
    "who" Who feels it, "impact" Consequences. BUILT_SUB remembers the one shown, so a click on As built shows it again; a link, a deep link
    or a redraw names its own. */
 const BUILT_SUBS=["built","who","impact"]; let BUILT_SUB="built";
@@ -3311,7 +3313,7 @@ function replayInspect(I){ const r=I&&I.row?ROWS.find(x=>x.id===I.row):null, dfl
   if(I.k==="test"){ const c=[...document.querySelectorAll(".tcard")].find(x=>x.dataset.tk===I.tk); if(!c&&CUR_TAB==="tests") return dflt(); if(c) c.classList.add("sel"); INSPECTED=I; inspectTest(I.tk); return; }
   if(I.k==="imp"){ const c=[...document.querySelectorAll("#impact-body .icard")].find(x=>x.dataset.imp===I.ref); if(!c&&CUR_TAB==="impact") return dflt(); if(c) c.classList.add("sel"); INSPECTED=I; inspectImpact(I.ref); return; }
   dflt(); }
-/* a click on As built shows its sub-tab shown last (Final state at first) */
+/* a click on As built shows its sub-Tab shown last (Final state at first) */
 const tabTarget=id=>id==="t-built"?"t-"+BUILT_SUB:id;
 tabs.forEach((t,i)=>{ t.addEventListener("click",()=>{ show(tabTarget(t.id)); try{ history.replaceState(null,"","#"+CUR_TAB); }catch(e){} }); });
 bstabs.forEach(t=>t.addEventListener("click",()=>{ show(t.id); try{ history.replaceState(null,"","#"+CUR_TAB); }catch(e){} }));
@@ -3319,9 +3321,9 @@ bstabs.forEach(t=>t.addEventListener("click",()=>{ show(t.id); try{ history.repl
    last, each shown at once; only the selected tab is in the Tab order (a roving tabindex), so Tab moves on to the panel. */
 function tabKeys(list,go){ list.forEach((t,i)=>{ t.tabIndex=t.getAttribute("aria-selected")==="true"?0:-1; t.addEventListener("keydown",e=>{ const n=list.length, j={ArrowRight:(i+1)%n,ArrowLeft:(i+n-1)%n,Home:0,End:n-1}[e.key]; if(j==null) return; e.preventDefault(); list[j].focus(); go(list[j].id); }); }); }
 tabKeys(tabs,id=>show(tabTarget(id)));
-/* the As built tab's sub-tabs are a tablist of their own, with the same keys */
+/* the As built tab's sub-Tabs are a tablist of their own, with the same keys */
 tabKeys(bstabs,id=>{ show(id); try{ history.replaceState(null,"","#"+CUR_TAB); }catch(e){} });
-/* the Tests tab's sub-tabs are a tablist of their own, with the same keys */
+/* the Tests tab's sub-Tabs are a tablist of their own, with the same keys */
 tabKeys(stabs,id=>{ showTestsSub(id.replace("t-tests-","")); try{ history.replaceState(null,"","#tests."+TESTS_SUB); }catch(e){} });
 
 /* ---------- The theme switch (GUIDANCE.md §1, Themes; §12, "Switch") ----------
@@ -3487,7 +3489,7 @@ const hash=decodeURIComponent(location.hash.replace("#",""));
 /* the Design tab was named Timeline before dashboards-skill/34: "#timeline" and "#p-timeline" still open it */
 let start="t-design"; if(hash&&document.getElementById("t-"+hash)) start="t-"+hash; else if(hash==="timeline"||hash==="p-timeline") start="t-design"; else if(hash==="chain"&&document.getElementById("t-landing-order")) start="t-landing-order"; /* the tab's old name */
 else if(/^impact\./.test(hash)&&document.getElementById("t-impact")) start="t-impact"; /* an Impact card, "#impact.<entry>" */
-else if(/^tests\.(added|amended|relevant|other)$/.test(hash)&&document.getElementById("t-tests")){ start="t-tests"; TESTS_SUB=hash.slice(6); } /* a sub-tab of Tests, "#tests.<sub>" */
+else if(/^tests\.(added|amended|relevant|other)$/.test(hash)&&document.getElementById("t-tests")){ start="t-tests"; TESTS_SUB=hash.slice(6); } /* a sub-Tab of Tests, "#tests.<sub>" */
 show(start);
 if(/^impact\./.test(hash)) goImpact(hash.slice("impact.".length));
 else if(hash&&hash!=="chain"&&!/^tests\./.test(hash)&&!document.getElementById("t-"+hash)){ const [rowId,col,optId]=hash.split("."); if(ROWS.some(r=>r.id===rowId)){

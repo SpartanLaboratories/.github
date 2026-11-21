@@ -25,7 +25,7 @@ module.exports = function casesTermrefs(X) {
   guard("the glossary parses: its terms, the compound names, the class list and the ruled-out words", c => {
     c.push(["ui.md and boards.md are found and parse with no problem", !!G && !G.problems.length, js(G && G.problems)]);
     if (!G) return;
-    const want = ["Box", "Panel", "Tab", "Disclosure", "Card", "Tile", "Row", "Pill", "Chip", "ShareBar", "StepBar", "FullPulse", "Legend", "Switch", "Button", "system board", "tracking board", "org work board", "State boards"];
+    const want = ["Box", "Panel", "Tab", "Disclosure", "Card", "Tile", "Row", "Pill", "Chip", "ShareBar", "StepBar", "FullPulse", "Legend", "Switch", "Button", "system board", "tracking board", "org work board", "State boards", "sub-Tab", "Orbit", "annotated plan"];
     const miss = want.filter(t => !G.terms.has(t));
     c.push(["every row's bold first Cell is a term", !miss.length, js(miss)]);
     c.push(["Disclosure is in ui.md's section 2, so it is a type word; Box, of section 1, is not", G.typeWords.includes("Disclosure") && !G.typeWords.includes("Box") && G.terms.get("Disclosure").files.includes("ui.md"), js(G.typeWords)]);
@@ -35,7 +35,8 @@ module.exports = function casesTermrefs(X) {
     const seeds = lines.flatMap(([n, f]) => f.lines.flatMap(l => l.not.map(w => ({ n, w, text: n === "ui.md" ? ui : boards }))));
     const unsourced = seeds.filter(s => !new RegExp(`"${s.w}" is retired`).test(s.text)).map(s => `${s.n}: ${s.w}`);
     c.push(["every ruled-out word is one its own file says is retired: none invented", seeds.length > 0 && !unsourced.length, js(unsourced)]);
-    c.push(["the seeds read: Card not Bubble, FillPulse not Glow, board not Page (GitHub Pages allowed)", js(G.terms.get("Card").not) === '["Bubble"]' && G.terms.get("Card").case === null && js(G.terms.get("FillPulse").not) === '["Glow"]' && G.terms.get("FillPulse").case === null && js(G.terms.get("board").not) === '["Page"]' && js(G.terms.get("board").allow) === '["GitHub Pages"]' && G.terms.get("board").case === null, js([...G.terms.values()].filter(t => t.not.length))]);
+    c.push(["the seeds read: Card not Bubble, FillPulse not Glow, board not Page (GitHub Pages and the Pages site, workflow, deploy, source and permission allowed), sub-Tab not subtab, sub-tab or SubTab", js(G.terms.get("Card").not) === '["Bubble"]' && G.terms.get("Card").case === null && js(G.terms.get("FillPulse").not) === '["Glow"]' && G.terms.get("FillPulse").case === null && js(G.terms.get("board").not) === '["Page"]' && js(G.terms.get("board").allow) === '["GitHub Pages","Pages site","Pages workflow","Pages deploy","Pages source","Pages permission"]' && G.terms.get("board").case === null && js(G.terms.get("sub-Tab").not) === '["subtab","sub-tab","SubTab"]' && G.terms.get("sub-Tab").case === null, js([...G.terms.values()].filter(t => t.not.length))]);
+    c.push(["Orbit is in ui.md's section 2, so it is a type word", G.typeWords.includes("Orbit") && G.terms.get("Orbit").files.includes("ui.md"), js(G.typeWords)]);
     const names = ["WIP Panel", "Now Chip", "KPI Tile", "Guarantees Panel", "Context Panel", "Timeline Tile", "Quality Reviews Tile", "Verdict Cell", "As built Cell", "Hide Button"], gone = names.filter(n => !G.names.has(n));
     c.push(["the capitalised compounds are read from the compound-names paragraph and the rows", !gone.length && !G.names.has("Panel Panel"), js([gone, [...G.names]])]);
     const sub = ["guarantee", "wip", "unit", "verdict", "kpi", "dep", "upnext"], gone2 = sub.filter(s => !G.subjects.has(s));
@@ -60,7 +61,10 @@ module.exports = function casesTermrefs(X) {
     const r = t => T.termRefs(t, G);
     const banned = t => r(t).banned.map(b => b.hit), unknown = t => r(t).unknown;
     const cases = [["the Bubble on the Card", ["Bubble"], []], ["two Bubbles", ["Bubbles"], []], ["the Page and the Glow", ["Page", "Glow"], []], ["a web page, a cream glow, Dokka pages", [], []], ["GitHub Pages site", [], []], ["`Bubble` and `Page`", [], []], ["<code>Bubble</code>", [], []], ["[x](docs/Page.md)", [], []], ["https://x.y/Page", [], []],
-      ["the Status Pill and a ProgressBar", [], ["Status Pill", "ProgressBar"]], ["the Guarantees Panel, the Verdict Cell, a FullPulse and a Timeline Tile", [], []], ["The Row was fixed. A Card too.", [], []], ["the Quality Reviews Tile", [], []], ["two Foo Tiles", [], ["Foo Tile"]], ["a status Pill, an issue Chip", [], []], ["Docker Image, Command Line", [], []], ["some-identifier/Bubble", [], []], ["ALL_CAPS", [], []]];
+      ["the Status Pill and a ProgressBar", [], ["Status Pill", "ProgressBar"]], ["the Guarantees Panel, the Verdict Cell, a FullPulse and a Timeline Tile", [], []], ["The Row was fixed. A Card too.", [], []], ["the Quality Reviews Tile", [], []], ["two Foo Tiles", [], ["Foo Tile"]], ["a status Pill, an issue Chip", [], []], ["Docker Image, Command Line", [], []], ["some-identifier/Bubble", [], []], ["ALL_CAPS", [], []],
+      ["the Pages site and the Pages deployment", [], []], ["the CI, Pages and release workflows", ["Pages"], []],
+      ["the sub-tabs and a sub-tab", ["sub-tabs", "sub-tab"], []], ["a sub-Tab, Sub-tab, the sub-tablist", [], []], ["a subtab", ["subtab"], []], ["a SubTab", ["SubTab"], ["SubTab"]],
+      ["the party Orbits and an entry Chip", [], []], ["a Foo Orbit", [], ["Foo Orbit"]]];
     const wrong = cases.filter(([t, b, u]) => js(banned(t)) !== js(b) || js(unknown(t)) !== js(u)).map(([t, b, u]) => [t, banned(t), unknown(t), b, u]);
     c.push(["each text reads as it should: a banned word, a name in neither list, the everyday word, the allowed name, code and a function word left alone", !wrong.length, js(wrong)]);
     const hits = T.termRefsIn({ title: "A Bubble in the title", $comment: "a Bubble", Bubble: "a key", rows: [{ a: "the Glow" }, "the Page"] }, "", [], at => at === "title", G);
@@ -72,7 +76,7 @@ module.exports = function casesTermrefs(X) {
     if (!G) { c.push(["the glossary is read", false, ""]); return; }
     const cl = h => T.classRefs(h, G).map(x => `${x.cls}:${x.why}`);
     const flagged = [['<i class="kpi">', ["kpi:subject"]], ["<style>.kpi{color:red}</style>", ["kpi:subject"]], ['<i class="glow">', ["glow:retired"]], ["<style>.bubble .x{a:b}</style>", ["bubble:retired"]], ['`<i class="dep${x?" a":""}">`', ["dep:subject"]]];
-    const clean = ['<i class="kpi-tile">', '<i class="chip now">', '<i class="cell verdict">', '<i class="wipcard unit">', "<style>.chip.now{a:b}</style>", '<i class="other">'];
+    const clean = ['<i class="kpi-tile">', '<i class="chip now">', '<i class="cell verdict">', '<i class="wipcard unit">', "<style>.chip.now{a:b}</style>", '<i class="other">', '<path class="party-orbit">', '<text class="orbit-label">', '<g class="entry-chip warning">', "<style>.who-orbits .entry-chip circle{a:b}</style>"];
     const wrong = [...flagged.filter(([h, w]) => js(cl(h)) !== js(w)).map(([h, w]) => [h, cl(h), w]), ...clean.filter(h => cl(h).length).map(h => [h, cl(h)])];
     c.push(["a subject and a retired word are named; a class with, or standing beside, a type word is not", !wrong.length, js(wrong)]);
     const pb = rd(sk("plan/template/dashboard.html"));

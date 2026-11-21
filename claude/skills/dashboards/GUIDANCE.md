@@ -79,8 +79,8 @@ its ruleset; the shared scale is:
 
 **The exception: compatibility on the Consequences Tab** (named the Impact Tab before admin-team/dashboards-skill/35; its ids, its
 `#impact.<entry>` deep links and its data key `impact` are kept, the document it reads is `consequences.md`, `impact.md` in an older folder;
-since the user's direction of 2026-11-20 the As built Tab's third sub-tab, beside **Who feels it**, which draws the same entries ring by ring
-in the same colours, `plan/RULES.md` §2, "The As built Tab's sub-tabs": what this file says of the Consequences Tab holds for both).
+since the user's direction of 2026-11-20 the As built Tab's third sub-Tab, beside **Who feels it**, which draws the same entries as entry Chips on
+its party Orbits, in the same colours, `plan/RULES.md` §2, "The As built Tab's sub-Tabs": what this file says of the Consequences Tab holds for both).
 On an issue board's Consequences Tab, red and
 yellow mean **compatibility**, not outcomes, because what a reader needs from that Tab first is
 whether the change breaks them. **Red** (`--critical`) is a breaking change: a `breaking`
@@ -1114,7 +1114,7 @@ console/board-as-built-subtabs), each weighed for every type:
 - **The timetable look** (`plan/RULES.md` §2, "The look"): applied to the issue board template, so to issue boards and tracking boards. Whether
   the system, supersystem and repository state boards, the repository work board and the org work board take it is the user's open decision,
   not yet taken: until it is, they keep their look, and the two sets of boards look different side by side.
-- **The As built Tab's sub-tabs, Who feels it among them** (`plan/RULES.md` §2, "The As built Tab's sub-tabs"): issue boards and tracking
+- **The As built Tab's sub-Tabs, Who feels it among them** (`plan/RULES.md` §2, "The As built Tab's sub-Tabs"): issue boards and tracking
   boards, the only types with an As built Tab and an impact. Not to the repository work board, one Row per run whose impact is on the run's
   own board (its reconciliation Chip stays on the Row), nor to the state boards, which show the code at a commit and no change's impact.
 

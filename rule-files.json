@@ -79,7 +79,8 @@
           "Hierarchy": "HI", "Folded-in issues": "FI", "A fix to an earlier plan's work": "FE", "What an issue folder holds": "IF", "A tracking issue's folder": "TF", "Comment- and doc-only changes": "CD", "Plans need an issue": "NI", "Committed": "CO"
         } },
         "policy/nomenclature/boards.md": { "segment": "B", "sections": {
-          "Dashboards and boards": "DB", "Companions of the boards": "CB", "Board UI": "BU"
+          "Dashboards and boards": "DB", "Companions of the boards": "CB", "Board UI": "BU",
+          "Plan document views": "PD"
         } }
       },
       "folders": {
@@ -129,7 +130,7 @@
   },
   "notConverted": [],
   "ids": {
-    "marks": { "1": 3, "2": 33, "3": 140, "4": 1124, "5": 10041 },
+    "marks": { "1": 3, "2": 33, "3": 140, "4": 1138, "5": 10041 },
     "retired": [
       { "id": 105, "by": 11 },
       { "id": 1022, "by": 1028 },

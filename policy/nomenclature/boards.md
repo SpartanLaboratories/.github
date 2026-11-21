@@ -16,7 +16,7 @@ the boards use the interface elements named in
 | **Work boards** (`docs/plans/`) | how the work is going | the **issue board**, the **tracking board** (a tracking issue's issue board), the **repository work board**, the **org work board** (one board for the organization, in `OrganizationPage`) |
 
 ```jsonl
-{"term":"board","not":["Page"],"allow":["GitHub Pages"]}
+{"term":"board","not":["Page"],"allow":["GitHub Pages","Pages site","Pages workflow","Pages deploy","Pages source","Pages permission"]}
 ```
 
 What each board shows:
@@ -37,7 +37,7 @@ keep their spelling: `plan-board`, an issue or a tracking board (its `<meta name
 and `plan.json`'s `schema: "plan-board/1"`), `work-board`,
 and `org-work-board` (its `<meta name="dashboard">` and its `board.json`'s `schema: "org-work-board/1"`).
 
-"Page" is retired: it never names a board (GitHub Pages is something else).
+"Page" is retired: it never names a board (GitHub Pages is something else, and so are its site, workflow, deploy, source and permission).
 
 ## Companions of the boards
 <!-- {"name":"Companions of the boards","code":"P-N-B-CB","id":1118} -->
@@ -97,6 +97,7 @@ defines it.
 
 | Term | Its purpose on the boards |
 |------|---------------------------|
+| **Chip** | an issue Chip, an issue by its number, opening its board, or the GitHub issue while it has none; the "part of" Chip, the parent issue, in the header; a branch Chip, the run's branch, in the header; the chain Chip, a tracking board's chain in its header: how many units have landed, which are in progress and which is up next; the org work board's unlinked Chip, saying a board is not linked yet; an entry Chip, a numbered mark on a party Orbit: a downstream entry by its number, opening it in the inspector, in its entry's colour on the Consequences sub-Tab where `ui.md`'s Chip is neutral |
 | **CodeLabel** | a `code` span in the data, a path, a sha, a branch, a class; plain inside a Chip, a Pill, a Tile, a Badge or a Tag |
 | **Tracer** | from a KPI Tile up to the part of the Timeline Tile it belongs to (the steps that made the Tile's figure), in their kind of work's colour, labelled with how long that part took; under 760 px its label alone, on the Tile |
 
@@ -108,10 +109,10 @@ defines it.
 | **Panel** | the Guarantees Panel (headed "Guarantees"), the Context Panel (headed "Context"), the WIP Panel (the Panel that holds the WIP strip), the step Panel, a system Panel on the Systems Tab (its own Card the heading; a subsystem's inside its supersystem's), the org work board's repository Panel and organization Panel (a sub-organization's repository Panels inside its organization Panel) and its Ideas Panel (headed "Ideas", after the organization Panels on its Repositories Tab: the organization's ideas file, one idea Card per idea), the inspector: the side Panel that shows the selected item, a Hide Button right of its heading |
 | **Card** | a guarantee Card, one guarantee a consumer can rely on; a Consequences Card, one consequence of the change as it now stands; an As built Card, one Row as built: its state, its statements and every change from the verdict; a unit Card, a tracking board's unit in progress, with its own run; the Ideas Card, in an issue or a tracking board's Context, the ideas of the repository's ideas file that name its issue; an idea Card, one idea of the organization's ideas file, on the org work board's Ideas Panel |
 | **Cell** | a Gap, Considered, Verdict or As built Cell; a step Cell |
-| **Tab** | each of a board's views: a state board's six core Tabs, its optional ones and a supersystem or repository state board's Systems Tab; a work board's Tabs |
+| **Orbit** | the party Orbits of the Who feels it sub-Tab, on an issue or a tracking board: round the change, one party Orbit per kind of downstream party, the systems innermost, then the published artifacts, then the repositories, consumers and operators |
+| **Tab** | each of a board's views: a state board's six core Tabs, its optional ones and a supersystem or repository state board's Systems Tab; a work board's Tabs; a **sub-Tab**, a Tab nested in a Tab, its set a tablist of its own: on an issue or a tracking board, the As built Tab's three sub-Tabs, "Final state", "Who feels it" and "Consequences", in that order, and the Tests Tab's four |
 | **Tile** | the KPI Tiles, an issue board's counts, each with the Bar of what it counts; the Timeline Tile, the time the run took, step visit by step visit; the repository work board's Runs Tile, every run by its state, and its Landed Tile, the runs that have landed |
 | **Pill** | a verdict Pill, the verdict on an option weighed or on a quality review; an as-built Pill, a Row's as-built state; the research-state Pill, the state of a Row's research, in the head of its Considered Cell; the blocked Pill, "⊘ blocked by #n" on the unit up next while a blocker has not landed, in the waiting colour (yellow), drawn by the templates from the unit's blockers alone |
-| **Chip** | an issue Chip, an issue by its number, opening its board, or the GitHub issue while it has none; the "part of" Chip, the parent issue, in the header; a branch Chip, the run's branch, in the header; the chain Chip, a tracking board's chain in its header: how many units have landed, which are in progress and which is up next; the org work board's unlinked Chip, saying a board is not linked yet |
 | **Badge** | on a Consequences Card, the effect Badge, how a downstream party is affected; the need Badge, whether a consumer must change to adopt it; the API-change Badge, whether a public surface was added, changed, deprecated or removed |
 | **Tag** | a header fact with its label (the branch, the systems, a system board's visibility); "UP NEXT" on the unit up next; "⊟ archived" on a system no longer developed; the kind Tag, an idea's kind (fix, improvement, feature, exploration or future, shown in capitals), on the Ideas Card and on an idea Card |
 | **DualStatePill** | the dependency DualStatePill: the build state on the status scale and the locality on a neutral ramp |
@@ -119,6 +120,12 @@ defines it.
 | **Arrow** | the charging Arrow, the connector into a Verdict Cell; the connectors of a tracking board's units chain |
 | **Switch** | the theme Switch (☀ light, ☾ night) and the inspector Switch, in the header, drawn in the neutrals (never the accent or a status colour) |
 | **Button** | the inspector's Hide Button, hiding the inspector as the inspector Switch does; the option Button, an option in a Considered Cell, opening it in the inspector; the "back to now" Button, returning the step Panel from a finished step to the current one |
+
+```jsonl
+{"term":"sub-Tab","not":["subtab","sub-tab","SubTab"]}
+```
+
+"subtab" is retired, "sub-tab" is retired and "SubTab" is retired: each is spelled sub-Tab.
 
 ### As-is
 <!-- {"name":"As-is","code":"P-N-B-BU-3","id":10041} -->
@@ -135,3 +142,28 @@ defines it.
 | **Legend** | one per Tab or per Tile, and one per repository Panel and one for the Ideas Panel on the org work board; an issue board's Timeline Tile carries two, its kinds of work (one entry per family, with its steps' shades) and its step visits (one entry per visit, with its times) |
 | **FillPulse** | the live indicator's dot while the view is live and changing |
 | **FullPulse** | whatever is being worked on, but not while its run waits on the user (the Ring row) |
+
+## Plan document views
+<!-- {"name":"Plan document views","code":"P-N-B-PD","id":1138} -->
+
+A plan document view shows a plan as a document, in one of two forms:
+
+| View | What it is |
+|------|------------|
+| **annotated plan** | the plan as a document, with notes in a margin saying what became of each part |
+| **redline** | the current plan marked against the version it replaced: its **inserted** text, the new wording, and its **struck** text, the wording it replaced, still shown, crossed out |
+
+```jsonl
+{"term":"annotated plan","not":["commented plan","noted plan","as-built plan"]}
+```
+
+"commented plan" is retired, "noted plan" is retired and "as-built plan" is retired: each is an annotated plan.
+
+Its parts:
+
+| Term | Its purpose in the view |
+|------|-------------------------|
+| **contents Panel** | the view's contents list, under its heading |
+| **contents Disclosure** | an entry of the contents Panel that opens in place: its body, its **subcontents**, shown or hidden under it, independently of the other entries |
+| **margin Card** | an annotated plan's note in the margin, one per decided statement, in three kinds: built as planned (one folded line), amended, and changed course (the built statement with its departures) |
+| **unchanged-blocks Disclosure** | a redline's folded stretch, a run of unchanged blocks, labelled "N unchanged blocks", opened in place |

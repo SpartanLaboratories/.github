@@ -232,13 +232,13 @@ module.exports = function cases22(X) {
   });
 
   /* 7. the Tests tab: the board */
-  guard("the Tests tab on the board: four sub-tabs, by test set, results, rows, Other's counts, a tracking board's sum (dashboards-skill/22)", c => {
+  guard("the Tests tab on the board: four sub-Tabs, by test set, results, rows, Other's counts, a tracking board's sum (dashboards-skill/22)", c => {
     if (!chrome) { c.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]); return; }
     const tabsOf = dom => (inner(dom, '<div class="tabs" role="tablist" aria-label="Views">', "div").match(/id="t-[a-z-]+"/g) || []).map(x => x.slice(6, -1));
     const fS = planPage("tests-sub", SUB), dS = wide(fS, "tests.amended");
     c.push(["the Tests tab stands right of As built, on an issue board", JSON.stringify(tabsOf(dS).slice(0, 6)) === '["design","steps","decisions","built","tests","impact"]', tabsOf(dS).join(", ")]);
     const st = inner(dS, '<div class="seg stabs" role="tablist" aria-label="Tests" id="tests-tabs">', "div");
-    c.push(["four sub-tabs with their counts: Added 2, Amended 4, Relevant 3, Other 91 (classes)", /Added<small>2<\/small>/.test(st) && /Amended<small>4<\/small>/.test(st) && /Relevant<small>3<\/small>/.test(st) && /Other<small>91<\/small>/.test(st), text(st)]);
+    c.push(["four sub-Tabs with their counts: Added 2, Amended 4, Relevant 3, Other 91 (classes)", /Added<small>2<\/small>/.test(st) && /Amended<small>4<\/small>/.test(st) && /Relevant<small>3<\/small>/.test(st) && /Other<small>91<\/small>/.test(st), text(st)]);
     c.push(["#tests.amended opens the Tests tab at Amended (selected, its panel shown)", /id="t-tests" aria-controls="p-tests" aria-selected="true"/.test(dS) && /id="t-tests-amended" aria-controls="p-tests-amended" aria-selected="true"/.test(dS) && /<div class="tsub" role="tabpanel" id="p-tests-amended" aria-labelledby="t-tests-amended">/.test(dS), "deep link"]);
     const am = inner(dS, '<div id="tests-amended">', "div"), heads = (am.match(/<h3 class="tlh">[\s\S]*?<\/h3>/g) || []).map(text);
     c.push(["Amended groups its classes by test set, in the sets' order (component, integration, deterministic, nonfunctional), each heading with its classes and tests", heads.length === 4 && /^component 1 class · 41 tests/.test(heads[0]) && /^integration/.test(heads[1]) && /^deterministic/.test(heads[2]) && /^nonfunctional/.test(heads[3]), heads.join(" | ")]);
@@ -250,10 +250,10 @@ module.exports = function cases22(X) {
     c.push(["Relevant: a class with no test set in its own group, a skipped one neutral with its glyph and word, each in the legend", /no test set/.test(text(rl)) && /vp neutral"><i aria-hidden="true">↷<\/i>skipped/.test(rl) && /no test set/.test(keyR) && /its latest run skipped it/.test(keyR) && /uat \(strongest\)/.test(keyR) && !/lightest|darkest/.test(keyR), text(keyR)]);
     const dO = wide(fS, "tests.other"), ot = inner(dO, '<div id="tests-other">', "div"), keyO = inner(dO, '<div class="legend" id="tests-other-key">', "div");
     c.push(["Other: counts only, per module and test set, \"not run: untouched by this change\", with its legend", /<table class="tbl tother">/.test(ot) && /<code>webtools-core<\/code><\/td>/.test(ot) && /31 <small>\(212 tests\)<\/small>/.test(ot) && /not run: untouched by this change/.test(ot) && !/<div class="tcard/.test(ot) && /counted only: never run for this change/.test(keyO), text(ot).slice(0, 300)]);
-    /* keyboard: the sub-tablist's keys, and a sub-tab selected from another tab shows the Tests tab */
+    /* keyboard: the sub-tablist's keys, and a sub-Tab selected from another tab shows the Tests tab */
     const kjs = 'const a=document.getElementById("t-tests-added");document.getElementById("t-design").click();a.click();a.focus();const k=key=>document.activeElement.dispatchEvent(new KeyboardEvent("keydown",{key,bubbles:true}));const sel=()=>[...document.querySelectorAll(".stab")].findIndex(t=>t.getAttribute("aria-selected")==="true");const r=[];k("End");r.push(sel());k("Home");r.push(sel());k("ArrowRight");r.push(sel());r.push([...document.querySelectorAll(".stab")].filter(t=>t.tabIndex===0).length);document.getElementById("t-design").click();document.getElementById("t-tests-other").click();r.push(document.getElementById("p-tests").hidden?0:1,document.getElementById("p-tests-other").hidden?0:1);document.body.dataset.r=JSON.stringify(r);';
     const rk = got(wide(planPage("tests-keys", SUB, kjs))) || [];
-    c.push(["the sub-tabs' keys: End, Home and the arrows move the selection, one sub-tab in the Tab order; one clicked from another tab shows Tests", JSON.stringify(rk) === "[3,0,1,1,1,1]", JSON.stringify(rk)]);
+    c.push(["the sub-Tabs' keys: End, Home and the arrows move the selection, one sub-Tab in the Tab order; one clicked from another tab shows Tests", JSON.stringify(rk) === "[3,0,1,1,1,1]", JSON.stringify(rk)]);
     /* the inspector */
     const ijs = 'document.getElementById("t-tests-amended").click();document.querySelector("#tests-amended .tcard").click();document.body.dataset.r=JSON.stringify(document.getElementById("insp-body").innerText.slice(0,1200));';
     const ri = got(wide(planPage("tests-insp", SUB, ijs))) || "";
@@ -271,7 +271,7 @@ module.exports = function cases22(X) {
     c.push(["a landed board that recorded no tests: a plain box, \"No tests recorded on this board.\", never dashed", /<p class="empty">No tests recorded on this board\.<\/p>/.test(dE) && /box: nothing recorded/.test(keyE) && !/empty pend/.test(inner(dE, '<section class="view" role="tabpanel" id="p-tests"[^>]*>', "section")), text(keyE)]);
     c.push(["the repository work board has no Tests tab (one row per run)", !/id="t-tests"/.test(T.work), "board.html"]);
     const cp1 = cp.spawnSync(process.execPath, [checker, fS, "--out", path.join(sc, "tests-sub")], { encoding: "utf8" });
-    c.push(["check-board.js passes the rendering, every sub-tab with its legend", cp1.status === 0 && ["added", "amended", "relevant", "other"].every(k => new RegExp(`CHECK tab t-tests-${k}: visible · \\d+ drawn nodes · legend`).test(cp1.stdout)), notRun(cp1) ? NEEDS_BROWSER : (cp1.stdout || "").split(/\r?\n/).filter(l => /t-tests|FAIL|DASHED|NO LEGEND/.test(l)).join(" | ").slice(0, 400)]);
+    c.push(["check-board.js passes the rendering, every sub-Tab with its legend", cp1.status === 0 && ["added", "amended", "relevant", "other"].every(k => new RegExp(`CHECK tab t-tests-${k}: visible · \\d+ drawn nodes · legend`).test(cp1.stdout)), notRun(cp1) ? NEEDS_BROWSER : (cp1.stdout || "").split(/\r?\n/).filter(l => /t-tests|FAIL|DASHED|NO LEGEND/.test(l)).join(" | ").slice(0, 400)]);
   });
 
   /* 8. this run's feature probes */
