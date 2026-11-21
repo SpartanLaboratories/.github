@@ -179,4 +179,6 @@ something else, is read the same way. In this scan backtick spans, Markdown link
 paths are code, never prose, and a string that is all identifier is left alone. A ruled-out word in
 double quotes, straight or curly, directly followed by "is retired" is its vocabulary naming the
 word it retires, and no find (`"Page" is retired: it never names a board`); the word quoted anywhere
-else is a find (`a "Page" of the site`).
+else is a find (`a "Page" of the site`). A verbatim quotation of another document that a board
+carries, held to its source, is that document's text and is not read: a plan excerpt, its heading
+and its paragraph. The board's own words around it are read.

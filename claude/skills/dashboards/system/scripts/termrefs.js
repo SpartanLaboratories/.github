@@ -13,7 +13,8 @@
 //   TERM UNKNOWN NAME  a capitalised element name in neither list: a CamelCase word or a Capitalised compound ending in a type word of ui.md's section 2.
 //   TERM CLASS         a CSS class that names an element's kind without its type word: a listed compound's subject, a listed class's subject, or a retired word of a
 //                      ui.md term, unless it always stands beside a class that carries a type word (class="chip now", class="cell verdict").
-// What it scans is the text a board shows and its generated data: every string value of the data (keys, $comment, a quoted issue title and an option's signature left out)
+// What it scans is the text a board shows and its generated data: every string value of the data (keys, $comment, a quoted issue title, an option's signature and a
+// statement's plan excerpt, its heading and its paragraph, left out: a quotation held to its source is that document's text, as the baseline says)
 // and the static text of its HTML (scripts, styles, comments, <code>, <pre> and a quoted title left out); code in a text is masked as the tool masks it, and a string that
 // is all identifier is left alone. Text a script draws in the browser is not read: the data it draws from is.
 // Used by plan/scripts/check.js, by check-board.js and by verify/cases-termrefs.js.
@@ -167,12 +168,16 @@ function termWarnings(where, T) {
   return out;
 }
 let cached;
-/* The one call of a checker: the warning lines of a board, its data and its HTML. An issue's title and an option's signature are left out, on the org work board each
+/* The paths of a board's data the scan leaves out: its quoted issue titles (levelrefs.js titleSkip()), an option's signature, and each statement's plan excerpt,
+   the heading and paragraph lib.js copyExcerpts() copies from the section its reference names (a Verdict or As built statement's; its ref and hash are identifiers),
+   as the baseline says (~/.claude/nomenclature/finding.md, "A board term's ruled-out words": a verbatim quotation held to its source is not read) */
+const EXCERPT_PATH = /^rows\[\d+\]\.(?:verdict|asBuilt)\.statements\[\d+\]\.excerpt\.(?:heading|paragraph)$/;
+const skipOf = d => { const t = titleSkip(d); return at => t(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at) || EXCERPT_PATH.test(at); };
+/* The one call of a checker: the warning lines of a board, its data and its HTML. What skipOf() names is left out, on the org work board each
    repository's own; a glossary that cannot be read or parsed is said, and fails nothing. */
 function boardWarnings(where, data, html, G) {
   const g = G || (cached === undefined ? (cached = loadGlossary()) : cached);
   if (!g) return notFound(glossaryFiles());
-  const skipOf = d => { const t = titleSkip(d); return at => t(at) || /^rows\[\d+\]\.options\[\d+\]\.signature$/.test(at); };
   const problems = g.problems.map(p => `TERM GLOSSARY: ${p}`);
   if (data && /^org-work-board\/[12]$/.test(String(data.schema))) {
     const { repositories, organizations, ...top } = data, T = boardTerms(top, html, skipOf(top), g);
@@ -182,4 +187,4 @@ function boardWarnings(where, data, html, G) {
   }
   return [...problems, ...termWarnings(where, boardTerms(data, html, skipOf(data || {}), g))];
 }
-module.exports = { glossaryPlaces, glossaryFiles, parseGlossary, loadGlossary, notFound, termRefs, termRefsIn, shownText, classesOf, classRefs, boardTerms, termWarnings, boardWarnings, readFile };
+module.exports = { glossaryPlaces, glossaryFiles, parseGlossary, loadGlossary, notFound, termRefs, termRefsIn, shownText, classesOf, classRefs, boardTerms, termWarnings, boardWarnings, skipOf, EXCERPT_PATH, readFile };

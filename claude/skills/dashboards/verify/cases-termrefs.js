@@ -12,7 +12,8 @@
 //    the class list's party Orbit, entry Chip and party Orbit's Label (a bare .party, .entry or .orbit named), and the template's Who feels it under them, the
 //    number beside each line of its list an entry Chip too (the feature probe who-orbit-classes failing it under the older .wk).
 // 5. A term line's "case": case-sensitive by default, "case":"any" in any case (lower case, plural), its "allow" still exempting, a bad value named.
-// 6. check.js and check-board.js warn and fail nothing for it; a quoted title, a signature and a key are left out.
+// 6. check.js and check-board.js warn and fail nothing for it; a quoted title, a signature, a key and a statement's plan excerpt (its heading and paragraph, a
+//    quotation held to its source) are left out, the statement's own text still read; the worked example warns on no word.
 // 7. glossaryFiles() finds each file on its own: boards.md in the organization repository's checkout (policy/nomenclature/), ui.md in SpartanUI's (docs/nomenclature/,
 //    the override variable or the sibling folder), each variable from the environment, then the stored value; then, each apart, the old homes, the folder beside
 //    the skill (<root>/nomenclature for <root>/skills/dashboards) before ~/.claude/nomenclature; a folder under skills/ is not it, and a file with no term row is not taken.
@@ -80,6 +81,14 @@ module.exports = function casesTermrefs(X) {
     const hits = T.termRefsIn({ title: "A Bubble in the title", $comment: "a Bubble", Bubble: "a key", rows: [{ a: "the Glow" }, "the Page"] }, "", [], at => at === "title", G);
     const shown = h => banned(T.shownText(h)), ent = [["<p>&ldquo;Bubble&rdquo; is retired, &quot;Page&quot; is retired, &#8220;Glow&#8221; is retired</p>", []], ["<p>the &quot;Bubble&quot; here</p>", ["Bubble"]]], wrongE = ent.filter(([x, w]) => js(shown(x)) !== js(w)).map(([x, w]) => [x, shown(x), w]);
     c.push(["a board's shown text: a word quoted as retired left alone with its quotation marks written as entities, the word quoted otherwise found", !wrongE.length, js(wrongE)]);
+    const ex = (ref, heading, paragraph) => ({ ref, heading, paragraph, hash: "0123456789ab" });
+    const pd = { schema: "plan-board/1", rows: [{ id: "r", verdict: { statements: [{ text: "the Sidebar", ref: "plan.md#a", excerpt: ex("plan.md#a", "The Sidebar", "the Sidebar, a Status Pill. Removed: a line.") }] },
+      asBuilt: { statements: [{ text: "as planned", ref: "plan.md#b", excerpt: ex("plan.md#b", "Removed", "the TOC and a Hunk") }] } }] }, pw = T.boardWarnings("b", pd, "", G);
+    c.push(["a statement's plan excerpt, its heading and its paragraph, is not read (a quotation held to its source); the statement's own text is", pw.filter(l => /^TERM BANNED/.test(l)).length === 1 && /\(rows\[0\]\.verdict\.statements\[0\]\.text\) uses "Sidebar \(contents Panel\)":/.test(pw.join("\n")) && !pw.some(l => /^TERM UNKNOWN|excerpt/.test(l)), js(pw)]);
+    const xp = ["rows[0].verdict.statements[2].excerpt.paragraph", "rows[11].asBuilt.statements[0].excerpt.heading"], np = ["rows[0].verdict.statements[2].excerpt.ref", "rows[0].verdict.statements[2].text", "rows[0].gap.summary", "rows[0].verdict.steps[0].what"];
+    c.push(["the paths left out are a Verdict or As built statement's excerpt heading and paragraph, never its ref, its text or another field", xp.every(p => T.EXCERPT_PATH.test(p)) && !np.some(p => T.EXCERPT_PATH.test(p)), js([xp.filter(p => !T.EXCERPT_PATH.test(p)), np.filter(p => T.EXCERPT_PATH.test(p))])]);
+    const exDir = sk("plan/examples/38-handshake-empty-name"), ew = T.boardWarnings("dashboard.html", JSON.parse(rd(path.join(exDir, "plan.json"))), rd(path.join(exDir, "dashboard.html")), G);
+    c.push(["the worked example warns on no word: its one find stood in an excerpt", !ew.some(l => /^TERM (BANNED|UNKNOWN)/.test(l)), js(ew)]);
     c.push(["a skipped path, $comment and a key are left out; every other string is read, with its path", js(hits.map(h => [h.at, h.hit])) === js([["rows[0].a", "Glow"], ["rows[1]", "Page"]]), js(hits)]);
     c.push(["a board's shown text: scripts, styles, comments, code and a quoted title out; two neighbouring Labels are no compound", !/Bubble/.test(T.shownText("<style>.a{content:'Bubble'}</style><script>var a='Bubble'</script><!-- Bubble --><code>Bubble</code><a data-board=\"3\">Bubble</a><span data-issue-title>Bubble</span>")) && !unknown(T.shownText("<a>Design</a><a>Timeline</a>")).length, ""]);
   });
@@ -123,6 +132,7 @@ module.exports = function casesTermrefs(X) {
     const ex = JSON.parse(rd(sk("plan/examples/38-handshake-empty-name/plan.json")));
     wr(path.join(dir, "plan.json"), JSON.stringify(ex, null, 2) + "\n"); wr(path.join(dir, "dashboard.html"), rd(sk("plan/template/dashboard.html"))); run("plan/scripts/embed.js", [dir]);
     const base = run("plan/scripts/check.js", [dir, "--root", root]);
+    c.push(["check.js on the worked example: no TERM BANNED WORD, its plan excerpt left out", base.status !== null && !/TERM BANNED/.test(base.stdout || ""), ((base.stdout || "").match(/^warn +TERM .*$/gm) || ["none"]).join(" | ")]);
     ex.rows[0].gap.summary = "A Bubble on the board and a Status Pill."; ex.issueTitle = "Retitle the Glow";
     wr(path.join(dir, "plan.json"), JSON.stringify(ex, null, 2) + "\n"); run("plan/scripts/embed.js", [dir]);
     const k = run("plan/scripts/check.js", [dir, "--root", root]), lines = (k.stdout || "").split(/\r?\n/).filter(l => /TERM /.test(l));
