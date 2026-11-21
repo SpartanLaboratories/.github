@@ -163,7 +163,15 @@
         },
         "agents/test-inspector.md": {
           "segment": "TI",
-          "sections": {}
+          "sections": {
+            "0. Read the subagent count": "N",
+            "1. Determine the review scope": "S",
+            "2. Load the rules": "L",
+            "3. Fan out — `N` independent inspectors": "F",
+            "4. Merge into one report": "M",
+            "5. Run the change's tests and build the visual results report": "T",
+            "Boundaries": "B"
+          }
         },
         "nomenclature/internal-names.md": {
           "segment": "IN",
@@ -275,13 +283,12 @@
     "agents/admin-team/presenter.md",
     "agents/admin-team/graphify-manager.md",
     "agents/planner.md",
-    "agents/test-inspector.md",
     "nomenclature/internal-names.md",
     "agents/admin-team/archivist.md",
     "agents/admin-team/communication-clarity-officer.md"
   ],
   "ids": {
-    "marks": { "1": 4, "2": 34, "3": 145, "4": 1168, "5": 10065 },
+    "marks": { "1": 4, "2": 34, "3": 145, "4": 1175, "5": 10075 },
     "retired": []
   },
   "pointers": {
@@ -311,7 +318,7 @@
     "141": { "141-T1": 142 },
     "142": { "142-T1": 22 },
     "143": { "143-P1": "143-P1", "143-T1": 1125, "143-T2": 16, "143-T3": 34, "143-T4": 1051,
-      "143-T5": 10023, "143-T6": 116, "143-T7": 120, "143-T8": 1149, "143-T9": 125,
+      "143-T5": 10023, "143-T6": 116, "143-T7": 120, "143-T8": 1149, "143-T9": 1169,
       "143-T10": 126 },
     "144": { "144-P1": "144-P1", "144-T1": 14, "144-T2": 34, "144-T3": 119 },
     "145": { "145-P1": "145-P1", "145-P2": "145-P2", "145-T1": 23, "145-T2": 116, "145-T4": 119,
@@ -319,7 +326,7 @@
     "1057": { "1057-T1": 1058 },
     "1061": { "1061-P1": "1061-P1", "1061-P2": "1061-P2", "1061-P3": "1061-P3",
       "1061-P4": "1061-P4", "1061-P5": "1061-P5", "1061-P6": "1061-P6", "1061-P7": "1061-P7",
-      "1061-P8": "1061-P8", "1061-P9": "1061-P9", "1061-T1": 120, "1061-T6": 125 },
+      "1061-P8": "1061-P8", "1061-P9": "1061-P9", "1061-P10": "1061-P10", "1061-T1": 120 },
     "1122": { "1122-T2": 14, "1122-T3": 115, "1122-T4": 116, "1122-T5": 141, "1122-T6": 126 },
     "1125": { "1125-T1": 1134 },
     "1129": { "1129-T1": 14 },

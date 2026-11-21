@@ -31,6 +31,7 @@ write or edit tests, source, or docs, and you never commit — the one file you
 may write is the results report under `build/reports/tests/`.
 
 ## 0. Read the subagent count
+{"name":"0. Read the subagent count","code":"G-A-TI-N","id":1169}
 
 The caller may pass a single whole number as an argument — the number of
 inspector subagents to spawn. Call it `N`.
@@ -49,6 +50,7 @@ every other set is reported as "not inspected at this grade". No subset
 means all seven. The full-suite run (§5) happens either way.
 
 ## 1. Determine the review scope
+{"name":"1. Determine the review scope","code":"G-A-TI-S","id":1170}
 
 - If the caller named a diff, branch, commit range, or path set, use exactly
   that.
@@ -62,26 +64,15 @@ means all seven. The full-suite run (§5) happens either way.
 - If there is nothing to review, say so and stop.
 
 ## 2. Load the rules
+{"name":"2. Load the rules","code":"G-A-TI-L","id":1171}
 
 Read the target repo's `CLAUDE.md` and `AGENTS.md` if
 present, and R-12 (Testing — Named Test Sets) [12-T4]. The set →
-package → folder mapping is:
-
-| Set           | Package segment         | Folder                         |
-|---------------|-------------------------|--------------------------------|
-| gating        | `testing.gating`        | `.../testing/gating/`          |
-| component     | `testing.component`     | `.../testing/component/`       |
-| integration   | `testing.integration`   | `.../testing/integration/`     |
-| deterministic | `testing.deterministic` | `.../testing/deterministic/`   |
-| e2e           | `testing.e2e`           | `.../testing/e2e/`             |
-| nonfunctional | `testing.nonfunctional` | `.../testing/nonfunctional/`   |
-| uat           | `testing.uat`           | `.../testing/uat/`             |
-
-Each set's tests mirror the production package below the `testing` segment, sit
-one test class per file, and — where the build tool allows — bind to their own
-test task/tag (e.g. a Gradle task + JUnit `@Tag`).
+package → folder mapping and the layout of each set's tests are
+R-1027 (Separate each set by folder / package) [1027-T2].
 
 ## 3. Fan out — `N` independent inspectors
+{"name":"3. Fan out — `N` independent inspectors","code":"G-A-TI-F","id":1172}
 
 Kick off the full-suite run from §5.1 **now**, before you spawn the inspectors,
 so the test results are ready by the time you merge (§4). The run and the
@@ -111,6 +102,7 @@ yourself, one group at a time, and keep them independent — do not let one
 group's conclusions colour another.
 
 ### Every inspector also checks (within its sets only)
+{"name":"Every inspector also checks (within its sets only)","code":"G-A-TI-F-1","id":10066}
 
 - correct `testing`-rooted package segment and a folder path that matches the
   package;
@@ -120,6 +112,7 @@ group's conclusions colour another.
 - test names state a behaviour, not a method name.
 
 ### gating — Local Development Gating / Pre-Commit Validation
+{"name":"gating — Local Development Gating / Pre-Commit Validation","code":"G-A-TI-F-2","id":10067}
 
 Every new or changed class/function in the working set has a fast local check
 that would catch a regression **before commit**. Package `testing.gating`.
@@ -127,6 +120,7 @@ Flag: a changed production unit with no gating test; gating tests that are
 slow or hit external systems; gating tests filed outside `testing.gating`.
 
 ### component — Isolated Component Behaviour / Business Logic
+{"name":"component — Isolated Component Behaviour / Business Logic","code":"G-A-TI-F-3","id":10068}
 
 Changed classes have comprehensive unit tests for their related functional group,
 with **all external calls mocked** — no real sockets, files, network, DB, or wall
@@ -136,6 +130,7 @@ that touches a real external interface (it belongs in integration); uncovered
 branches/edge cases in changed logic; multiple test classes in one file.
 
 ### integration — Integration & External Interfaces
+{"name":"integration — Integration & External Interfaces","code":"G-A-TI-F-4","id":10069}
 
 Boundary conditions and data exchange with actual or simulated external
 interfaces (sockets, HTTP, DB, files, third-party services, IPC) are exercised
@@ -146,6 +141,7 @@ integration tests misfiled under `component`; missing boundary conditions
 binding.
 
 ### The project-wide sets — Comprehensive Project-Wide
+{"name":"The project-wide sets — Comprehensive Project-Wide","code":"G-A-TI-F-5","id":10070}
 
 - **deterministic** (`testing.deterministic`): every new/changed pure,
   stateless function is verified as input X → output Y with no side effects.
@@ -158,6 +154,7 @@ Flag gaps that fit what the change actually introduces; if the change introduces
 nothing for one of the three sets, record it as N/A with a one-line reason.
 
 ### uat — User Acceptance (UAT) / Exploratory Evaluation
+{"name":"uat — User Acceptance (UAT) / Exploratory Evaluation","code":"G-A-TI-F-6","id":10071}
 
 User-facing or product-behaviour changes have a UAT consideration: documented
 acceptance criteria, a `testing.uat` scaffold, or an exploratory/mock-environment
@@ -166,6 +163,7 @@ Flag: a user-facing change with no UAT consideration. For a pure internal
 refactor, "N/A — no external behaviour change" is the correct finding.
 
 ## 4. Merge into one report
+{"name":"4. Merge into one report","code":"G-A-TI-M","id":1173}
 
 Collect the `N` reports. Deduplicate where two sets flag the same file for the
 same reason (keep it under the more specific set). Then emit:
@@ -195,12 +193,14 @@ integration  >  misfiled or mis-tagged tests  >  project-wide gaps  >  uat gaps
 (raise uat only when the change is clearly user-facing).
 
 ## 5. Run the change's tests and build the visual results report
+{"name":"5. Run the change's tests and build the visual results report","code":"G-A-TI-T","id":1174}
 
 This is separate from the audit above. §§3–4 judge whether the *right* tests
 exist; this step runs the tests that *do* exist for the change and shows how
 they came out. Both results are reported, neither overrides the other.
 
 ### 5.1 Run the change's tests once
+{"name":"5.1 Run the change's tests once","code":"G-A-TI-T-1","id":10072}
 
 - Run only the tests that exercise the change, as
   R-1025 (Run only the tests that exercise the change) [1025-T3] says: the full
@@ -209,8 +209,7 @@ they came out. Both results are reported, neither overrides the other.
   `./gradlew :<module>:test` per module (Gradle), or the equivalent for
   `mvn`, `npm`, `pytest`, `cargo`. Use each module's task that runs **every**
   set, not the per-set tasks.
-- Never run a suite that belongs only to a module the change leaves untouched.
-  An edit to a module's build file alone (shared build logic, say) does not
+- An edit to a module's build file alone (shared build logic, say) does not
   touch its code; it is proven by other means. When no module's code is
   altered — a pure build or docs change — run only the tests the change itself
   adds (the build's own tests, say), or none, and say which in §5.4.
@@ -226,6 +225,7 @@ they came out. Both results are reported, neither overrides the other.
   Never fabricate results.
 
 ### 5.2 Aggregate by test set
+{"name":"5.2 Aggregate by test set","code":"G-A-TI-T-2","id":10073}
 
 Map each suite to its set from the `testing.*` package segment it sits in
 (`testing.gating` → gating, and so on for the seven); anything else →
@@ -235,6 +235,7 @@ Map each suite to its set from the `testing.*` package segment it sits in
 and the `class › test` name + message of every failed or errored test.
 
 ### 5.3 Write ONE self-contained HTML report
+{"name":"5.3 Write ONE self-contained HTML report","code":"G-A-TI-T-3","id":10074}
 
 Write exactly one file — **`build/reports/tests/index.html`** — and
 nothing else. The build dir only: never a source tree, never `docs/`, never
@@ -267,6 +268,7 @@ The file must render offline with no network:
 Keep it one plain page — a readout, not a dashboard.
 
 ### 5.4 The "Test run" block for the merged report
+{"name":"5.4 The \"Test run\" block for the merged report","code":"G-A-TI-T-4","id":10075}
 
 In the §4 output, immediately before the findings, emit:
 
@@ -288,6 +290,7 @@ failing set is visible. If it could not run, say
 `Test run: not executed — <reason>` and skip the table.
 
 ## Boundaries
+{"name":"Boundaries","code":"G-A-TI-B","id":1175}
 
 - Never create or edit a test, a source file, a doc, or any git-tracked file,
   and never commit. The **only** file you may write is the single results
@@ -301,6 +304,7 @@ failing set is visible. If it could not run, say
   style, and performance are out of scope unless the defect is a missing test
   for exactly those.
 
-## Progress review every 10 minutes  (when you run inside a /resolve-issue run)
+## Progress review every 10 minutes (when you run inside a /resolve-issue run)
+{"name":"Progress review every 10 minutes (when you run inside a /resolve-issue run)","code":"G-A-TI-1061-P10","id":"1061-P10"}
 
-Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) [1061-T6] in `~/.claude/shared/progress-review.md`.
+Read and follow R-1061 (Progress review every 10 minutes (when you run inside a /resolve-issue run)) in `~/.claude/shared/progress-review.md`.
