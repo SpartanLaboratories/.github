@@ -123,7 +123,13 @@
         },
         "agents/plan-writer.md": {
           "segment": "PW",
-          "sections": {}
+          "sections": {
+            "Read the rules in force": "F",
+            "How to work": "W",
+            "The plan document": "D",
+            "What you return to the caller": "R",
+            "Hard boundaries": "B"
+          }
         },
         "agents/architect.md": {
           "segment": "AR",
@@ -269,14 +275,13 @@
     "agents/admin-team/presenter.md",
     "agents/admin-team/graphify-manager.md",
     "agents/planner.md",
-    "agents/plan-writer.md",
     "agents/test-inspector.md",
     "nomenclature/internal-names.md",
     "agents/admin-team/archivist.md",
     "agents/admin-team/communication-clarity-officer.md"
   ],
   "ids": {
-    "marks": { "1": 4, "2": 34, "3": 145, "4": 1161, "5": 10059 },
+    "marks": { "1": 4, "2": 34, "3": 145, "4": 1168, "5": 10065 },
     "retired": []
   },
   "pointers": {
@@ -300,8 +305,8 @@
     "124": { "124-T1": 13 },
     "125": { "125-T1": 13 },
     "126": { "126-T1": 22, "126-T2": 142, "126-T3": 10059, "126-T4": 10049, "126-T6": 14,
-      "126-T7": 115, "126-T8": 116, "126-T9": 18, "126-T10": 1140, "126-T11": 1145,
-      "126-T12": 1148 },
+      "126-T7": 115, "126-T8": 116, "126-T9": 18, "126-T10": 1140, "126-T11": 1145, "126-T12": 1148,
+      "126-T13": 1166 },
     "128": { "128-T1": 24 },
     "141": { "141-T1": 142 },
     "142": { "142-T1": 22 },
@@ -314,7 +319,7 @@
     "1057": { "1057-T1": 1058 },
     "1061": { "1061-P1": "1061-P1", "1061-P2": "1061-P2", "1061-P3": "1061-P3",
       "1061-P4": "1061-P4", "1061-P5": "1061-P5", "1061-P6": "1061-P6", "1061-P7": "1061-P7",
-      "1061-P8": "1061-P8", "1061-T1": 120, "1061-T2": 121, "1061-T6": 125 },
+      "1061-P8": "1061-P8", "1061-P9": "1061-P9", "1061-T1": 120, "1061-T6": 125 },
     "1122": { "1122-T2": 14, "1122-T3": 115, "1122-T4": 116, "1122-T5": 141, "1122-T6": 126 },
     "1125": { "1125-T1": 1134 },
     "1129": { "1129-T1": 14 },

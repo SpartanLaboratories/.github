@@ -1,5 +1,5 @@
 # Library Design — Open-Ended by Default
-<!-- {"name":"Library Design — Open-Ended by Default","code":"D-A-API","id":132,"pointerMark":1} -->
+<!-- {"name":"Library Design — Open-Ended by Default","code":"D-A-API","id":132,"pointerMark":2} -->
 
 ## Scope
 <!-- {"name":"Scope","code":"D-A-API-SC","id":1076} -->
