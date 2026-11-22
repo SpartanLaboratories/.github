@@ -23,6 +23,7 @@ everything after it lands, through the `admin team` session (the `admin-team`
 skill).
 
 ## 1. Pick the library
+{"name":"1. Pick the library","code":"G-S-UP-P","id":1286}
 
 - `$ARGUMENTS` names the library. If empty, ask the user which one — do not
   guess.
@@ -63,6 +64,7 @@ skill).
   summary of what changed, calling out any breaking change found.
 
 ## 2. File the upgrade issue
+{"name":"2. File the upgrade issue","code":"G-S-UP-F","id":1287}
 
 Load the `admin-team` skill and send it a `file-issue` request:
 
@@ -88,6 +90,7 @@ Wait for the reply:
 - `rejected` — tell the user the reason and stop.
 
 ## 3. Work it — `/resolve-issue`
+{"name":"3. Work it — `/resolve-issue`","code":"G-S-UP-W","id":1288}
 
 `/resolve-issue` cannot be invoked by the model, so read
 `~/.claude/skills/resolve-issue/SKILL.md` and follow it as if it had been run
@@ -97,6 +100,7 @@ implements, runs `qa` and lands the change through the admin team. Every rule
 in it applies unchanged; this skill adds nothing to it.
 
 ## 4. Report
+{"name":"4. Report","code":"G-S-UP-R","id":1289}
 
 Lead with the library and its old and new version, then give `/resolve-issue`'s
 report as it stands.

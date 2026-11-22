@@ -161,6 +161,14 @@
             "6. Subagents": "SU"
           }
         },
+        "skills/upgrade/SKILL.md": {
+          "sections": {
+            "1. Pick the library": "P",
+            "2. File the upgrade issue": "F",
+            "3. Work it — `/resolve-issue`": "W",
+            "4. Report": "R"
+          }
+        },
         "shared/progress-review.md": {
           "segment": "PR",
           "sections": {
@@ -411,12 +419,11 @@
     }
   },
   "notConverted": [
-    "skills/upgrade/SKILL.md",
     "nomenclature/internal-names.md",
     "agents/admin-team/communication-clarity-officer.md"
   ],
   "ids": {
-    "marks": { "1": 4, "2": 34, "3": 145, "4": 1285, "5": 10162 },
+    "marks": { "1": 4, "2": 34, "3": 145, "4": 1289, "5": 10162 },
     "retired": []
   },
   "pointers": {
