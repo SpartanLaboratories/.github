@@ -1,15 +1,16 @@
 # State boards — the ruleset
 {"name":"State boards — the ruleset","code":"G-S-DB-S","id":20}
 
-The state boards are the system board, the supersystem board and the repository state board (`GUIDANCE.md`, "Dashboards and
+The state boards are the system board, the supersystem board and the repository state board (R-18 (Dashboard guidance — the rules both sets share) [18-T3], "Dashboards and
 boards"; the org project board and the intra-org dependency board are planned). A system board shows a system **as it is**: what it does and how it is built, drawn from the code
 at a named commit. Under that comes what a consumer can rely on (the Guarantees), and under that
 the Context. The supersystem and repository state boards bind systems together and show how they
-interact. `GUIDANCE.md` applies throughout — colour coding, Legends, dashed means planned, themes,
+interact. R-18 (Dashboard guidance — the rules both sets share) [18-T4] applies throughout — colour coding, Legends, dashed means planned, themes,
 self-contained boards, facts, Context, divergence, checks, defects and hygiene are stated there
 and not repeated here. This file holds what is specific to the state boards.
 
 ## 1. Files
+{"name":"1. Files","code":"G-S-DB-S-F","id":1205}
 
 ```
 docs/dashboards/
@@ -40,18 +41,19 @@ This set ships, under `skills/dashboards/system/`:
 | `scripts/embed.js` | Embeds `workspace.dsl` (block `dsl`), `systems.json` (block `systems`) or `state.json` (block `state`) verbatim into a board; `--check` verifies. |
 | `scripts/apply-state.js` | The data-only path of a state board (§10): restamps the boards a branch touches, marks parts built or planned in the DSL and the registry, re-embeds, checks without a browser; the presenter runs it in its `state-boards` mode. |
 | `scripts/statelib.js` | The state, DSL and registry reading and editing `apply-state.js` writes through and `check-board.js` checks with (not a command). |
-| `scripts/check-board.js` | The browser checker for **every** board, state and work boards alike (§9); it warns on an internal name a board carries (`GUIDANCE.md` §4, `namerefs.js`); `--auto` checks only what a board adds to its template; `--auto --no-browser` runs every check that needs no browser and names the pass it defers. |
+| `scripts/check-board.js` | The browser checker for **every** board, state and work boards alike (§9); it warns on an internal name a board carries (R-1185 (4. Facts) [1185-T23], `namerefs.js`); `--auto` checks only what a board adds to its template; `--auto --no-browser` runs every check that needs no browser and names the pass it defers. |
 | `scripts/deviation.js` | How far a board deviates from its template (used by `--auto`; not a command). |
-| `scripts/features.js` | The per-board feature probes: one detector per template feature, its skill step and the board types it fits (`GUIDANCE.md` §8, "Features"; not a command). |
+| `scripts/features.js` | The per-board feature probes: one detector per template feature, its skill step and the board types it fits (R-1189 (8. Checks) [1189-T5], "Features"; not a command). |
 | `scripts/splice.js` | Brings a state board onto its current template: the template's CSS, script before MODEL and renderer carried onto the board, three ways for a declared divergence, the board-filled lines and the board's own content kept, old Chips relabelled, a missing state block added, the names of dashboards-skill/33 migrated (§8). The Document step's state-boards task runs it; `--verified` splices onto the template's recorded verified version instead of the file on disk, for a template being edited. Its merge bases come through `scripts/history.js`, which rebuilds a recorded version missing from the local `verify/history/` cache from the `.github` mirror's git history (`--history-repo <clone>`, else `gh api`) and warns on one it cannot find (§8). |
-| `scripts/termrefs.js` | The element names checked (`GUIDANCE.md` §12, "The names, checked"): it holds none of them. `docs/nomenclature/ui.md` in SpartanUI and `policy/nomenclature/boards.md` in `.github`, the only home of the names, are found and read by the finding tool, `../../../tools/finding/`, each in its repository's checkout (the organization repository's, which `SPARTAN_ORG_POLICIES` names; SpartanUI's beside it, or where `SPARTAN_CHECKOUT_SPARTANUI` names) before its old home `~/.claude/nomenclature/`, where a pointer is not taken, and the tool finds a ruled-out word over those two files alone as the baseline, `../../../nomenclature/finding.md`, says ("On a board"). This file keeps the board's part: the terms of their table rows and the JSON-lines blocks after the tables merged by term, the type words, the compound names and the class list. `check.js` and `check-board.js` print its three warnings. `verify/cases-termrefs.js` holds it. |
-| `scripts/namerefs.js` | The internal names a board never carries (`GUIDANCE.md` §4), the board's part only: the finding tool, `../../../tools/finding/`, reads the list's one home, `../../../nomenclature/internal-names.md` §1 and §2, and finds its words as the baseline, `../../../nomenclature/finding.md`, says ("Matching a term"; a shortened role name, "On a board"), and this file holds no copy of the list (`verify/cases-internal-names.js`). It walks a board's data, reads a board's comments as the commit scan reads an HTML file's, and keeps `scrubNames()`, which `apply-event.js` runs on every fact text, the writers' one rule and the warnings `check.js` and `check-board.js` give (not a command). `scripts/levelrefs.js` does the same for the grade's forms (§3 of the list). |
-| `scripts/palette.js` | The shared system palette (twelve slots, light and dark), `colourSlots()` (the slot each system holds), and the status-hue rule that `check.js` and `check-board.js` apply (`GUIDANCE.md` §1; not a command). |
+| `scripts/termrefs.js` | The element names checked (R-1193 (12. Elements — one name per function) [1193-T5], "The names, checked"): it holds none of them. `docs/nomenclature/ui.md` in SpartanUI and `policy/nomenclature/boards.md` in `.github`, the only home of the names, are found and read by the finding tool, `../../../tools/finding/`, each in its repository's checkout (the organization repository's, which `SPARTAN_ORG_POLICIES` names; SpartanUI's beside it, or where `SPARTAN_CHECKOUT_SPARTANUI` names) before its old home `~/.claude/nomenclature/`, where a pointer is not taken, and the tool finds a ruled-out word over those two files alone as the baseline says (R-1121 (On a board) [1121-T1]). This file keeps the board's part: the terms of their table rows and the JSON-lines blocks after the tables merged by term, the type words, the compound names and the class list. `check.js` and `check-board.js` print its three warnings. `verify/cases-termrefs.js` holds it. |
+| `scripts/namerefs.js` | The internal names a board never carries (R-1185 (4. Facts) [1185-T24]), the board's part only: the finding tool, `../../../tools/finding/`, reads the list's one home, R-126 (Internal names — what committed content never names) [126-T16] §1 and §2, and finds its words as the baseline says (R-1120 (Matching a term) [1120-T2]; a shortened role name, R-1121 (On a board) [1121-T2]), and this file holds no copy of the list (`verify/cases-internal-names.js`). It walks a board's data, reads a board's comments as the commit scan reads an HTML file's, and keeps `scrubNames()`, which `apply-event.js` runs on every fact text, the writers' one rule and the warnings `check.js` and `check-board.js` give (not a command). `scripts/levelrefs.js` does the same for the grade's forms (§3 of the list). |
+| `scripts/palette.js` | The shared system palette (twelve slots, light and dark), `colourSlots()` (the slot each system holds), and the status-hue rule that `check.js` and `check-board.js` apply (R-1182 (1. Colour coding) [1182-T23]; not a command). |
 | `../verify/verify-templates.js` | Verifies every template once with the fixtures in `../verify/fixtures/` and records its hash in `../verify/verified.json`; run it after any template change. |
 
 ## 2. The sources of a system board
+{"name":"2. The sources of a system board","code":"G-S-DB-S-SO","id":1206}
 
-A system board is driven by three sources that the presenter keeps in step (`GUIDANCE.md` §3): its structure, its behaviour and
+A system board is driven by three sources that the presenter keeps in step (R-1184 (3. A board is a template plus data) [1184-T4]): its structure, its behaviour and
 its stamp.
 Everything else on the board is either rendered from them or is a hand-written Panel of verified
 facts.
@@ -70,7 +72,7 @@ facts.
 
 2. **The board's `MODEL` — behaviour.** A JS object in the board with:
    - `sides`: the names of the board's colour groups — the three hue slots `server`, `client` and
-     `wire` (blue, purple, teal: slots 1 to 3 of the shared palette, `GUIDANCE.md` §1) plus
+     `wire` (blue, purple, teal: slots 1 to 3 of the shared palette, R-1182 (1. Colour coding) [1182-T24]) plus
      `consumer` and `external` — which the inspector and the generated Legends print;
    - `structure`: the hand-placed component map (lanes, notes, nodes with positions on a
      canvas 1000 wide and `h` high, its height recorded on the board as `structure.h`: 612 by default, grown when the system needs
@@ -92,12 +94,12 @@ facts.
    The supersystem board's `MODEL` has the same shapes with a registry slug (`sys`) where a system
    board has a side, plus `structure.deps` for the dependency Arrows.
 
-3. **`state.json` — the stamp.** `{slug, version, asIs {ref, sha, date}, lastAmended {issue, title, sha}, written {sha}}`, and `colour: "plain"` on a system under Internal Tooling (`GUIDANCE.md` §1; `apply-state.js` writes it from the registry),
+3. **`state.json` — the stamp.** `{slug, version, asIs {ref, sha, date}, lastAmended {issue, title, sha}, written {sha}}`, and `colour: "plain"` on a system under Internal Tooling (R-1182 (1. Colour coding) [1182-T25]; `apply-state.js` writes it from the registry),
    beside the board and embedded verbatim (`node scripts/embed.js state.json index.html state`; `template/state.json` is its shape).
    The header's version, as-is and "written at" Chips are drawn from it, and the last amendment's note in the Context Panel (the part
-   of the board above Context names no issue, `GUIDANCE.md` §5): the presenter writes those facts here and never in the HTML. `asIs` is the commit the board shows (§10); the date
+   of the board above Context names no issue, R-1186 (5. Context, roadmap, work) [1186-T5]): the presenter writes those facts here and never in the HTML. `asIs` is the commit the board shows (§10); the date
    is a date, or a UTC time the board shows in the viewer's zone. `lastAmended.title` is the issue's title, quoted verbatim (its slug while
-   none is given), the link to its issue board (`GUIDANCE.md` §5).
+   none is given), the link to its issue board (R-1186 (5. Context, roadmap, work) [1186-T6]).
    `written.sha` is the commit at which the presenter last wrote the board's prose and figures (the function sentence, the KPI Tiles,
    the Panels, the Guarantees, the Context); the presenter sets it to `asIs.sha` whenever it writes them, and while the two differ the
    header shows "written at <sha>", so a restamp never claims prose nobody read again. The state agrees with the board's registry entry
@@ -123,9 +125,9 @@ facts.
 Hand-written Panels (threads list, send-paths matrix, lifecycles Cards, the guarantee Cards,
 the Context Cards) and the header (function sentence, version, as-is stamp, last amended)
 complete the board. The template marks every placeholder with a `<!-- fill: … -->` comment (a board made before dashboards-skill/33
-carries `<!-- presenter: … -->`, which names an internal role, `GUIDANCE.md` §4: the splice migrates it to `fill:`).
+carries `<!-- presenter: … -->`, which names an internal role, R-1185 (4. Facts) [1185-T25]: the splice migrates it to `fill:`).
 
-**Board links** (`GUIDANCE.md` §5). The script's `BOARDS` constant maps an issue's number to its plan
+**Board links** (R-1186 (5. Context, roadmap, work) [1186-T7]). The script's `BOARDS` constant maps an issue's number to its plan
 board, relative to the board (`{"38":"../../plans/38-handshake-empty-name/dashboard.html"}` on a system board,
 `../plans/…` on the repository state board), for every issue the board names whose board is in the repository. The
 presenter fills it from the folders on disk when it writes the board, as plain JSON on its one line (a
@@ -135,7 +137,7 @@ board). Hand-written HTML writes the number of a pair as a plain GitHub link and
 `<a data-board="N">title</a>`, and a lone `#n` as `<a data-issue="N">#N</a>`; `linkIssues()` resolves both
 at load and leaves a title plain text while its issue has no board. Nobody writes a board's path
 anywhere else on the board.
-**The repository work board** (`GUIDANCE.md` §5): the script's `WORK_BOARD` line, a board-filled line like `BOARDS`, names the committed repository work board
+**The repository work board** (R-1186 (5. Context, roadmap, work) [1186-T8]): the script's `WORK_BOARD` line, a board-filled line like `BOARDS`, names the committed repository work board
 relative to the board (`"committed"`, or `null` while `docs/plans/index.html` is not there; `check-board.js` fails a dead one) and the live
 view's marker (`"live"`, `docs/plans/.live/index.js`). A hand-written `<a data-workboard>` opens the live view when its marker loads, else
 the committed board, else stays plain text; the renderer adds a line for it to the Plans and documents Card when the board has none.
@@ -143,16 +145,17 @@ The header names the ref and short SHA the board reflects, drawn from `state.jso
 Context Panel; every count on the board is counted. Each Chip is a Tag, its label then its value,
 `<span class="chip"><span class="ck">version</span> <b>2.0.0a</b></span>` (a bare value such as the platform gets its label,
 "platform"); the template's CSS shows the intro (crumbs, title, function) on the left half of a wide screen and the Tags as Cards in
-the right half beside it, and stacks them under 940 px (`GUIDANCE.md` §6, "The header"). A system board also carries its **visibility** as a Tag ("visibility public", "internal · org", "internal · repo", the registry's, §7) and, when the system is archived, a "status ⊟ archived" Tag (admin-team/dashboards-skill/35). A board written before the labels keeps its
+the right half beside it, and stacks them under 940 px (R-1187 (6. Boards are self-contained) [1187-T8], "The header"). A system board also carries its **visibility** as a Tag ("visibility public", "internal · org", "internal · repo", the registry's, §7) and, when the system is archived, a "status ⊟ archived" Tag (admin-team/dashboards-skill/35). A board written before the labels keeps its
 Chips, which the same CSS lays out alike, until the splice (§8) relabels them where their content says what they are (a version, the
 as-is stamp, the C4 model, the systems count), removes an old "last amended by" Chip and reports any other for the presenter to label. The header also carries the **inspector Switch** and the
-**theme Switch** (`GUIDANCE.md` §6, "The inspector Switch"; §1, Themes; §12, "Switch"), which the template's renderer adds right of the
-breadcrumb, and the inspector its **Hide Button** right of its heading (`GUIDANCE.md` §6), which the template's markup carries and the
+**theme Switch** (R-1187 (6. Boards are self-contained) [1187-T9], "The inspector Switch"; R-1182 (1. Colour coding) [1182-T26], Themes; R-1193 (12. Elements — one name per function) [1193-T6], "Switch"), which the template's renderer adds right of the
+breadcrumb, and the inspector its **Hide Button** right of its heading (R-1187 (6. Boards are self-contained) [1187-T10]), which the template's markup carries and the
 renderer adds to an inspector drawn before it; the presenter writes nothing for them. A system, supersystem or repository state board has **no
-live indicator**: it shows the code at a named commit and has no run to follow (`plan/RULES.md` §3,
+live indicator**: it shows the code at a named commit and has no run to follow (R-1197 (3. Work in progress) [1197-T23],
 "Live updates").
 
 ## 3. Tabs
+{"name":"3. Tabs","code":"G-S-DB-S-T","id":1207}
 
 **Order on the board:** function first (the Tabs), then the Guarantees Panel, then Context.
 
@@ -168,9 +171,9 @@ Threads the threads and processes across systems; Decision path a cross-system d
 which module a consumer picks; Sequence a cross-system interaction; Lifecycles the lifecycles
 that span systems, such as source to release.
 
-The tablist takes Left and Right, Home and End, with one Tab in the Tab order (a roving tabindex). A Tab's lede is one short line, and only for what its graphic and Legend do not show (`GUIDANCE.md` §2):
+The tablist takes Left and Right, Home and End, with one Tab in the Tab order (a roving tabindex). A Tab's lede is one short line, and only for what its graphic and Legend do not show (R-1183 (2. Legends) [1183-T10]):
 what to click, a fact the picture cannot carry. On a wide desktop the board uses most of the window
-(`GUIDANCE.md` §6): the inspector widens to 360 px, the Guarantees run five to a row, and a diagram
+(R-1187 (6. Boards are self-contained) [1187-T11]): the inspector widens to 360 px, the Guarantees run five to a row, and a diagram
 drawn to a fixed aspect (Structure, the decision path, the sequence) grows to at most 1280 px wide; the
 C4 canvas, the thread columns, the lifecycle Cards and the Context take the rest. The inspector stays
 beside every Tab and scrolls inside itself when its entry is taller than the window.
@@ -197,8 +200,9 @@ needs a diagram the summary cannot hold. Optional Tabs have no scaffold — buil
 core Tabs' renderers and CSS.
 
 ## 4. Each Tab's colour plan
+{"name":"4. Each Tab's colour plan","code":"G-S-DB-S-CP","id":1208}
 
-`GUIDANCE.md` §1–§2 set the rule (one colour per system, status colours with glyph and word,
+R-1182 (1. Colour coding) [1182-T27] and R-1183 (2. Legends) [1183-T11] set the rule (one colour per system, status colours with glyph and word,
 dashed = planned, a Legend on every Tab). The groupings the system templates use:
 
 | Tab | System board | Repository / supersystem board |
@@ -221,15 +225,15 @@ dashed = planned, a Legend on every Tab). The groupings the system templates use
   a freed slot goes to the next system with none, and with none free a system is drawn neutral; a
   thirteenth live top-level system with none free is drawn neutral too: re-parent it or add a slot;
   `palette.js` `colourSlots()`), and every hand-written element about a system carries `data-sys="<slug>"` so
-  `paintSystems()` colours it. The issue boards use the same slots (`plan/RULES.md`), so a system
+  `paintSystems()` colours it. The issue boards use the same slots (R-19 (Issue boards — the ruleset) [19-T3]), so a system
   has one colour on both sets.
-- The slots' values are the shared palette's (`GUIDANCE.md` §1, `scripts/palette.js`), and no
+- The slots' values are the shared palette's (R-1182 (1. Colour coding) [1182-T28], `scripts/palette.js`), and no
   system colour falls in a status spectrum: no green, yellow, orange, amber, red or pink, since the
   status tokens carry outcomes (the Decision path's ends) and compatibility. A board never redefines
   a slot.
 - Further tokens on `:root`: the ordinal phase ramp `--ph-1` … `--ph-3` (classes `.ph1` …
   `.ph3`), used by Lifecycles. A single series (the test-class Bars) is neutral ink, not a hue.
-- Nothing built is drawn dashed, and a dash means planned and nothing else (`GUIDANCE.md` §1):
+- Nothing built is drawn dashed, and a dash means planned and nothing else (R-1182 (1. Colour coding) [1182-T29]):
   standalone is dotted, a lazily started thread an outlined Pill, the DSL's `Internal` style solid,
   and the diagram furniture solid — the sequence's and the C4 dynamic view's lifelines faint and
   solid, a return message a thin solid line told by its open arrowhead, the C4 boundary frame a
@@ -242,6 +246,7 @@ dashed = planned, a Legend on every Tab). The groupings the system templates use
   their Legend entries, as the registry's `core` says (§7); one not classified yet says so.
 
 ## 5. Guarantees
+{"name":"5. Guarantees","code":"G-S-DB-S-G","id":1209}
 
 Every board carries a Guarantees Panel (`.guarantees`) below the Tab stage and above Context. It is
 always visible, whatever Tab is open, and is never a Tab. It holds named guarantee Cards, each a
@@ -254,9 +259,9 @@ its build. The seven standard ones:
   Extension / Experimental) and opt-in marker.
 - **Test sets** — test classes per named test set, read from the package layout and labelled
   by the set's name, never a number ("gating", "component", "integration", "deterministic",
-  "e2e", "nonfunctional", "uat"; `GUIDANCE.md` §4); name the test report,
+  "e2e", "nonfunctional", "uat"; R-1185 (4. Facts) [1185-T26]); name the test report,
   `build/reports/tests/index.html`, where one exists, as plain text: a build output, never committed, so never a link on a state
-  board, which has no live view (admin-team/dashboards-skill/35; an issue board links its copy in the live view, `plan/RULES.md` §3).
+  board, which has no live view (admin-team/dashboards-skill/35; an issue board links its copy in the live view, R-1197 (3. Work in progress) [1197-T24]).
 - **Compatibility & versioning** — the current version; how versions move (a trailing letter for
   a bug fix, the third number for an addition); what is checked (an ABI dump where one exists);
   the deprecation policy (deprecate, don't break — or "legacy: may break freely" where that
@@ -275,19 +280,20 @@ archived system's Row, tied the same way, is solid and faded with its ⊟ archiv
 its last release still guarantees.
 
 ## 6. Context on a system board
+{"name":"6. Context on a system board","code":"G-S-DB-S-C","id":1210}
 
-`GUIDANCE.md` §5 sets the section (headed exactly **Context**). On system boards its Cards are:
+R-1186 (5. Context, roadmap, work) [1186-T9] sets the section (headed exactly **Context**). On system boards its Cards are:
 
 - **Roadmap** — each roadmap item with the issues mapped to it, each issue with its number,
   title, quoted verbatim, and state, open or closed (the tracker's reason for a closed issue is the issue boards' and the repository work board's: a type divergence,
-  `GUIDANCE.md` §7), never its grade (`GUIDANCE.md` §4: a title that names one is a defect in the issue, quoted as it stands and
+  R-1188 (7. Divergence) [1188-T1]), never its grade (R-1185 (4. Facts) [1185-T27]: a title that names one is a defect in the issue, quoted as it stands and
   flagged by `check-board.js`, `ISSUE TITLE NAMES A GRADE: #n`, never reworded or elided); the number opens the GitHub issue and
-  the title the issue's board where one exists (`GUIDANCE.md` §5; the title written
+  the title the issue's board where one exists (R-1186 (5. Context, roadmap, work) [1186-T10]; the title written
   `<a data-board="N">`, §2 "Board links"); no GitHub ↗. A tracking issue shows its chain, written `<span class="chainprog"
   data-landed="n" data-total="m">` holding one `<span data-unit="done|current|todo">` per unit in landing order with the unit's name (its
   tracking board's Row name; landed, in progress or to come; units dropped, deferred or left for later out of it, as they are out of m),
   from its tracking board: the renderer draws "chain n of m landed" in the item and, on a line of its own under it, a **StepBar**
-  (dashboards-skill/54; `ui.md`, StepBar; `plan/RULES.md` §3, "The strip is a StepBar"), one chevron per unit with its name inside,
+  (dashboards-skill/54; R-1116 (2. Specific elements) [1116-T5], StepBar; R-1197 (3. Work in progress) [1197-T25], "The strip is a StepBar"), one chevron per unit with its name inside,
   done solid, current bold, to come dashed, unmarked (a state board draws no work in progress); a chain written before the names
   (`data-landed` and `data-total` alone) is drawn with its units numbered until the next state-boards job writes them. The last
   amendment, drawn from `state.json`, opens the section as the same pair ("last amended by #n title"). A roadmap item is a tracking issue with its sub-issues,
@@ -304,6 +310,7 @@ Date both issue lists. A bug Badge is neutral, told by its ▲ and its word. Und
 from what they draw (the system Badges, the issue's state, the bug Badge, a planned Badge, the chain StepBar's states).
 
 ## 7. The registry
+{"name":"7. The registry","code":"G-S-DB-S-R","id":1211}
 
 `systems.json` lists every system and supersystem: `slug`, `name`, `kind`
 (`system` | `supersystem` | `repo`), `parent`, `status` (`built` | `planned` | `archived`: a system no longer developed, its code still in
@@ -331,10 +338,11 @@ presenter (`enrich: yes`). There is no partly built state: its board draws each 
 **Archived is the user's**: an `archived` system keeps that status whatever its code paths say (the code decides only between built and
 planned), counts as built for its supersystem's rule, and its board keeps its last stamp; `check-board.js` fails a status or a visibility
 outside these values (`REGISTRY INVALID`). Its order sets the colour slots
-for both sets of boards, an archived system's place still counted though it holds no slot (`GUIDANCE.md` §1): reordering it recolours every system board and every issue board, so
+for both sets of boards, an archived system's place still counted though it holds no slot (R-1182 (1. Colour coding) [1182-T30]): reordering it recolours every system board and every issue board, so
 append rather than reorder.
 
 ## 8. Workflow
+{"name":"8. Workflow","code":"G-S-DB-S-W","id":1212}
 
 1. Identify the system from the plan or architecture and the diff; add it to the registry if new.
    When the system is genuinely unclear, stop: `BLOCKED — system unresolved`, with the
@@ -349,17 +357,17 @@ append rather than reorder.
    `--history-repo <path>`, else through `gh api`, matched by its recorded LF-normalised sha256 and written back into the cache.
    A version nothing matches is a `WARNING` in the report (say so in yours); with none left to read, the splice is two-way, the
    board against the current template alone, so check the parts it replaced.
-   **Go off the template** (`GUIDANCE.md` §3): change only what the facts require — the DSL, the
+   **Go off the template** (R-1184 (3. A board is a template plus data) [1184-T5]): change only what the facts require — the DSL, the
    `MODEL`, the hand-written Panels, the header — and leave the template's CSS, Tab set and
    renderer script as they are. Anything beyond that (an optional Tab, a removed core Tab, a
    change to the renderer or CSS) is a divergence: how it is declared and recorded is the presenter's rule
-   (`~/.claude/agents/admin-team/presenter.md`, "Divergence").
+   (R-1179 (Diverging, checking, fixing) [1179-T10], "Divergence").
 3. Fill the DSL, then the `MODEL`, then the hand-written Panels and header, from the code and the
    architecture documents, and `state.json` with the stamp (`written.sha` the commit you read). Tie every planned part to its data
    (§2, "Planned parts"). Re-embed the DSL and the state.
    The footer stays the template's one line, "Corresponds to `workspace.dsl`. Code is
    authoritative on any conflict." (a supersystem or repository state board: `docs/dashboards/systems.json`
-   and `workspace.dsl`); no baseline, stamp or "maintained by" clause (`GUIDANCE.md` §3).
+   and `workspace.dsl`); no baseline, stamp or "maintained by" clause (R-1184 (3. A board is a template plus data) [1184-T6]).
 4. Set each Tab's colour plan and Legend (§4).
 5. Fill the guarantee Cards from the code: the `Result` and exception types and what retries;
    the public open and abstract types and interfaces, with their tier and opt-in markers; the
@@ -382,6 +390,7 @@ append rather than reorder.
     the gaps; the admin team commits the files.
 
 ## 9. Checks
+{"name":"9. Checks","code":"G-S-DB-S-CH","id":1213}
 
 ```
 node scripts/check-board.js docs/dashboards/<slug>/index.html --auto [--out <dir>]
@@ -392,7 +401,7 @@ node scripts/check-board.js docs/dashboards/<slug>/index.html --auto --no-browse
 node scripts/check-board.js docs/dashboards/<slug>/index.html [--tab t-c4] [--out <dir>] [--theme dark] [--width 520] [--frame 390]
 ```
 
-**`--auto` is the usual mode** (`GUIDANCE.md` §8). The template is verified once, in the skill,
+**`--auto` is the usual mode** (R-1189 (8. Checks) [1189-T6]). The template is verified once, in the skill,
 by `verify/verify-templates.js`; `--auto` compares the board with it (`scripts/deviation.js`): its
 `<style>` blocks, its Tab ids in order, its script before `MODEL` (from the main `<script>` to
 `const MODEL = {`: the helpers, and on a supersystem or repository state board the Systems renderer),
@@ -434,19 +443,19 @@ with no state block, on a template older than it, gets a note. `--auto --no-brow
 board links and the git-ignore check, and names the browser pass the board would get (none for the verified template plus its data, the
 full pass for a divergence), which it leaves to the presenter's next look.
 
-**Issue titles, quoted verbatim** (`GUIDANCE.md` §4, §5; admin-team/dashboards-skill/28). A title the board quotes — the Context's
+**Issue titles, quoted verbatim** (R-1185 (4. Facts) [1185-T28], R-1186 (5. Context, roadmap, work) [1186-T11]; admin-team/dashboards-skill/28). A title the board quotes — the Context's
 `<a data-board="N">title</a>` and the state's `lastAmended.title` — is the issue's own and is never reworded or elided, but for a private
-repository's name, cut to "…" (`plan/RULES.md` §1, "Private repositories"). Grades are never
+repository's name, cut to "…" (R-1195 (1. Files) [1195-T8], "Private repositories"). Grades are never
 part of an issue, so one that names a grade is a defect in the issue, not in the board: on every pass,
 without a browser and in it, `check-board.js` flags it, `ISSUE TITLE NAMES A GRADE: #n`, as a warning (the browser pass reads a title by
 its `data-issue-title` mark, which `linkIssues()` keeps on the resolved link or plain text, and leaves its text out of the grade scan), and never fails the
 board for it; the admin team brings it to the user to retitle on GitHub.
 
-**No private repository** (`plan/RULES.md` §1, "Private repositories"). On every pass, without a browser and in it, `check-board.js` fails
+**No private repository** (R-1195 (1. Files) [1195-T9], "Private repositories"). On every pass, without a browser and in it, `check-board.js` fails
 (`PRIVATE REPOSITORY`) a board whose data blocks or page name a private repository of the organizations: a state board's hand-written
 panels, its DSL and registry copies and its links included, landed or not; where the list cannot be read it fails, saying why
 (`PRIVATE REPOSITORIES UNREAD`). `apply-state.js` cuts the name to "…" in the last amendment's title and refuses a state whose other text
-names one, nothing written. While a sweep of the rule is in its warning stage in the repository (`GUIDANCE.md` §11, "A rule that can fail
+names one, nothing written. While a sweep of the rule is in its warning stage in the repository (R-1192 (11. One change, every dashboard type) [1192-T13], "A rule that can fail
 boards"), a text the sweep found already on the board is a warning naming the sweep, in the check and in `apply-state.js`'s notes, and only a
 text it did not find fails or is refused; a sweep lists a state board's finds and fixes none on it.
 
@@ -456,7 +465,7 @@ map and fails (`DEAD BOARD LINK`) an entry whose file does not exist relative to
 board's HTML, when the board sits in a repository's `docs/` (`DEAD LINK`).
 
 **Features and the code.** Every pass, `--auto --no-browser` included, fails a template feature the board lacks (`FEATURE MISSING`,
-`GUIDANCE.md` §8; `--features-as-notes`, which `apply-state.js` passes, prints them as notes instead) and a status the code contradicts
+R-1189 (8. Checks) [1189-T7]; `--features-as-notes`, which `apply-state.js` passes, prints them as notes instead) and a status the code contradicts
 (`STATUS DISAGREES WITH CODE`: a system or a `partPaths` part against its code paths at the board's stamped commit, a supersystem against
 its core subsystems), and warns on a supersystem's subsystem not classified core or optional (`SUBSYSTEM UNCLASSIFIED`). A board with no `BOARDS` line (a template older than
 the rule) gets a note; re-render it from the template.
@@ -478,16 +487,17 @@ for the Tab, theme and width, into the output directory.
 
 The same script checks issue boards and the repository work board: a board that declares
 `<meta name="dashboard" content="plan-board">` or `content="work-board"` is held to those sets'
-rules instead of the Guarantees rule (`plan/RULES.md`).
+rules instead of the Guarantees rule (R-19 (Issue boards — the ruleset) [19-T4]).
 
 ## 10. State boards on a branch: the data-only path
+{"name":"10. State boards on a branch: the data-only path","code":"G-S-DB-S-B","id":1214}
 
 A state board — a system, supersystem or repository state board — shows a branch's work once, in the **Document step**: its
 **state-boards task** (admin-team/dashboards-skill/35; the presenter's `state-boards` mode) builds on the branch the boards of the systems
 the branch touches, and the shared boards (the supersystems above them, the repository state board, `systems.json`) as far as those
 systems appear on them, each stamped "as-is at `<branch>` @ `<sha>`" at the **code-landing sha** the request gives — the branch's last
 code commit, after the sync and the version bump. Only documents change after it, so nothing is restamped at the land, save a rebuild a re-sync needs (below), and they land with
-the merge (`GUIDANCE.md` §11, "The landing flow"). Nothing else changes: the board shows the code at the commit it names, built solid and
+the merge (R-1192 (11. One change, every dashboard type) [1192-T14], "The landing flow"). Nothing else changes: the board shows the code at the commit it names, built solid and
 planned dashed.
 
 **A rebuild at a sync.** When a sync rebuilds state boards from the merged code and documents (the admin team's brief, Board-file conflicts), each system
@@ -510,7 +520,7 @@ in. It reads `issue`, `branch` and `folder` from the request and these facts, ev
 | `ref` | at the Document step's state boards the branch (default: the request's `branch`); at a restamp after the merge, the default branch the merge is on (required there) |
 | `built`, `planned` | only for what has no code paths recorded (the code decides the rest, below): what the stage built (or, rarely, set back to planned): a registry slug; `"#<issue>"`, every system that issue alone plans (`plannedBy.issue`, or every unit's `subIssue`); `"<dsl path>:<element id>"` (paths under `docs/dashboards/`), or `{dsl, id, tag}` to give a component its built tag. A system marked takes its `c4` elements with it (§7) |
 | `version` | `{"<slug>": "<version>"}`, a version a system's build moved to |
-| `title` | the issue's title for the "last amended by" note (in the Context Panel), quoted verbatim (without it, the verbatim title already on record for the same issue, the board's `state.json` first, else another board's in scope, else the issue board's own `issueTitle` (the request's folder's `plan.json`, for the same issue); only with none of these the folder's name less its number, which the summary notes as not the issue's own); a title that names a grade is a defect in the issue (`GUIDANCE.md` §4): written as it stands, never reworded or elided, and flagged `ISSUE TITLE NAMES A GRADE: #n` in the summary's `issue defects` and notes, for the admin team to bring to the user to retitle on GitHub |
+| `title` | the issue's title for the "last amended by" note (in the Context Panel), quoted verbatim (without it, the verbatim title already on record for the same issue, the board's `state.json` first, else another board's in scope, else the issue board's own `issueTitle` (the request's folder's `plan.json`, for the same issue); only with none of these the folder's name less its number, which the summary notes as not the issue's own); a title that names a grade is a defect in the issue (R-1185 (4. Facts) [1185-T29]): written as it stands, never reworded or elided, and flagged `ISSUE TITLE NAMES A GRADE: #n` in the summary's `issue defects` and notes, for the admin team to bring to the user to retitle on GitHub |
 | `document` | `true` at the Document step's state-boards task (admin-team/dashboards-skill/35): every board in scope stamped "`<branch>` @ `<sha>`" at the code-landing sha `facts.sha` (refused without it), since they land with the merge as stamped |
 | `premerge` | the older name (dashboards-skill/33's pre-merge refresh), read as `document`; its `sha` defaults to the worktree's HEAD |
 | `landed` | `true` on a `state-boards` request that restamps after the merge, as the `landed` event does: the older flow, for a landing that refreshed no state board before its merge |

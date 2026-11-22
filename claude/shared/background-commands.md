@@ -1,5 +1,5 @@
 # Background commands
-{"name":"Background commands","code":"G-P-BC","id":145,"pointerMark":2}
+{"name":"Background commands","code":"G-P-BC","id":145,"pointerMark":3}
 
 ## Keep each command short and in the foreground
 {"name":"Keep each command short and in the foreground","code":"G-P-BC-K","id":1136}

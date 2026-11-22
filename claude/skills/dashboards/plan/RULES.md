@@ -4,7 +4,8 @@
 An issue board is the planning-and-development record of one issue, kept true from the moment
 a `/resolve-issue` run starts until the change lands: what was missing, what was considered,
 what was decided, what was built, and — while the run is alive — where it is right now. The
-repository work board shows every such run at once. `GUIDANCE.md` applies throughout.
+repository work board shows every such run at once. R-18 (Dashboard guidance — the rules both sets share) [18-T2]
+applies throughout.
 
 The board is a **general representation with little code**. Summaries, decisions, reasons,
 states and links; never listings. The detail lives in the Markdown beside it: `plan.md` is the
@@ -12,6 +13,7 @@ implementer's spec, `final-implementation.md` the as-built record, `research/` a
 `architecture.md` the evidence. The board links them; it does not repeat them.
 
 ## 1. Files
+{"name":"1. Files","code":"G-S-DB-P-F","id":1195}
 
 ```
 docs/plans/<issue>-<slug>/
@@ -43,7 +45,7 @@ The footer of a board reads "Corresponds to `<folder>/plan.json`. Code and the M
 this board are authoritative on any conflict. Columns 1 to 3 are written once; column 4 records every
 difference."; the repository work board's, "Corresponds to `docs/plans/board.json`. Code and the Markdown beside
 this board are authoritative on any conflict." (`.live/board.json` on the live view). The template
-writes it; nothing else goes there (`GUIDANCE.md` §3).
+writes it; nothing else goes there (R-1184 (3. A board is a template plus data) [1184-T1]).
 
 **Committed sidecars.** `plan.js` is committed with the board, not left to this machine: a clone opened from disk polls it while the run
 is live, as the board here does, so another checkout of the branch follows the run too.
@@ -64,7 +66,7 @@ machine follows it: each poll re-reads `.live/boards.js`, and when this issue's 
 fresher by `planStamp()` is drawn in place, the tracked board winning a tie, and labelled: a dashed "Live view." note linking the copy, `LIVE · live view` on the
 Chip, and the Source Tab's heading. It is read-only. A view copy and a published copy follow nothing.
 
-**Links to the shared boards** (`GUIDANCE.md` §5). `plan.json` `links` — the committed repository work board (`workBoard`), the repository state board
+**Links to the shared boards** (R-1186 (5. Context, roadmap, work) [1186-T1]). `plan.json` `links` — the committed repository work board (`workBoard`), the repository state board
 (`repoBoard`) and each of the board's systems' boards (`boards`, by slug; `repoPage` and `pages`, the older keys, on a board whose
 template reads no other, `lib.js` `linkKeys()`, and read alike everywhere), each relative to the board's folder — is written by `embed.js` at
 every embed from the files on disk, and holds an entry only while its file exists; the board links nothing else and leaves the words plain
@@ -89,7 +91,7 @@ after its merge at the team's `unit-landed`, §4). A tracking issue (a grade-4 p
 Row per unit**, each Row linking to that sub-issue's own board; each sub-issue gets a full
 board in its own folder.
 
-**Links to an issue and its board** (`GUIDANCE.md` §5). One general rule, by how many links fit:
+**Links to an issue and its board** (R-1186 (5. Context, roadmap, work) [1186-T2]). One general rule, by how many links fit:
 
 - **Number and title together: two links.** Where a board shows an issue's number beside its
   title, the **number opens the GitHub issue** and the **title opens the issue's own board**, or
@@ -111,8 +113,8 @@ board in its own folder.
   with no title. Wherever the number itself opens GitHub, there is none.
 
 The board's own `#n` opens its GitHub issue — the `#n` of the header's title, over the issue line, which carries the issue's title on
-GitHub alone (`GUIDANCE.md` §6, "The header") — and `PR #n` its pull request. **An issue's title is quoted verbatim** (`GUIDANCE.md` §4,
-§5; admin-team/dashboards-skill/28): the issue line (`issueTitle`), a roadmap item's and a follow-up's `title`, and on the repository work board every
+GitHub alone (R-1187 (6. Boards are self-contained) [1187-T1], "The header") — and `PR #n` its pull request. **An issue's title is quoted verbatim** (R-1185 (4. Facts) [1185-T1],
+R-1186 (5. Context, roadmap, work) [1186-T3]; admin-team/dashboards-skill/28): the issue line (`issueTitle`), a roadmap item's and a follow-up's `title`, and on the repository work board every
 Row's, group's, roadmap item's and unscheduled issue's, never reworded or elided but for a private repository's name, which is cut to "…" (below, "Private repositories"), each marked `data-issue-title` on the board; a unit's name
 is the presenter's, not a quotation. A title that names a grade is a defect in the issue: flagged, never a failure of the board (§8). No link points at a
 file that is not there: a board exists when its `dashboard.html` is in the same tree, and the
@@ -126,7 +128,7 @@ link is relative to the linking board's folder, so it is never dead. Where the b
 - **any other** issue's board may be anywhere under `docs/plans/` in the tree.
 
 **Private repositories** (the user's decision, q-380). No board names a private repository of the organizations: not an issue board, a tracking
-board, the repository work board, the org work board (§10) or a state board (`system/RULES.md`). One rule, `system/scripts/privaterefs.js`, which
+board, the repository work board, the org work board (§10) or a state board (R-20 (State boards — the ruleset) [20-T3]). One rule, `system/scripts/privaterefs.js`, which
 every board writer, both checkers and the companions' scripts take:
 
 - **What names one.** Its `owner/name` and its `name#n` wherever they stand, a value that is its name under a `repo`, `repository` or `name`
@@ -145,7 +147,7 @@ every board writer, both checkers and the companions' scripts take:
 - **The checks fail a board that still names one.** `check.js` (`PRIVATE REPOSITORY`, the data by where each text stands, a title
   included, then the board's page, its data block emptied, line by line) and `system/scripts/check-board.js` (its data blocks, then the
   page with them emptied: a state board's hand-written panels, its DSL and registry copies and its links), landed or not.
-- **A sweep's warning stage.** While a sweep of this rule is in its warning stage in a repository (`GUIDANCE.md` §11, "A rule that can fail
+- **A sweep's warning stage.** While a sweep of this rule is in its warning stage in a repository (R-1192 (11. One change, every dashboard type) [1192-T1], "A rule that can fail
   boards"; `system/scripts/sweeplib.js`), every writer above writes a text the sweep found already on a board, with a warning that names the
   sweep (an event's in its summary, a fill's in its notes), and refuses only a text newly written; both checks warn on such a text, naming the
   sweep (`PRIVATE REPOSITORY, KEPT BY A SWEEP`), and fail only one it did not find. Its finder for a sweep is `privaterefs.js` `sweepFind()`,
@@ -167,7 +169,7 @@ parent of its own) or **under its own GitHub parent**, as any sub-issue's does (
 for the second). Its board names the issue it fixes in a "fix to #n" Chip in the header, a lone `#n` that opens that issue's board first
 (`fixOf.board`, which `embed.js` sets from the folders on disk: the enclosing folder when it is that issue's, else that issue's board anywhere
 in the tree); the repository work board lists it as any run, its Row reading "fix to #n" beside its "part of". The landed board it fixes is
-not re-rendered for it (`~/.claude/agents/admin-team/presenter.md`, "Closed work boards"): the link runs from the fix. `check.js` holds `fixOf` to its form and its board link, and
+not re-rendered for it (R-1179 (Diverging, checking, fixing) [1179-T5], "Closed work boards"): the link runs from the fix. `check.js` holds `fixOf` to its form and its board link, and
 warns on a fix with no GitHub parent whose folder is not inside the issue it fixes.
 
 Nobody writes the board links by hand: `embed.js` sets them from the folders on disk at every embed and clears a link whose board
@@ -186,7 +188,7 @@ checks the board against its template (§8); `board.js` regenerates `docs/plans/
 `index.html`; `apply-event.js --event <request.json> --worktree <path>` is the fast path of a
 plan-board event (§4, "The fast path"); `progress-index.js --once|--ensure|--watch <checkout>` keeps each issue's progress index (§3, "Progress notes").
 
-**Made from the template, checked where it deviates** (`GUIDANCE.md` §3, §8). A board is always
+**Made from the template, checked where it deviates** (R-1184 (3. A board is a template plus data) [1184-T2], R-1189 (8. Checks) [1189-T1]). A board is always
 the template plus its `plan.json`, and the repository work board the template plus `board.json`: `new.js`,
 `board.js`, or a copy of the template and `embed.js`, and nothing else. Writing a board at an
 event is therefore editing `plan.json` and re-embedding. Such a board needs no browser pass:
@@ -196,6 +198,7 @@ divergence, a board left on an older template) or when the template changed sinc
 `verify/verify-templates.js` verified it.
 
 ## 2. The four columns
+{"name":"2. The four columns","code":"G-S-DB-P-C","id":1196}
 
 One Row per part of the change a reader could point at: a class or file, a test suite, a
 living document, a build file, a release step — and, under the group **Left for later**, a
@@ -207,13 +210,14 @@ On a tracking issue's board the Rows are its units. Four to twelve Rows is usual
 |---|---|---|---|
 | 1 | **Gap** | what was wrong or missing at the baseline, with evidence (`path:line`) and a source in the research; the Rows themselves are named from the gaps before the research starts (an issue board at research with no Rows is a defect, §3) | once, after research; for a sub-issue of a signed-off tracking plan, at `sized`, from the parent's research and architecture (its unit Row in the decomposition, the current-state section) |
 | 2 | **Considered** | every option weighed, each with a verdict: **accepted** (green), **declined** (red, with the trade-off that ruled it out), **partial** (yellow: adopted in part, with what was taken and what wasn't), **deferred** (yellow until settled: left open at plan time, settled in column 4). Exactly one option per Row is accepted or partial-as-chosen. | once, after architecture; for a sub-issue of a signed-off tracking plan, at `sized`, the options the parent's architecture weighed for this unit (its alternatives-considered and per-unit design sections), to which the unit's own plan adds at `plan-accepted`; a Row that holds no option by `plan-accepted` takes its options from that event's facts, on the fast path (§4, "The verdicts at plan acceptance") |
-| 3 | **Verdict** | the decision as a **list of statements**, one decision each, each ending with its reference to the plan paragraph it rests on (below, "Statements"), and its defence in a few sentences (what the work is — one system, a bug fix, docs only — never its grade); a `build` or `leave` kind (a neutral, solid Chip, "build" or "leave as is", which the Timeline Legend names: a decision, not an outcome, and never dashed, `GUIDANCE.md` §1); the steps named, not listed (a step is a sentence with a file anchor and its check — the detail is in `plan.md`); tests by test set; risks | once, at plan acceptance: its kind and its statements from the event's facts, on the fast path, and its defence, steps, tests and risks by the fill behind it (§4, "The verdicts at plan acceptance") |
+| 3 | **Verdict** | the decision as a **list of statements**, one decision each, each ending with its reference to the plan paragraph it rests on (below, "Statements"), and its defence in a few sentences (what the work is — one system, a bug fix, docs only — never its grade); a `build` or `leave` kind (a neutral, solid Chip, "build" or "leave as is", which the Timeline Legend names: a decision, not an outcome, and never dashed, R-1182 (1. Colour coding) [1182-T1]); the steps named, not listed (a step is a sentence with a file anchor and its check — the detail is in `plan.md`); tests by test set; risks | once, at plan acceptance: its kind and its statements from the event's facts, on the fast path, and its defence, steps, tests and risks by the fill behind it (§4, "The verdicts at plan acceptance") |
 | 4 | **As built** | the state; **one statement per verdict statement**, each marked with its adaptation (as planned, amended, deviated), saying what exists at the as-built commit (a summary while the Row is partially built, dropped or deferred); and every change from the verdict with `what`, `why`, `when` (the stage or review round) and `ref` (the commit) | kept as the work lands |
 
 Columns 1–3 are written once. A factual error found later is corrected in place and noted
 under `notes.corrections` (an event's wrongly recorded time through `retime`, a run's recorded text worded wrongly through `reword`, each sent by the run for its own events or raised by the team at the presenter's word, §4; a Document task's time through a fill's `wip.document`, §4); a change of mind goes in column 4, never into column 3.
 
 ### The Gap Cell
+{"name":"The Gap Cell","code":"G-S-DB-P-C-1","id":10088}
 
 The Gap Cell carries four marks, each derived at render from data the Row already holds, with no field of its own
 (admin-team/dashboards/gap-marks, dated dashboards-skill/44):
@@ -225,16 +229,17 @@ The Gap Cell carries four marks, each derived at render from data the Row alread
   none, since bolding all of it would set nothing apart. A gap written as one long sentence therefore shows no lead: write the gap's
   claim first, in a sentence of its own, and its evidence after it.
 - **The where Chip**, in the Cell's foot: the Row's `where`, as the Row label's second line writes it, its `` `code` `` spans plain inside
-  the Chip (`GUIDANCE.md` §12, "Code"); none for a Row without one.
+  the Chip (R-1193 (12. Elements — one name per function) [1193-T1], "Code"); none for a Row without one.
 - **The baseline Chip**, beside it: "at <sha>", the board's `baseline.sha`, opening the commit; none on a board without a baseline sha.
 
 The where Chip repeats the Row label's second line and the baseline Chip the header's baseline Tag, on purpose: the Cell reads
 whole on its own, at any width. The Chips have the gap's kind Chip's look, neutral and solid; each says what it is in words, and none is
-a grouping by colour, shade or dash, so no Legend names them (`GUIDANCE.md` §2). The Gap inspector is unchanged: it already shows the
+a grouping by colour, shade or dash, so no Legend names them (R-1183 (2. Legends) [1183-T1]). The Gap inspector is unchanged: it already shows the
 Row's place, the evidence "at <sha>" and the whole summary. A board drawn before the marks keeps the count in its foot until its next
-rebuild; a landed board keeps its rendering (`GUIDANCE.md` §11).
+rebuild; a landed board keeps its rendering (R-1192 (11. One change, every dashboard type) [1192-T2]).
 
 ### Statements
+{"name":"Statements","code":"G-S-DB-P-C-2","id":10089}
 
 **The Verdict Cell is a list of statements** (`verdict.statements`), never one paragraph of sentences joined by semicolons or
 full stops: one decision per statement, as **bullets**, or **numbered** (`verdict.list` `"numbered"`) when the order matters —
@@ -244,7 +249,7 @@ came from; on a tracking board's unit Row, `architecture.md`'s section for the u
 `"plan.md#42-the-fix"`. The board ends the statement with the reference: the heading's leading section number ("4.2", "A-3",
 "R2"), else the heading itself, or a `label` the statement sets. The text does not repeat it. A Verdict statement draws it as its
 **section Chip**, "§4.2", neutral and solid with the gap's kind Chip's look, never the link blue (dashboards-skill/53); an As built
-statement draws the same Chip (the user's decision of 2026-11-08, recorded at 2026-11-09T02:11:59Z in the ledger). It opens the section's excerpt (below). The section Chip says what it is in its own text and is no grouping by colour, shade or dash, so no Legend names it (`GUIDANCE.md` §2); a marked one
+statement draws the same Chip (the user's decision of 2026-11-08, recorded at 2026-11-09T02:11:59Z in the ledger). It opens the section's excerpt (below). The section Chip says what it is in its own text and is no grouping by colour, shade or dash, so no Legend names it (R-1183 (2. Legends) [1183-T2]); a marked one
 ("§42?", below) is named in the Legend.
 
 - **Before the excerpt: the section number from the anchor.** Until `embed.js` has copied an excerpt (the file is not in the tree yet,
@@ -258,7 +263,7 @@ statement draws the same Chip (the user's decision of 2026-11-08, recorded at 20
 
 - **The excerpt.** When `embed.js` writes the board (and `apply-event.js` with it) it copies the referenced section's heading and
   first paragraph into the statement's `excerpt` `{ref, heading, paragraph, hash}` — the paragraph on one line, fenced code and
-  tables skipped, a grade in it elided with "…" (`GUIDANCE.md` §4: a quotation is elided, never reworded), and so is a clause naming
+  tables skipped, a grade in it elided with "…" (R-1185 (4. Facts) [1185-T2]: a quotation is elided, never reworded), and so is a clause naming
   an internal name or the approval flow (the pipeline's agents, sessions or roles, "the user's call"): the clause, from the sentence,
   clause or list boundary before the name to the next one after it, becomes "…" (`lib.js` `elideNamed()`, admin-team/dashboards-skill/35),
   as a quote is never reworded, `hash` a hash of the whole section — once per reference: an
@@ -287,57 +292,60 @@ The **Legend** of the Design Tab and the As built Tab names each adaptation mark
 
 **The Verdict Cell's count Labels** (dashboards-skill/53): the Cell's foot counts its
 steps, tests and risks, "1 step · 0 tests · 2 risks", each a count Label as the Gap Cell's evidence is (§2, "The Gap Cell"), its figure
-in ink and muted at zero, the noun agreeing with the figure; derived at render, with no field of their own. No Legend names them (`GUIDANCE.md`
-§2). **The As built Cell's foot** counts its changes and commits the same way, "2 changes · 3 commits" as count Labels (the user's decision of 2026-11-08). A board drawn before them keeps the plain line until its next rebuild; a landed board keeps its rendering (`GUIDANCE.md` §11).
+in ink and muted at zero, the noun agreeing with the figure; derived at render, with no field of their own. No Legend names them
+(R-1183 (2. Legends) [1183-T3]). **The As built Cell's foot** counts its changes and commits the same way, "2 changes · 3 commits" as count Labels (the user's decision of 2026-11-08). A board drawn before them keeps the plain line until its next rebuild; a landed board keeps its rendering (R-1192 (11. One change, every dashboard type) [1192-T3]).
 
 ### An option's signature
+{"name":"An option's signature","code":"G-S-DB-P-C-3","id":10090}
 
 An option whose name stands for a piece of API keeps a **short name** — the bare identifier in a `` `code` `` span (the bare
 `` `getOrLoad` ``), never its parameter list — and the signature goes in a field of its own, `signature`: the code as written, without
 backticks (`"getOrLoad(key, policy, maxAge, loader): Result<Lookup<V>>"`). The board draws it verbatim **beneath the name**, a
-CodeBlock (`GUIDANCE.md` §12, "Code"), in the Considered Cell (and the inspector's "Weighed against" list, the same Button), in
+CodeBlock (R-1193 (12. Elements — one name per function) [1193-T2], "Code"), in the Considered Cell (and the inspector's "Weighed against" list, the same Button), in
 the inspector under the option's name, and in the Decisions table's Option column; the option Button's `aria-label` carries it too. A
 signature is code, never prose: the internal-name scan and the issue references leave it alone. It is optional: an option whose name
 stands for no signature has none, and an option written before the field keeps its name as it is and draws as before (admin-team/dashboards/code-label-and-sigblock).
 It is a short declaration, not a listing (§7).
 
 ### A step's files
+{"name":"A step's files","code":"G-S-DB-P-C-4","id":10091}
 
 A verdict step's `files` and a Row's `asBuilt.files` stay paths, as the plan and the as-built record write them. The inspector draws each list
 **nested by its folders** (the Verdict inspector's Steps, the As built inspector's Files), derived from the paths at render, with no data of
 its own (admin-team/dashboards/step-file-tree, dated dashboards-skill/43):
 
 - **The levels.** The module (the folders before `src/<set>/`, else the top folder) is a heading; its source set (`commonMain`, `jvmTest`, …)
-  a level under it, `src/` left out; the rest of the folder path one line holding its files; each file a CodeLabel (`GUIDANCE.md` §12,
+  a level under it, `src/` left out; the rest of the folder path one line holding its files; each file a CodeLabel (R-1193 (12. Elements — one name per function) [1193-T3],
   "Code"). A file outside any module or source set sits at the level it belongs to (`.gitattributes` at the top, a module's
   `build.gradle.kts` under its module), and a folder listed whole (a trailing `/`) stands as an entry of its parent.
 - **The order.** Inside a folder the files keep the list's order; folders come in the order of their first file; a folder with one file
   keeps its own line; a path listed twice is drawn once.
-- **Every folder line of a step's file list is a Disclosure** (`boards.md`, Disclosure), and a folder line under the As built inspector's Files
+- **Every folder line of a step's file list is a Disclosure** (R-10041 (As-is) [10041-T2], Disclosure), and a folder line under the As built inspector's Files
   opens and closes the same way: each opens and closes what it holds — the module's, the source set's and the folder path's — by click and
   from the keyboard, open at load; a closed one says how many files it holds ("· 3 files"). A redraw that shows the same content (a live update) keeps closed what
   the reader closed.
 - **The look.** A guide line per level; every line carries its full path in its title; a folder line breaks after a "/", a file name between
   the words of its camel case, so a long path never widens the inspector.
 
-The As built Card keeps its count ("3 files"). The nesting is no grouping by colour, shade or dash, so no Legend names it (`GUIDANCE.md` §2).
-A board drawn before it lists one full path per line until its next rebuild; a landed board keeps its rendering (`GUIDANCE.md` §11).
+The As built Card keeps its count ("3 files"). The nesting is no grouping by colour, shade or dash, so no Legend names it (R-1183 (2. Legends) [1183-T4]).
+A board drawn before it lists one full path per line until its next rebuild; a landed board keeps its rendering (R-1192 (11. One change, every dashboard type) [1192-T4]).
 
 ### The KPI Tiles
+{"name":"The KPI Tiles","code":"G-S-DB-P-C-5","id":10092}
 
 The KPI Tiles stand in the **Timeline Tab** (below), under the Timeline Tile; since admin-team/dashboards-skill/34 there is no KPI row in
 the board's head. Every KPI Tile carries a segmented Bar, and **each Tile carries the Legend of its own Bar, inside the Tile**, naming exactly the
-segments that Bar drew (`GUIDANCE.md` §2), as the repository work board's Tiles do. There is no shared Legend row under the Tiles: every Tile keeps its
+segments that Bar drew (R-1183 (2. Legends) [1183-T5]), as the repository work board's Tiles do. There is no shared Legend row under the Tiles: every Tile keeps its
 full share of the row (a row spanning every track kept the empty tracks from collapsing and squeezed the Tiles on a wide screen).
 
 | Tile | Its Bar |
 |---|---|
-| **Rows** (**Units** on a tracking board) | one segment per Row group, sized by its Rows, in the group's system colour (`GUIDANCE.md` §1; a group whose Rows span several colour slots is cut by slot) |
+| **Rows** (**Units** on a tracking board) | one segment per Row group, sized by its Rows, in the group's system colour (R-1182 (1. Colour coding) [1182-T2]; a group whose Rows span several colour slots is cut by slot) |
 | **Options weighed** | accepted (green) · partial (yellow) · deferred (yellow, dashed: still open) · declined (red), as the Considered column colours them; a deferred option settled in column 4 takes its settled colour |
 | **Verdicts** | build (solid neutral) · left for later (faded neutral) · not yet written (dashed: pending) |
 | **As built** | every state with its count (pending dashed), then the Rows left for later (faded) |
 | **Quality Reviews** | one slot per pass allowed (`wip.qaMax`, three), filled left to right by each pass's result: passed green, minor findings only yellow (every finding minor by severity, or the on-the-spot route), other findings red, the pass running accent (the pass running is derived, `lib.js` `qaShown()`, §5: at qa, or the remediation's current "Quality Review n" sub-step); a slot not used empty (solid outline); each pass named by its number, "Quality Review 1: changes requested · Quality Review 2: in progress", as on the WIP Panel's Quality Review Pills (dashboards-skill/30); a last pass whose findings are fixed in place with no further pass says so in the sub-line, "Quality Review 1: changes requested, fixed in place · no additional review" (§5, "QA"; dashboards-skill/31) |
-| **Timeline** (every issue board, at the top of its Timeline Tab; on a board in flight its steps so far) | the time per **step visit** of the run (admin-team/dashboards-skill/32, in place of dashboards-skill/23's four phases): one segment per visit whose both bounds carry a time, in the order the run visited them, sized by its time, coloured by its step's **kind of work** (admin-team/dashboards-skill/34, in place of the neutral ink ramp): planning, build, checking, landing, each a hue family, one shade of it per step with a line, lighter to darker in the steps line's order (darker to lighter in dark), a family of one step its middle shade, a step's repeats sharing its shade (`GUIDANCE.md` §1, "Steps"); a visit of no length keeps a sliver. **Its Legends**, below the Bar: first **the families**, one entry per family with a line, its swatch the shades of its steps in order, its name and its steps ("planning sizing · research · plan"); then **the visits**, one entry (a line) per visit: the step's **mark** in its family's shade (filled: its segment; outlined: a visit the Bar does not draw), the step, its start → end and its duration ("implementation · 9:21 AM → 2:00 PM · 4 h 39 min"), laid in columns; a note after them names the marks its entries use ("outlined", "— not recorded", "≈", "by", "merged"). The figure is the **sum of the visits the Bar draws** (admin-team/dashboards-skill/28's rule, kept), "≈" before it when a visit summed has an approximate bound; the sub-line gives the run's date or dates, the zone of its times, and names every visit not summed, with the reason ("not summed: sizing, plan (a bound not recorded)"), every step the record says nothing of ("no record of: interview"), the visits with an approximate bound ("≈ approximate bounds: research, plan") and the bounds where a recorded time was kept over an arrival. Its Bar stands at the Tile's foot, where the Tracers reach it (below). On a board in flight the running step is one visit open-ended, from `wip.since` (when `wip.step` is that step) to **now**, its duration and the figure "so far", drawn again every half minute (and when the board is shown again) so they follow the clock between two events; the steps after it are left out, and "no record of" names only the steps before it; while the run waits on the user no visit is open-ended (below, "Waits on the user are not active time") |
+| **Timeline** (every issue board, at the top of its Timeline Tab; on a board in flight its steps so far) | the time per **step visit** of the run (admin-team/dashboards-skill/32, in place of dashboards-skill/23's four phases): one segment per visit whose both bounds carry a time, in the order the run visited them, sized by its time, coloured by its step's **kind of work** (admin-team/dashboards-skill/34, in place of the neutral ink ramp): planning, build, checking, landing, each a hue family, one shade of it per step with a line, lighter to darker in the steps line's order (darker to lighter in dark), a family of one step its middle shade, a step's repeats sharing its shade (R-1182 (1. Colour coding) [1182-T3], "Steps"); a visit of no length keeps a sliver. **Its Legends**, below the Bar: first **the families**, one entry per family with a line, its swatch the shades of its steps in order, its name and its steps ("planning sizing · research · plan"); then **the visits**, one entry (a line) per visit: the step's **mark** in its family's shade (filled: its segment; outlined: a visit the Bar does not draw), the step, its start → end and its duration ("implementation · 9:21 AM → 2:00 PM · 4 h 39 min"), laid in columns; a note after them names the marks its entries use ("outlined", "— not recorded", "≈", "by", "merged"). The figure is the **sum of the visits the Bar draws** (admin-team/dashboards-skill/28's rule, kept), "≈" before it when a visit summed has an approximate bound; the sub-line gives the run's date or dates, the zone of its times, and names every visit not summed, with the reason ("not summed: sizing, plan (a bound not recorded)"), every step the record says nothing of ("no record of: interview"), the visits with an approximate bound ("≈ approximate bounds: research, plan") and the bounds where a recorded time was kept over an arrival. Its Bar stands at the Tile's foot, where the Tracers reach it (below). On a board in flight the running step is one visit open-ended, from `wip.since` (when `wip.step` is that step) to **now**, its duration and the figure "so far", drawn again every half minute (and when the board is shown again) so they follow the clock between two events; the steps after it are left out, and "no record of" names only the steps before it; while the run waits on the user no visit is open-ended (below, "Waits on the user are not active time") |
 
 **The Timeline Tile's Legend** (admin-team/dashboards-skill/32), one entry per step visit. **The vocabulary is the step Panel's**: `sizing`, `interview`, `research`,
 `architecture`, `plan`, `branch`, `implementation`, `qa`, `remediation`, `document`, `landing`, `merge` (a tracking board's own: its plan's `document`, `landing` and `merge`,
@@ -375,7 +383,7 @@ says nothing of has no entry, and the sub-line names it.
 A bound none of these gives is **unknown**, drawn "—" (its title says "not recorded"); a date alone is no time. A visit with an unknown
 bound, or with bounds out of order, has no duration, is not drawn and is not summed, and the sub-line names it. **Spans** read in minutes
 under an hour ("40 min"), in hours and minutes under a day ("2 h 35 min"), else in days and hours ("3 days 4 h"), the figure the same,
-never "same day". **Times** read in the viewer's zone (`GUIDANCE.md` §6): a clock time on the run's first day, with its day on any other,
+never "same day". **Times** read in the viewer's zone (R-1187 (6. Boards are self-contained) [1187-T2]): a clock time on the run's first day, with its day on any other,
 the zone named once in the sub-line, each a `<time>` holding the UTC stamp. **`asBuilt.at` and `asBuilt.commits`** are read from git:
 `apply-event.js` records them at the `landed` event (`facts.mergedAt` when the team sends it, else git in the worktree, then in the main
 checkout, else the pull request's merge time from the tracker; §4, "The fast path owns the Timeline"), the seeding at the next run's
@@ -411,15 +419,16 @@ team-raised `run-restarted` event (§4): a gap between events from the same sess
 `plan/scripts/lib.js` `outagesOf()`, `outageSteps()`, `timelineSteps()` and `timelineRows()` and the template's are the one rule.
 
 ### The Timeline Tab
+{"name":"The Timeline Tab","code":"G-S-DB-P-C-6","id":10093}
 
 **The Timeline Tab** (admin-team/dashboards-skill/34) stands right after Design on every issue board, a tracking board's included: the
 Timeline Tile across the Tab, then the five KPI Tiles below it (Rows or Units, Options weighed, Verdicts, As built, Quality Reviews; on a landed
 board too), in one row on a wide screen, three or two on narrower ones and one on a phone. The inspector does not stand beside this Tab. Each
-KPI Tile carries a **Tracer** (`GUIDANCE.md` §12): a label at its top — a dot in its steps' kind of work's colour, the steps, and their summed
+KPI Tile carries a **Tracer** (R-1193 (12. Elements — one name per function) [1193-T4]): a label at its top — a dot in its steps' kind of work's colour, the steps, and their summed
 time (the units of the Tile's spans, "≈" when one is approximate, "so far" while the running step is among them, "—" when none is timed,
 "not yet" when none has run) — and, from 760 px, a line drawn from it up a lane of the gutter, across to the middle of its steps' segments and
 up to the foot of the Timeline Tile's Bar, where a bracket spans them; steps not drawn on the Bar (no time recorded) are reached at the
-Tile's foot under their step lines. Under 760 px the label alone stands. The Tiles' steps:
+Tile's foot under their step lines. What stands under 760 px is R-10039 (Deviated) [10039-T3], "Tracer". The Tiles' steps:
 
 | Tile | Issue board | Tracking board |
 |---|---|---|
@@ -442,7 +451,7 @@ the reason) · `deferred` (neutral, dashed, with the issue it went to). A tracki
 **unit Rows**, and only they, take two more: `complete` (green, outlined: implemented and qa
 passed, not merged yet; the pipeline's `qa-pass` event sets it) and `landed` (green: merged; the
 admin team sets it itself with no plan-board event from a pipeline: shown in the live view by the post-merge refresh, and committed by
-the next run's `sized` (or a grade-1 run's `seed`), which seeds it into its branch, `GUIDANCE.md` §11, "The landing flow"; before admin-team/dashboards-skill/35, by
+the next run's `sized` (or a grade-1 run's `seed`), which seeds it into its branch, R-1192 (11. One change, every dashboard type) [1192-T5], "The landing flow"; before admin-team/dashboards-skill/35, by
 the next landing's pre-merge refresh). An
 issue board's Rows never take them: they keep `as-planned`, `amended` or `deviated`.
 
@@ -478,6 +487,7 @@ landed", counted the same way: a unit with a `leave` verdict that has not comple
 for later. `plan/scripts/lib.js` `leftForLater()` and the template's `leftForLater()` are the one rule.
 
 ### Consequences
+{"name":"Consequences","code":"G-S-DB-P-C-7","id":10094}
 
 Beside the four columns, **Consequences** (named Impact before admin-team/dashboards-skill/35: its ids `t-impact` and
 `p-impact`, its `#impact.<entry>` deep links and the data key `impact` are kept, so no board's data changes; a Tab of its own until the
@@ -505,7 +515,7 @@ the entry it changed as `<section>.<index>` such as `api.0`, and `system`; on a 
 `unit`, the unit Row id whose landing recorded it, and a unit's **no change** entry, below), `source`
 and `link`. An entry's `system` is a registry slug from `systems`, or `null` for a party outside the
 repository's systems. `basis` is data for the reconciliation and the checks, and the Consequences Tab
-renders neither it nor `changes[]` (`GUIDANCE.md` §1, no planning information on the Consequences Tab):
+renders neither it nor `changes[]` (R-1182 (1. Colour coding) [1182-T4], no planning information on the Consequences Tab):
 **the As built Tab shows `changes[]`** (below, "How the impact differed from the plan").
 
 **The reconciliation state is derived, never stored.** From the data already on the board, by one
@@ -541,7 +551,7 @@ not show, such as a lettered or strict-version requirement; a conversion step or
   last unit's — reconciles the rest of the sections from `final-implementation.md` and the
   reconciled `consequences.md`, sets `basis` `as-built`, and keeps every difference from the planned
   impact in `changes[]`: the planned impact is never silently rewritten.
-- **The look: compatibility first** (`GUIDANCE.md` §1, the Consequences Tab's exception). A **breaking**
+- **The look: compatibility first** (R-1182 (1. Colour coding) [1182-T5], the Consequences Tab's exception). A **breaking**
   entry is a **red** Card, a **notable** one a **yellow** Card, and a compatible one a Card in its
   system's colour (muted for a party outside the repository's systems). A red or yellow Card names
   its system in a Badge, and carries a `✕ breaking` or `⚠ worth noting` Pill where none of its
@@ -549,7 +559,7 @@ not show, such as a lettered or strict-version requirement; a conversion step or
   breaking`, `✕ removed` red; `~ behaviour change`, `⚠ deprecated`, `~ changed`, a required change
   that does not break, yellow; a required change that breaks, red); kinds and tiers stay neutral.
   The Tab's Legend lists exactly what it drew.
-- **No planning information** (`GUIDANCE.md` §1). The Tab shows only the current best-known impact:
+- **No planning information** (R-1182 (1. Colour coding) [1182-T6]). The Tab shows only the current best-known impact:
   every entry is the same **solid** Card, whether the impact is still the plan's or reconciled; no
   Pill tells the planned impact from the as-built one; no list of changes from the planned impact;
   nothing on the Tab is dashed (the no-impact statement and an empty section included). How the
@@ -565,7 +575,7 @@ not show, such as a lettered or strict-version requirement; a conversion step or
   unit's own (`impact.units[].changes`) under the unit's number and title (the pair of §1), linking
   its unit Card on the Consequences Tab; units reconciled with no change are named in one line. Over the
   Cards stands the **reconciliation Chip**, the derived state (above) with its glyph and word in the
-  colour coding of `GUIDANCE.md` §1 — `… planned` neutral and dashed, `◐ partly reconciled` yellow
+  colour coding of R-1182 (1. Colour coding) [1182-T7] — `… planned` neutral and dashed, `◐ partly reconciled` yellow
   (on a tracking board "partly reconciled · 2 of 11 units"), `✓ as built` green — beside one line
   saying how far the reconciliation has got: "Nothing reconciled yet", "So far, with 2 of 11 units
   landed", on an issue board "So far, as implementation recorded them", or "Reconciled with the
@@ -607,10 +617,11 @@ not show, such as a lettered or strict-version requirement; a conversion step or
   refresh, all at once.
 
 ### The Tests Tab
+{"name":"The Tests Tab","code":"G-S-DB-P-C-8","id":10095}
 
 Right of the As built Tab, on an issue board, a sub-issue's board and a tracking board (not on the repository work board, which is one Row per run,
 nor on a state board, which shows the code at a commit), a core Tab, **Tests**, says which tests the change touches and how they ran, from
-`plan.json` `tests`. It has four sub-Tabs, a tablist of their own (the same keys as the Tabs, `GUIDANCE.md` §6; `#tests.<sub-Tab>`
+`plan.json` `tests`. It has four sub-Tabs, a tablist of their own (the same keys as the Tabs, R-1187 (6. Boards are self-contained) [1187-T3]; `#tests.<sub-Tab>`
 deep-links one):
 
 | Sub-Tab | Holds | From |
@@ -621,9 +632,9 @@ deep-links one):
 | **Other** | every other test, **counts only**, per module and test set, marked "⊘ not run: untouched by this change" | the qa pass's count of the repository's tests |
 
 Each class is grouped by its **test set** — the named test sets gating, component, integration, deterministic, e2e, nonfunctional and
-uat, each shown by its name and never by a number (`GUIDANCE.md` §4), and "no test set" for a class outside the sets' folders — in that
+uat, each shown by its name and never by a number (R-1185 (4. Facts) [1185-T3]), and "no test set" for a class outside the sets' folders — in that
 order, and coloured by it: a neutral ramp from gating (faintest) to uat (the full ink, in either theme), so the Tab spends neither a
-system colour nor a status colour on a set (`GUIDANCE.md` §1). Each class shows its simple name, its package, its module, its test count,
+system colour nor a status colour on a set (R-1182 (1. Colour coding) [1182-T8]). Each class shows its simple name, its package, its module, its test count,
 the stage that added or changed it, its **latest result** with its counts and its qa pass (a status Pill with its glyph and word: `✓ passed`
 green, `✕ failed` red, `↷ skipped` neutral, `… not run yet` neutral and dashed: pending) and the **board Rows it verifies**, each opening the
 Row on the Design Tab. A class opens in the inspector. Every sub-Tab carries its own Legend: the sets and the results it drew, and the
@@ -661,6 +672,7 @@ board at its Tests Tab), the units that record none are named in one line, and e
 unit's board.
 
 ### The Tabs
+{"name":"The Tabs","code":"G-S-DB-P-C-9","id":10096}
 
 The board's Tabs are **Design** (the four columns; named Timeline before admin-team/dashboards-skill/34, and a link to `#timeline` or
 `#p-timeline` still opens it), **Timeline** (the Timeline Tile and the KPI Tiles, §2, "The Timeline Tab"; its ids `t-steps` and `p-steps`, its link `#steps`, as
@@ -679,16 +691,17 @@ never a one-sided bar: a Pill and an option take a full border and a tint in the
 waiting on you is tinted yellow; an As built statement's mark stands on its own line above its text. A system's colour keeps its swatch
 on the Row's label, and its bar on a Card (As built, Consequences, Tests), where the Legend names it. The Tabs stand on the page's one ink
 band. Barlow Condensed sets the frame (the title, the headings, the labels, figures and dates, the Tabs), Barlow the reading text, a
-monospace only code, the Source view and file paths; both faces are embedded (`GUIDANCE.md` §6), with their licence in
+monospace only code, the Source view and file paths; both faces are embedded (R-1187 (6. Boards are self-contained) [1187-T4]), with their licence in
 `plan/template/fonts/OFL.txt`. Below 1500 px the board takes the window up to a 1560 px measure. Every feature the template had before
 the look is kept as it was (the user's direction of 2026-11-20, console/board-look-keep-new-features): the StepBar keeps its chevrons, the
 stage list, the step Panel's Disclosures and nested steps, the Now Chip, the charging Arrow and every mark keep their form, and take the
 look's faces, rules and tokens only.
 
 ### The As built Tab's sub-Tabs
+{"name":"The As built Tab's sub-Tabs","code":"G-S-DB-P-C-10","id":10097}
 
 The As built Tab has three **sub-Tabs** (the user's direction of 2026-11-20, console/board-as-built-subtabs), a tablist of their own with
-the Tabs' keys (`GUIDANCE.md` §6), each with its own Legend, in this order:
+the Tabs' keys (R-1187 (6. Boards are self-contained) [1187-T5]), each with its own Legend, in this order:
 
 1. **Final state** — what the As built Tab showed before: column 4's Cards with their filter, then how the impact differed from the plan,
    under its reconciliation Chip (§2, "Consequences"). Where these rules say the As built Tab of the Cards, the impact changes or the
@@ -699,7 +712,7 @@ the Tabs' keys (`GUIDANCE.md` §6), each with its own Legend, in this order:
    (`artifact`), the outermost the repositories, consumers and operators (`repository`, `consumer`, `operator`; an entry of no known kind
    with them). Each entry stands on its party Orbit as an entry Chip (`.entry-chip`; each party Orbit `.party-orbit`), numbered, and takes
    its entry's colour on Consequences — red breaking, yellow worth noting, its system's colour otherwise, muted for a party outside the
-   repository's systems (`GUIDANCE.md` §1) — and its line in the list, the same entry Chip beside it, carries the entry's kind and effect Badges, and the compatibility
+   repository's systems (R-1182 (1. Colour coding) [1182-T9]) — and its line in the list, the same entry Chip beside it, carries the entry's kind and effect Badges, and the compatibility
    Pill where its effect Badge does not say it, so no colour stands alone. Under the party Orbits, the release the change takes (`impact.release`,
    the version Badge's words); under the list, what each party must do (`impact.adaptation`, each with its need Badge). It is a view of
    the impact as it now stands, as Consequences is, and carries no planning information: nothing dashed, no basis, no `changes[]`. A click on
@@ -716,7 +729,7 @@ until the landing, Who feels it and Consequences show the impact as best known (
 planning information, and Final state shows how it differs from the plan so far. On a **tracking board** the three sub-Tabs are the same:
 Final state its unit Cards and the initiative's impact changes, then each unit's; Who feels it the initiative's own downstream entries;
 Consequences the initiative's impact and its Units section. A Tab's lede is at most one short line, and only for what its
-graphic and Legend do not show (`GUIDANCE.md` §2); the repository work board's Runs lede too.
+graphic and Legend do not show (R-1183 (2. Legends) [1183-T6]); the repository work board's Runs lede too.
 
 **The Context's roadmap** of an issue board is `plan.json` `roadmap`: `{issue, title, asOf, items: [{issue, title, state?, stateReason?}]}`,
 the repository roadmap item that claims the issue. A sub-issue's board takes it once, while it is unset (`lib.js` `fillRoadmap()`, at every
@@ -735,8 +748,8 @@ own number and title alone (the document names its items by no number), and wher
 item carries its section, `ref` (`../roadmap.md#<anchor>`) and `section` (its heading; left out where it names a grade or an internal
 name), which the Card links beside "this board".
 
-**The Context's Ideas Card** (hook-85, choice 5) lists the ideas of the repository's ideas file that name this board's issue (`GUIDANCE.md` §13,
-"The ideas files"): each one's kind as a Tag, its text and the parts it concerns, and no state, owner, date or priority. It is
+**The Context's Ideas Card** (hook-85, choice 5) lists the ideas of the repository's ideas file that name this board's issue
+(R-10086 (The ideas files) [10086-T1]): each one's kind as a Tag, its text and the parts it concerns, and no state, owner, date or priority. It is
 `plan.json` `ideas`, `[{id, kind, text, concerns}]`, refreshed from the ideas file as the board's tree holds it at every `embed.js` and every
 event (`embed.js` `refreshIdeas()`, which `apply-event.js` runs too; a fill never writes the field), and it is drawn in the Context only, never in
 the four columns or above the Context; with no idea naming the issue the field is left out and there is no Card. An idea dropped from the file
@@ -749,10 +762,11 @@ the full width of the content area, and the inspector sits **under it** on this 
 Cards left to right in the inspector's own order (what was selected first, then one Card per
 sub-heading; short ones at the end stacked in one column), wrapping on narrower screens and in one
 column on a phone. Every other Tab keeps the inspector beside it. On every Tab the inspector's head carries its Hide Button
-(`GUIDANCE.md` §6, "The inspector Switch"), which hides it as the header's inspector Switch does. The Tab was called Chain; a link to
+(R-1187 (6. Boards are self-contained) [1187-T6], "The inspector Switch"), which hides it as the header's inspector Switch does. The Tab was called Chain; a link to
 `#chain` still opens it.
 
 ## 3. Work in progress
+{"name":"3. Work in progress","code":"G-S-DB-P-W","id":1197}
 
 A board is alive while its run is. Its data carries:
 
@@ -764,7 +778,7 @@ A board is alive while its run is. Its data carries:
   tracking issue's own phase (below, "The units' own runs");
 - `wip.current` — the Cells being worked on, as `<row-id>.<column>` addresses, **exactly the Cells being worked on,
   however many** (there is no count limit), or a column name only while the Rows are unknown; these carry the **in-progress mark**, a
-  FullPulse (`GUIDANCE.md` §1). `wip.current` means a run is actively in progress and
+  FullPulse (R-1182 (1. Colour coding) [1182-T10]). `wip.current` means a run is actively in progress and
   nothing else. What it holds **follows `wip.step`**, by the step-to-column map below: during
   research the Considered Cells of the Rows being researched; while a plan is written or verified, Considered and Verdict;
   during implementation the As built Cells of the Rows the current stage touches (the whole As built column for a stage that
@@ -779,7 +793,7 @@ A board is alive while its run is. Its data carries:
   first unit Row, in the board's Row order, that is `pending`, not in `wip.current` and not left for later (its written
   verdict is `leave`, §2: a unit left as is is never next) — or
   `null` when none is left. A tracking board always names what is coming. It carries the **up-next mark**, a still
-  outer Ring and the UP NEXT Tag (`GUIDANCE.md` §1), on the unit's as-built Cell, its chain
+  outer Ring and the UP NEXT Tag (R-1182 (1. Colour coding) [1182-T11]), on the unit's as-built Cell, its chain
   entry, its Card and its roadmap line; it never carries the in-progress FullPulse, and the repository work board shows
   it as "next · not started", never building or active. If the unit's blockers
   (`unit.blockedBy`) have not all landed, it is still named next and carries a "blocked by #n" Pill
@@ -851,8 +865,8 @@ A board is alive while its run is. Its data carries:
   and, where the plan or the events gave them: `brief`, `kind`, `steps` (each `{id, name}`, with `steps` of its own in the same form when it has any, to any depth, and, once it completed, `state: "done"` and `finished`: below, "The record of a step"; its number and its other marks are derived at render, below, "The stage list") and `ref`, copied at `branch-cut` from the plan's stage table and, `kind` aside, brought to it at every later `implementation-stage`, a stage the table does not name taking its `steps` from the event (below, "The stage table"), and `started`, `finished`, `report` and `result`, recorded from the events (below, "The record of a stage");
 - `wip.remediation` — `{pass, route, steps}`: the qa pass whose findings it answers, the route `/resolve-issue` step 5
   takes from them (`on-the-spot`: every fix minor, made on the spot, no additional review, a Correction; `remediation`: the fixes, then
-  the next review, a Correction; `re-plan-then-remediation`: a plan re-pass, then the fixes, then the next review, a Resolution; the ids name no role, `GUIDANCE.md`
-  §4, and the older `rookie-dev` and `planner-then-rookie-dev` a request or a board may still carry are read as these), and its
+  the next review, a Correction; `re-plan-then-remediation`: a plan re-pass, then the fixes, then the next review, a Resolution; the ids name no role,
+  R-1185 (4. Facts) [1185-T4], and the older `rookie-dev` and `planner-then-rookie-dev` a request or a board may still carry are read as these), and its
   sub-steps, each `{name, state}` as the stages (`what`, the older name, is read the same; `started`, `finished` and `report` as a stage's, below), **several of which may be `current` at once**:
   a remediation's legs may run in parallel (the fixes beside a plan re-pass, admin-team/dashboards-skill/35), unlike the implementation
   stages, which keep at most one current;
@@ -955,7 +969,7 @@ during research keeps that FullPulse, held still. The rule is written once, `res
 `check.js` applies; the board draws whatever `wip.current` names.
 
 **Research: the questions and their states.** Each question carries its `state`, and each Row the
-questions name a **Ring** on its Considered Cell (`GUIDANCE.md` §1, the research scale): the least
+questions name a **Ring** on its Considered Cell (R-1182 (1. Colour coding) [1182-T12], the research scale): the least
 advanced state of the questions that name it, in this order — **red** `planning` (recorded with its
 Rows before its batch is sent), **orange** `researching`, **orange with a check** `returned`
 (awaiting verification), **yellow** `verifying`, **green** `complete`. The Ring is the Cell's border,
@@ -991,7 +1005,7 @@ becomes `landed`, the FullPulse stops, and the strip shows the landing (PR, merg
 the Row: a landed or cancelled board has no current step and no Panel (a finished step picked on a landed board shows beside the
 landing, "Finished steps" below).
 
-**The strip is a StepBar** (dashboards-skill/54; `ui.md`, StepBar; the user's decisions of 2026-11-06 and 2026-11-07: the WIP strip's
+**The strip is a StepBar** (dashboards-skill/54; R-1116 (2. Specific elements) [1116-T3], StepBar; the user's decisions of 2026-11-06 and 2026-11-07: the WIP strip's
 container is a Panel, the strip itself the StepBar). The run's steps in `wip.steps` order (a small fix's line has no `research` step: it runs no research, §4), each a **chevron with the step's name inside**
 (by its name, never its id), on a line of its own: **done** solid, the strong neutral with a faint wash; **current** solid, in ink and
 bold, carrying the in-progress marks where it did before — the FullPulse (its edge the accent Ring, its fill breathing), the Ring alone
@@ -1001,7 +1015,7 @@ dashed and muted. A finished step's chevron holds its Button ("Finished steps", 
 phone width and a long name wraps inside its chevron, so it never widens the board. A tracking board draws the same StepBar for its
 own steps on its phase's Card and for each unit's run on the unit's Card. The Legend names each state it drew with a chevron key. The
 research StepBar of the step Panel (below) is this same StepBar, its phases' names inside, its current phase in the FullPulse or the Ring alone; so is the plan step's **plan writing → plan accepted** (the user's decision of 2026-11-09). A tracking issue's chain draws as a StepBar on the state boards' roadmap and on
-the repository work board's Rows (§5; `system/RULES.md` §6).
+the repository work board's Rows (§5; R-1210 (6. Context on a system board) [1210-T3]).
 
 **The chain is a StepBar** (the user's decision of 2026-11-08). A tracking board draws its own chain, the counted units in landing order, as a StepBar in two places: `done` where the unit landed, current where its run is under way or it is complete and not merged, to come else; dropped, deferred and left-for-later units stand out of it, counted apart beside it, as on the repository work board and the roadmap. On the **phase's Card** each chevron is the unit's name (linking its board or its issue), with its system's swatch and the marks the chain's entries carried: the FullPulse on a unit at work, the Ring alone while held, the unit up next's dashes in the accent with its UP NEXT Tag; a complete unit carries its ✔. The Legend names the states it drew with chevron keys. In the **header's chain Chip** the StepBar stands under the sentence in place of the thin Bar, unmarked, each chevron the unit's issue number, a lone #n as the sentence's are (a unit with no issue its number or slug, its name in the title). The phase's Card keeps its count line and no thin Bar (the user's decision of 2026-11-09: the StepBar shows the progress).
 
@@ -1016,15 +1030,15 @@ events, the documents, the trail), never guessed; each step's Panel shows:
 | `plan` | on a pass with plan stages (a sub-issue's re-pass from its parent, or a writing pass; below, "The plan stages"), the plan stages drawn as the implementation stages are: each a Disclosure (below, "Disclosures"), headed by its number, its name (with its round, "write, round 2", where it runs again) and its status Pill; the current one open, the others closed. Opened: when it started and when it ended ("not recorded" where the record holds no time: a stage passed over, or recorded late), its report, and each earlier round with its times, its report and, on the check, its result. Otherwise a StepBar, **plan writing → plan accepted** (done, current, to come), or a **re-pass** (after Quality Review n, with the fixes and the next review to follow; verifying the existing plan against its base, e.g. `main`; from the parent's plan on a pass with no stages, a board from before them or a small fix's) in place of the writing; the verdicts written of the Rows, and the Rows still to write; the plan's link |
 | `branch` | the plan accepted; the branch is confirmed next |
 | `implementation` | the stages of `plan.md` (`wip.stages`), each a Disclosure (below, "Disclosures"): its number, its name, how many Rows it touches, its status Pill; the current one open, the others closed. Opened: at its end its report, while it runs the position inside it (the steps of the stage table, the current one the step a progress note names), the Rows it touches with their state, when it started and finished, its section of the plan. The deviations recorded so far |
-| `qa` | each pass apart: its number, its verdict, its findings line (the count, then the severities, minor and other, then the kinds, "18 findings (2 minor, 16 other; 3 documentation, 15 code)", each zero left out, "0 findings" for a pass that counted none; `GUIDANCE.md` §4), the route it sent the run on, its note; the pass running; the most passes allowed |
-| `remediation` | headed by its name, a Correction or a Resolution (`GUIDANCE.md` §4, "A qa pass is named "Quality Review N""): the Quality Review it answers, its route, and its sub-steps (`wip.remediation.steps`, each a Disclosure, below, "Disclosures"; while none is recorded, the route's steps and the line "Correction or Resolution after a Quality Review; each step is recorded as it runs": minor fixes on the spot, then the Document step with no additional review; the fixes, then the next Quality Review; a plan re-pass, the fixes, then the next Quality Review; and with no route the fixes, with a plan re-pass first where the plan itself is wrong, then the next Quality Review) |
+| `qa` | each pass apart: its number, its verdict, its findings line (the count, then the severities, minor and other, then the kinds, "18 findings (2 minor, 16 other; 3 documentation, 15 code)", each zero left out, "0 findings" for a pass that counted none; R-1185 (4. Facts) [1185-T5]), the route it sent the run on, its note; the pass running; the most passes allowed |
+| `remediation` | headed by its name, a Correction or a Resolution (R-1185 (4. Facts) [1185-T6], "A qa pass is named "Quality Review N""): the Quality Review it answers, its route, and its sub-steps (`wip.remediation.steps`, each a Disclosure, below, "Disclosures"; while none is recorded, the route's steps and the line "Correction or Resolution after a Quality Review; each step is recorded as it runs": minor fixes on the spot, then the Document step with no additional review; the fixes, then the next Quality Review; a plan re-pass, the fixes, then the next Quality Review; and with no route the fixes, with a plan re-pass first where the plan itself is wrong, then the next Quality Review) |
 | `sub-issues` | that the plan has landed and that a unit's board appears when its run starts; the units filed as sub-issues of the signed-off architecture, "n of m", counted from the unit Rows (a unit's issue), each unit done, being filed (the units whose labels carry the FullPulse) or to file |
 | `boards` | on an older board, the units' boards created, "n of m", counted from the unit Rows (a unit's board in the tree), each done, being created (the units whose labels carry the FullPulse) or to create |
 | `document` | what the step does (the documentation reviewed and reconciled, the Dokka check, the plan and its consequences reconciled, the README and the CHANGELOG, the state boards as built) and its tasks (`wip.document.tasks`, each a Disclosure, below, "Disclosures"), done, current (several in parallel) and to come, with the count done; the landing next |
 | `landing` | that the land is accepted (with its pull request) and the branch carries the code, the version bump, the reconciled documents and the state boards; the merge next (on an older line: qa's approval and the branch brought up to date, the state boards next; with `landing` alone, the land accepted and being merged) |
 | `state-boards` | on an older line only (a board that reached its landing before admin-team/dashboards-skill/35): the pre-merge refresh, the state boards brought up on the branch as built and committed in one board commit; the merge next |
 | `merge` | the pull request being merged; `landed` next |
-| `halted`, `escalated` | what it waits on (the question, or the re-sizing), the questions the halt put (below), and the Panel of the step it stopped in, **held still** (no breathing dot); a halt during a fix step names it by its route alone, "⏸ Held still at Correction" (or Resolution), never its pass, while the heading keeps the visit's title (admin-team/dashboards/call-3; `GUIDANCE.md` §4) |
+| `halted`, `escalated` | what it waits on (the question, or the re-sizing), the questions the halt put (below), and the Panel of the step it stopped in, **held still** (no breathing dot); a halt during a fix step names it by its route alone, "⏸ Held still at Correction" (or Resolution), never its pass, while the heading keeps the visit's title (admin-team/dashboards/call-3; R-1185 (4. Facts) [1185-T7]) |
 | every step | **the Now Chip** (below): the run's latest report, at the top of the Panel, under the wait line and above the step's own Panel |
 | every step but `interview` | **the questions a halt in it put to you, still waiting** (`wip.asked`; dashboards-skill/45), under the Now Chip and above the step's own Panel, in **the list the interview's questions use**: "Asked at the halt: 0 of 3 questions answered · 3 waiting", each question with the options it offers under its text, "waiting on you" (asked when). Once answered a question leaves the live Panel (the user's decision of 2026-11-09) and stays on its visit's snapshot, shown when the step is picked as finished. The Legend names them ("a question a halt put to you, answered or waiting") |
 | every step | the open points still open (`wip.open`), each with where it was raised and its link; the agents' **progress notes** (below) |
@@ -1034,7 +1048,7 @@ events, the documents, the trail), never guessed; each step's Panel shows:
 "done","left","eta","step"}` (`step`, the id of the innermost step of the stage table it is on, while it builds a stage whose table names steps; below, "The stage list") — and deletes it when it finishes (its agent file, "Progress review every 10 minutes"). While the run is live and the
 board is a local copy, every live poll reads the issue folder's `index.js`, kept by `plan/scripts/progress-index.js` with no event, and probes the names it lists and no others (the template's `progNames()`; a missing file is no note, and with no index the Panel lists none), and the step Panel shows each note as an info Card: the work it
 reports, never the agent's name ("planning", "research · <slug>", "implementation · s2"; a Quality Review's checks "documentation check", "code check", "test check", dashboards-skill/52; the template's `noteLabel()`,
-`GUIDANCE.md` §4: the file names are the agents' own, the label is not), how long it has run, what is done, what is left, its estimate and when it wrote. A note not updated for over 20 minutes is drawn muted, and
+R-1185 (4. Facts) [1185-T8]: the file names are the agents' own, the label is not), how long it has run, what is done, what is left, its estimate and when it wrote. A note not updated for over 20 minutes is drawn muted, and
 the Legend names both ("a progress note: a report of the work as it happens"; "muted: no update for over 20 minutes"). A tracking board probes each unit in progress under the unit's issue (in the same checkout). The notes need no
 event and are never committed. The index's watcher is a detached process, one per checkout: it stops after 4 hours with no note, or when the progress folder is gone, and the next event restarts it; `DASHBOARDS_NO_WATCHER=1` starts none.
 
@@ -1083,7 +1097,7 @@ sentence giving that stage's result (K2), none when it gives none. A check round
   the stage it closes, " · <its name>: <done, accepted or sent back> — <the detail>", the dash and the detail left out where it gives
   none ("Plan stage: write consequences · check/accept: accepted — The plan holds against both landed siblings' contracts."). The stage a
   pass is seeded with takes no line of its own (the event that seeds it writes the step's), and `plan-accepted` keeps its own line,
-  the step's milestone. The detail is reworded as any text from the facts is (`namerefs.js` `cleanWritten()`, `GUIDANCE.md` §4).
+  the step's milestone. The detail is reworded as any text from the facts is (`namerefs.js` `cleanWritten()`, R-1185 (4. Facts) [1185-T9]).
 - **What else it writes.** It never moves `wip.step` or `wip.current` (`considered` and `verdict` all through the step, §3's map); it
   writes `wip.event` and `wip.detail` (`facts.detail`, else one line worded from the facts: "Plan stage: write"). A halt or an escalation
   at the plan step holds the current stage, its mark the Ring alone, and the event that ends it leaves the stage as it was. Every visit
@@ -1125,7 +1139,7 @@ name's Button from the keyboard) that opens that stage in the step Panel, the fo
 Disclosure**, the current one open, the others closed (§3, the step Panel's `plan` row). The status Pill: to come dashed, at work
 `in-progress`, done the strong neutral "✓ done", as a finished `work` stage is, the check by its latest round's result, accepted green
 "✓ accepted", a round sent back yellow "↺ sent back" (S3: a plan sent back is revised, not failed, so not the red of a failed check
-stage, `GUIDANCE.md` §1); a stage that ran before carries its latest earlier round beside the Pill ("round 1 · ↺ sent back"), and its
+stage, R-1182 (1. Colour coding) [1182-T13]); a stage that ran before carries its latest earlier round beside the Pill ("round 1 · ↺ sent back"), and its
 current round in its name ("write, round 2"); a stage recorded late reads "✓ done · time not recorded". The Legend names each it drew.
 
 - **The issue board** of a sub-issue or of a writing pass: the WIP Panel and the step Panel at the plan step, its finished plan visits,
@@ -1175,11 +1189,11 @@ sent), and drawn the same way; what differs is here.
   id it does not know; with `consequences` before the sign-off; and on a board that has landed or was cancelled. A late update is refused
   once `plan-accepted` has closed the stages.
 
-**The stage table** (the user's decision of 2026-11-09). A plan carries a Markdown table of its stages with the columns `id`, `name`, `brief`, `kind` and `steps`, the requirement on the plan's writers being theirs to meet (the plan-writing briefs). `brief` is one line saying what the stage establishes; `kind` is `work` or `check`; `steps` names the stage's steps, separated by `;` or `,` (by `;` alone in a cell that holds one, so a step's name may hold a comma), each `<step-id>` or `<step-id>: <its name>`, and may be empty. **Steps nest** in the form `plan-writer.md` step 5 gives: a stage whose `steps` cell holds `below` takes its steps from the Markdown list under the line `**Steps of <stage-id>**` that follows the table (before the next heading), each item `` `<step-id>` `` or `` `<step-id>`: <its name> ``, an item indented under another being one of that item's steps, to any depth, in the list's order (`lib.js` `stageTable()` reads both forms; a cell is read flat as ever, a dotted id in it included). A `below` with no list, a list for a stage whose cell is not `below` (left unread), an item out of form or an id twice in one stage is warned on (`STAGE TABLE`) and read as far as it holds. At `branch-cut` the fast path (`apply-event.js`, `lib.js` `planStageTable()`, no presenter run) copies each row onto its stage by id, the id's case and backticks aside (`lib.js` `stageRow()`: the plan's `S0` is the run's `s0`; KotlinBottools #23), and a board whose stages hold nothing of the table though its plan has one catches it up at its next `implementation-stage` or fill (`lib.js` `catchUpStageTable()`): the `brief` **verbatim**, the `kind`, the `steps` as `{id, name, steps?}`, nested as the plan nests them, and `ref`, the link to the plan heading that names the stage (`#### S3 — The walk`). It reads `plan.md`, else every `plan-<unit>.md`. Every later `implementation-stage`, a remediation's report with no `facts.stages` included, reads the table again (`apply-event.js` `refreshStageTable()`) and brings each stage it names to its row where the row says something else, so a plan revised after the branch was cut reaches the stages: its steps and its link where the row gives them, and its brief verbatim, or none where the plan has none to show. A stage's kind stays as `branch-cut` copied it, a check stage's recorded result resting on it. A revised table that gives it another kind is named for the presenter (`enrich`) at every report that reads it, until the presenter corrects the kind on the board where the change is meant. A stage the table does not name, or every stage of a plan without the table, takes the steps the event gives it (`facts.stages[].steps`, each an id or `{id, name, steps?}`, nested to any depth), when it gives any: each step by the name the event gives it, else the name the board already had for that id, else its id. A finished visit's snapshot (`wip.history`, "Finished steps") keeps what it ran to, and the same event twice changes nothing more. With no `facts.stages` and no stage on the board, the table gives the list itself (the first `current`, the rest `todo`, their Rows still from the plan). **A plan without the table falls back to no brief**, the stage named by its number and name alone. A brief that names a grade, an internal name or an older wording of a review is left off the board and named for the presenter, as verbatim leaves no rewording; a row out of form is warned on (`STAGE TABLE`) and read as far as it holds.
+**The stage table** (the user's decision of 2026-11-09). A plan carries a Markdown table of its stages with the columns `id`, `name`, `brief`, `kind` and `steps`, the requirement on the plan's writers being theirs to meet (the plan-writing briefs). `brief` is one line saying what the stage establishes; `kind` is `work` or `check`; `steps` names the stage's steps, separated by `;` or `,` (by `;` alone in a cell that holds one, so a step's name may hold a comma), each `<step-id>` or `<step-id>: <its name>`, and may be empty. **Steps nest** in the form R-1165 (How to work) [1165-T1] gives in its step 5: a stage whose `steps` cell holds `below` takes its steps from the Markdown list under the line `**Steps of <stage-id>**` that follows the table (before the next heading), each item `` `<step-id>` `` or `` `<step-id>`: <its name> ``, an item indented under another being one of that item's steps, to any depth, in the list's order (`lib.js` `stageTable()` reads both forms; a cell is read flat as ever, a dotted id in it included). A `below` with no list, a list for a stage whose cell is not `below` (left unread), an item out of form or an id twice in one stage is warned on (`STAGE TABLE`) and read as far as it holds. At `branch-cut` the fast path (`apply-event.js`, `lib.js` `planStageTable()`, no presenter run) copies each row onto its stage by id, the id's case and backticks aside (`lib.js` `stageRow()`: the plan's `S0` is the run's `s0`; KotlinBottools #23), and a board whose stages hold nothing of the table though its plan has one catches it up at its next `implementation-stage` or fill (`lib.js` `catchUpStageTable()`): the `brief` **verbatim**, the `kind`, the `steps` as `{id, name, steps?}`, nested as the plan nests them, and `ref`, the link to the plan heading that names the stage (`#### S3 — The walk`). It reads `plan.md`, else every `plan-<unit>.md`. Every later `implementation-stage`, a remediation's report with no `facts.stages` included, reads the table again (`apply-event.js` `refreshStageTable()`) and brings each stage it names to its row where the row says something else, so a plan revised after the branch was cut reaches the stages: its steps and its link where the row gives them, and its brief verbatim, or none where the plan has none to show. A stage's kind stays as `branch-cut` copied it, a check stage's recorded result resting on it. A revised table that gives it another kind is named for the presenter (`enrich`) at every report that reads it, until the presenter corrects the kind on the board where the change is meant. A stage the table does not name, or every stage of a plan without the table, takes the steps the event gives it (`facts.stages[].steps`, each an id or `{id, name, steps?}`, nested to any depth), when it gives any: each step by the name the event gives it, else the name the board already had for that id, else its id. A finished visit's snapshot (`wip.history`, "Finished steps") keeps what it ran to, and the same event twice changes nothing more. With no `facts.stages` and no stage on the board, the table gives the list itself (the first `current`, the rest `todo`, their Rows still from the plan). **A plan without the table falls back to no brief**, the stage named by its number and name alone. A brief that names a grade, an internal name or an older wording of a review is left off the board and named for the presenter, as verbatim leaves no rewording; a row out of form is warned on (`STAGE TABLE`) and read as far as it holds.
 
 **The record of a stage** (the user's decision of 2026-11-09). From the events, on the fast path (`lib.js` `stampItem()`), through every merge of `wip.stages` (`apply-event.js` `mergeStages()`), so an event's `facts.stages` never drop it: `started` when the stage first goes `current`, `finished` and `report` when it goes `done`, `report` being that event's own `facts.detail` (none when the event says none), and on a stage of `kind: check` `result`, `passed` or `failed`, from what the closing event reports (`facts.stages[].result`, else `facts.result` when the event finishes that one stage; `STAGE RESULT` warns of a check closed with none). A stage reopened loses what its end recorded. A stage built while the run was halted carries `late: true` and no `finished` instead (below, "The late update of an implementation stage"), kept through every later merge while it stays done. A remediation's sub-steps and the Document step's tasks take `started`, `finished` and `report` the same way. On a board from before the record (an in-flight board) the next report fills what its frozen visits and last event still say (`lib.js` `backfillStages()`); nothing else is backfilled. Nobody writes the record by hand.
 
-**The record of a step**. From the run's `step-complete` events, on the fast path alone (`apply-event.js`, `enrich: no`): the step `facts.stepId` names, at any depth of the stage `facts.stage` names (each id matched as a stage's is, case and backticks aside), takes `state: "done"` and `finished`, the event's time. A step with steps of its own that an event names takes every step under it done, those not yet done with that time, and a step whose last step is done becomes done with that time. The same event twice changes nothing more: the first time is kept. Nothing else moves: the event sets `wip.event` as every event does (§4) and writes no trail entry, no `wip.detail`, no step, stage or Row state and no `wip.current`; a stage moves only by `implementation-stage`, and a step recorded in a stage not yet current is kept for it. A stage or step the board does not hold writes nothing and is warned on (`STEP COMPLETE`), as is a `step-complete` on a board that has landed or was cancelled, kept as it closed. A step's record follows its id through a revised stage table, and goes with a step the table drops; a step recorded done that the revised table gives steps of its own takes them done with its time, and one whose steps the revision leaves all done is done with the latest of their times. A stage reopened keeps its steps' records. The repository and org work boards show no steps, and a tracking board shows them only in its mirror of a unit's run, the unit's step Panel, which its re-embed brings: the event changes nothing on them that every event's embed does not. Nobody writes the record by hand. The event comes from the run, or from its implementer for the steps it carries out (`rookie-dev.md`, "Board events"), under the run's address.
+**The record of a step**. From the run's `step-complete` events, on the fast path alone (`apply-event.js`, `enrich: no`): the step `facts.stepId` names, at any depth of the stage `facts.stage` names (each id matched as a stage's is, case and backticks aside), takes `state: "done"` and `finished`, the event's time. A step with steps of its own that an event names takes every step under it done, those not yet done with that time, and a step whose last step is done becomes done with that time. The same event twice changes nothing more: the first time is kept. Nothing else moves: the event sets `wip.event` as every event does (§4) and writes no trail entry, no `wip.detail`, no step, stage or Row state and no `wip.current`; a stage moves only by `implementation-stage`, and a step recorded in a stage not yet current is kept for it. A stage or step the board does not hold writes nothing and is warned on (`STEP COMPLETE`), as is a `step-complete` on a board that has landed or was cancelled, kept as it closed. A step's record follows its id through a revised stage table, and goes with a step the table drops; a step recorded done that the revised table gives steps of its own takes them done with its time, and one whose steps the revision leaves all done is done with the latest of their times. A stage reopened keeps its steps' records. The repository and org work boards show no steps, and a tracking board shows them only in its mirror of a unit's run, the unit's step Panel, which its re-embed brings: the event changes nothing on them that every event's embed does not. Nobody writes the record by hand. The event comes from the run, or from its implementer for the steps it carries out (R-1153 (Board events (when you run inside a /resolve-issue run)) [1153-T2]), under the run's address.
 
 **The late update of an implementation stage** (the user's decisions scheme/noimpl/landing and scheme/noimpl/r2-choices: a run that pauses
 before an implementation pass for the user to build what the pass would, and takes the work up again after its check). A stage the run's
@@ -1208,7 +1222,7 @@ row); the time the user spent on the fixes is the wait on the user the halt open
 
 **The stage list** (the user's decision of 2026-11-09). At the implementation step, a halt or an escalation there included, the WIP Panel lists each stage: its **number**, its **name**, its **status** Pill and its **brief** (no brief, none drawn). The stage at work is in a FullPulse, the Ring alone while the run waits on you. On a tracking board the unit's Card lists the same stages **compact**: number, name and status. At the plan step the plan stages are listed the same way, with their own Pills and briefs (above, "The plan stages"). Each stage takes a **click** (the row, or the name's Button from the keyboard): it opens that stage in the step Panel beside it, back from a finished step if one was shown, the focus on its item. The status Pill: to come dashed, at work `in-progress`, a finished one by its `kind`: **`work` neutral, "✓ done"; `check` the result colour its closing event reported, green "✓ passed" or red "✕ failed"**, a check with no result recorded reading neutral, as a work stage does. **A step's number** is derived from its position, never stored or sent: the stage's position in `wip.stages`, counted from 1, then the step's position among the steps beside it at each depth, counted from 1, joined by `-` (`2-3`, the third step of the second stage; `2-3-19`, the nineteenth step under it). It is drawn where a stage's id is drawn, the step's name beside it; the step's id stays in the data, the events and the progress notes, never drawn. **Which steps are done** comes from the run's `step-complete` events (above, "The record of a step"), and **which step is at work** from the progress notes (below), no event. In the current stage the step a live note's `step` names is current (several, when several notes name their own), and so is every step it lies under; with no live note naming one, the first step not done, in the stage's order and at its innermost depth, is current, with every step it lies under. A recorded step is done; every other step of the current stage is to come. A done stage's steps are all done, recorded or not. In the live step Panel a current stage lists its steps under "Inside the stage", a done one under "Its steps", every one done, and a stage to come under "Its steps" too, unmarked and closed (the user's decision of 2026-11-12), a step a `step-complete` already recorded drawn done; nested (below, "Disclosures"); in a finished Implementation view only a done stage lists them. The stage list of the WIP Panel draws no steps, whatever the stage's state. A step's done state and time are on the board's data; what is at work never is: the notes are live-only. The repository and org work boards have no stage list: one Row per run.
 
-**Disclosures** (the user's decision of 2026-11-09). The stages of the step Panel, a step of a stage that has steps of its own, a remediation's sub-steps, the Document step's tasks and a finished Implementation view are Disclosures (`ui.md`, Disclosure): a heading (the number, the name, the status) and, where the board holds anything to show, a body opened in place. A step's heading carries its mark (done, current or to come, as above; none in a stage to come) and a count Label of the steps directly under it: "19 steps" while none of them is done or at work, else "11 of 19 done", with "· at 2-3-12", the number of the innermost current step, while the step at work is under it; its body is its steps, drawn the same way to any depth, and a step with none is a plain row with no body. The active ones open (the current stage, a step the step at work is under, the current sub-steps and tasks), the others closed, a done stage's steps among them; in a finished view none is active. The reader's choice survives the live redraw, by the Disclosure's key. A `<details>` element, so it opens from the keyboard and to a screen reader. The Legend says a row opens.
+**Disclosures** (the user's decision of 2026-11-09). The stages of the step Panel, a step of a stage that has steps of its own, a remediation's sub-steps, the Document step's tasks and a finished Implementation view are Disclosures (R-1116 (2. Specific elements) [1116-T4], Disclosure): a heading (the number, the name, the status) and, where the board holds anything to show, a body opened in place. A step's heading carries its mark (done, current or to come, as above; none in a stage to come) and a count Label of the steps directly under it: "19 steps" while none of them is done or at work, else "11 of 19 done", with "· at 2-3-12", the number of the innermost current step, while the step at work is under it; its body is its steps, drawn the same way to any depth, and a step with none is a plain row with no body. The active ones open (the current stage, a step the step at work is under, the current sub-steps and tasks), the others closed, a done stage's steps among them; in a finished view none is active. The reader's choice survives the live redraw, by the Disclosure's key. A `<details>` element, so it opens from the keyboard and to a screen reader. The Legend says a row opens.
 
 **The Now Chip** (the user's decision of 2026-11-09). The run's latest report, `wip.detail`, stands in the step Panel in a Chip headed **Now**, in the place the answered questions held, pulsing (a FullPulse), still (the Ring alone) while the run waits on you, and absent while a halt has only its wait line to say. **The latest report is said once, by the Panel**, as "since" is below: a strip with a live step Panel beside it draws no detail line; a strip with none (a board landed or cancelled, a tracking board's phase while its units run, a finished step picked instead) keeps its own. The Legend names it.
 
@@ -1232,7 +1246,7 @@ the qa verdicts, the dots) join the strip's Legend.
 
 **Finished steps** (admin-team/dashboards-skill/24). Every finished step's dot on the progress strip is a **Button** (a `<button>`, in
 the Tab order, `aria-pressed`): a click, Enter or Space shows that step in the step Panel. The dot stays highlighted — **ringed in ink**,
-never the accent, which marks only the work in progress and the unit up next (`GUIDANCE.md` §1) — and a line above the Panel says what it
+never the accent, which marks only the work in progress and the unit up next (R-1182 (1. Colour coding) [1182-T14]) — and a line above the Panel says what it
 shows, "viewing: research · finished 08:53 · back to now", with a "back to now" Button; a second click on the dot, "back to now" or Escape
 returns to the current step. The selection survives the live redraw (§3, "Live updates"), the focus with it, and is dropped once the step
 is no longer finished there. A step is **finished** when it lies before the step the strip marks current (a halt's or an escalation's
@@ -1295,7 +1309,7 @@ Cells, so it reads at a glance on a wide board; once the verdict is
 written it is gone, and outside the plan step no connector is drawn: the Cells of a Row stand side by side on the ruled sheet (§2, "The
 look"). It holds
 still, filled, while the run waits on the user, and under `prefers-reduced-motion`. The Design Tab's
-Legend names it while it is drawn (`GUIDANCE.md` §1).
+Legend names it while it is drawn (R-1182 (1. Colour coding) [1182-T15]).
 
 **Live updates.** While a board's run is live (not landed, not cancelled) and the board is a local
 copy (opened from disk, or served from this machine; a copy published elsewhere is a committed copy
@@ -1382,12 +1396,12 @@ unit in progress. Two things say where the work is, and they never mix:
   the two as one pair from its `asBuilt` when that records either (a landed tracking board's own merge is its last unit's, §4, "Seeding
   at sized"), else from its `wip.landing` (a tracking plan's own merge), never one from each. The unit's As built Cell draws them above its summary as the **PR Chip** ("PR #89",
   opening the pull request) and the **merge Chip** ("merge 8122af7", opening the commit), neutral and solid with the gap's kind Chip's
-  look; no Legend names them (`GUIDANCE.md` §2). The unit's Card on the As built Tab and its inspector draw the same two Chips, above its statements (the user's decision of 2026-11-08). Nobody writes `unit.landing` by hand: `embed.js` copies it at every embed of the
+  look; no Legend names them (R-1183 (2. Legends) [1183-T7]). The unit's Card on the As built Tab and its inspector draw the same two Chips, above its statements (the user's decision of 2026-11-08). Nobody writes `unit.landing` by hand: `embed.js` copies it at every embed of the
   tracking board, landed units included, from the unit's board in the same tree (its view copy where that is fresher), and clears it
   where the unit's board is not in the tree, has not landed or records neither; it is generated, never merged. A unit with no board
   of its own keeps its landing on its Row (`asBuilt.merge`, `asBuilt.pr`, which `unit-landed` writes, §4) and draws the same Chips
   from there. A board drawn before them names the landing in its summary alone until its next rebuild; a landed board keeps its
-  rendering (`GUIDANCE.md` §11).
+  rendering (R-1192 (11. One change, every dashboard type) [1192-T6]).
 
 The board shows the mirror wherever it shows the unit in progress: on the WIP Panel, in the unit's
 own Card with an accent edge, its step, its own steps line, its stages at a glance and its qa passes (its detail is the Now Chip of its step Panel beside it) (a
@@ -1398,7 +1412,7 @@ unit's as-built Cell and its Card on the As built Tab, as a run line (`▶ run a
 `⏸ waiting on you` with the step it resumes at, its latest qa pass, and when the board was
 updated); in the inspector's unit entry, in full; on its chain node, in place of its state; and in the Context roadmap. While a unit's run waits on the user its in-progress mark
 pauses to the Ring alone, as the whole board's does while the tracking issue itself is halted
-(`GUIDANCE.md` §1). The tracking strip's Cards run in that order: the tracking issue's own phase
+(R-1182 (1. Colour coding) [1182-T16]). The tracking strip's Cards run in that order: the tracking issue's own phase
 with the chain, each unit in progress with its run, the unit up next, then waiting on you.
 
 **The chain's progress (tracking boards).** A tracking board's `status` stays `building` from its
@@ -1430,7 +1444,7 @@ shows the same summary in place of a bare "building" (§5).
 landing order, and two moments move it:
 
 - **A sub-issue lands.** With no event and no request, its tracking board is updated — in the live view by the post-merge refresh,
-  and seeded at the next run's `sized` (or a grade-1 run's `seed`) into that run's branch, which commits it (§4, "Seeding at sized"; `GUIDANCE.md` §11, "The landing flow"): the unit's as-built Cell becomes `landed` (with the as-built summary of the
+  and seeded at the next run's `sized` (or a grade-1 run's `seed`) into that run's branch, which commits it (§4, "Seeding at sized"; R-1192 (11. One change, every dashboard type) [1192-T7], "The landing flow"): the unit's as-built Cell becomes `landed` (with the as-built summary of the
   landing), the unit leaves `wip.current`, and `wip.next` is recomputed. A sub-issue that is itself a tracking issue lands with its
   board, at its last unit's landing ("The units' own runs", above), and its unit on its own tracking board moves the same way, in the
   same live view, seeding and `reseed` (§4).
@@ -1452,6 +1466,7 @@ not in `wip.current` and not left for later (so never one that is current, compl
 left as is by its verdict), or `null` when there is none (`lib.js` `nextUnit()`). A unit is never in `wip.next` and `wip.current` at once.
 
 ## 4. Events: what updates a board
+{"name":"4. Events: what updates a board","code":"G-S-DB-P-E","id":1198}
 
 The pipeline never edits a board. At every step transition it sends the admin team a
 `plan-board` request naming the event; the presenter reads the issue folder's documents and the
@@ -1504,8 +1519,8 @@ embed writes the board's `plan.js` beside it (§1).
 | `step-complete` | a step of a stage completes (the run's, one per step) | the step's record (§3, "The record of a step"), on the fast path alone, `enrich: no`; nothing else |
 | `qa-pass` | just before each qa pass (`verdict: "running"`), and each qa verdict | **`verdict: "running"` is the explicit signal that opens the pass**: `wip.step = qa` and `wip.since` the event's `at`, the implementation or remediation visit frozen with its end there, the pass in `wip.qa` as `running`, `wip.current` `built`; the returned verdict then closes that same qa visit, from the running event to the verdict, and makes no other. A returned verdict with no `running` before it for that pass still applies as below, and says so: `QA START NOT RECORDED` in the summary's `warnings`, the entry marked `startUnrecorded`, which `check.js` warns on; its qa visit has no start of its own (rule 3 of the Timeline then gives it the end of the visit before, so it reads as no time at all). A returned verdict: `wip.qa` appended (its counts by kind and by severity, `minor` and `other`, from the facts, and the `route` step 5 takes from them), `wip.qaMax` 3; `wip.step = remediation` (a `facts.step` of `qa` on a returned verdict names the step the pass ran in, never the step after it), with `wip.remediation` `{pass, route, steps}` (the route's sub-steps as the pipeline runs them: on the spot, minor fixes then landing with no new qa pass; else the fixes, a planner re-pass first on `planner-then-rookie-dev`, then the next qa pass) and `wip.current` the As built Cells of the Rows the findings touch, or, on an approving pass, `document` (the Document step follows; `landing` on a board on the older line) with `wip.current` `built` (`landing`: empty) (§3). On an approving pass of a sub-issue's run, its unit Row on the tracking board becomes `complete` (it stays in `wip.current` until it lands) |
 | `document` | the Document step's report (`facts.tasks: [{id, name, state}]`, ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards`, `document-landing`; states `done` · `current` · `todo`, as `implementation-stage`'s stages; admin-team/dashboards-skill/35) | `wip.step = document`, `wip.document.tasks` merged by id (a task the event leaves out keeps its state; several may be current), `wip.current` `built` (§3), a halt cleared, an older steps line brought up (the Document step before its landing, `merge` after it), the step before frozen (qa or remediation); the note, the detail ("Document: 2 of 7 tasks done; Dokka check current.") and the trail entry. Refused on a board that has landed or was cancelled. The team raises the `state-boards` task itself when it accepts the run's `state-boards` request (the `state-boards` event below, or a `document` event naming it) and closes it just before its `done` reply. `document-landing`, the step's last task, shown "Document commit", is the team's too: `state-boards` with `facts.done: true` makes it current, and the team raises this event naming it done just before the scan and the executor's commit of the document-landing commit. Naming it done is refused while another task on the list is not `done`: the team commits nothing and replies `needs-rework` naming those tasks, and the run sends this event with their true states and resends the `commit` with `attempt + 1`. A task a grade or repository does not apply to, such as a Dokka check where Dokka is not used, is absent from the list and does not count; a grade-1 run has no issue board, so the check does not apply to it. This event never moves either of the two backward. A new `state-boards` raise puts `document-landing` back to come, and `landing`, `merge` and `landed` close it if its raise was missed. A list with tasks takes it where it has none, so a six-task board takes it at its next `document` or `state-boards` event |
-| `escalated` | an escalation to a higher grade | `wip.step = escalated`, `wip.resume` the step it escalated from, and `wip.current` unchanged, its FullPulse held still as a Ring (§3); `facts.proposedGrade` is never written (`GUIDANCE.md` §4); the board follows the issue's new sizing; the stop puts the board into its record of a wait on the user, with what the run waits on (`wip.waitingOn`: `facts.waitingOn`, else "A re-sizing of the issue."), so it opens a wait and the event that takes the board out of it ends the wait, as at `halted` (above) |
-| `landing` | the issue's `land` request is accepted (team-raised, like `landed`; `facts.pr` optional) | never sent by a pipeline: the admin team raises it itself through `apply-event.js --view` as the land begins, after the Document step, into the view copies (the land has committed the board, and a written tracked file would dirty the worktree: "The live view of a landing", below). `wip.step = landing` (its `since` the visit's start), `wip.current` empty, a halt cleared, an older steps line brought up (`lib.js` `documentSteps()`, as at any event of a board in flight); `wip.event` `landing` with its note ("land accepted, PR #n"), the detail and its trail entry "Landing: the land accepted in PR #n" (no internal name, `GUIDANCE.md` §4); every open point resolved by now (the event's `facts.open` may resolve them; `check.js` fails one still open, `OPEN POINT AT THE LAND`, and nothing is written); refused on a board that has landed or was cancelled. For a sub-issue, its tracking board's mirror of the unit's run follows at the re-embed (its unit reads the landing); the unit's Row and `wip.next` do not move until `landed`. `merge` follows, then `landed` after the merge |
+| `escalated` | an escalation to a higher grade | `wip.step = escalated`, `wip.resume` the step it escalated from, and `wip.current` unchanged, its FullPulse held still as a Ring (§3); `facts.proposedGrade` is never written (R-1185 (4. Facts) [1185-T10]); the board follows the issue's new sizing; the stop puts the board into its record of a wait on the user, with what the run waits on (`wip.waitingOn`: `facts.waitingOn`, else "A re-sizing of the issue."), so it opens a wait and the event that takes the board out of it ends the wait, as at `halted` (above) |
+| `landing` | the issue's `land` request is accepted (team-raised, like `landed`; `facts.pr` optional) | never sent by a pipeline: the admin team raises it itself through `apply-event.js --view` as the land begins, after the Document step, into the view copies (the land has committed the board, and a written tracked file would dirty the worktree: "The live view of a landing", below). `wip.step = landing` (its `since` the visit's start), `wip.current` empty, a halt cleared, an older steps line brought up (`lib.js` `documentSteps()`, as at any event of a board in flight); `wip.event` `landing` with its note ("land accepted, PR #n"), the detail and its trail entry "Landing: the land accepted in PR #n" (no internal name, R-1185 (4. Facts) [1185-T11]); every open point resolved by now (the event's `facts.open` may resolve them; `check.js` fails one still open, `OPEN POINT AT THE LAND`, and nothing is written); refused on a board that has landed or was cancelled. For a sub-issue, its tracking board's mirror of the unit's run follows at the re-embed (its unit reads the landing); the unit's Row and `wip.next` do not move until `landed`. `merge` follows, then `landed` after the merge |
 | `state-boards` | the team accepts the run's `state-boards` request, and again, with `facts.done: true`, just before its `done` reply and the run's document-landing commit (team-raised) | on a board in the Document step's flow (its steps line has `document`, or it is at it): the Document step's `state-boards` task, shown "State boards", `current` (`done` with `facts.done: true`, which makes `document-landing` current; raised anew, `document-landing` back to come; `facts.tasks` may name it), `wip.step = document` (admin-team/dashboards-skill/35). On a board that reached its landing on the older line (dashboards-skill/34): `wip.step = state-boards`, the landing frozen with its end (`wip.history.landing`); the note, the detail "State boards: the pre-merge refresh on the branch, stamped at its head, and its board commit." and the trail entry. Refused as `landing` is |
 | `merge` | the pull request is being merged (team-raised, with `--view` as `landing` is; `facts.pr` optional) | `wip.step = merge`, the state boards' visit frozen with its end; the note, the detail "Merge: merging it in PR #n." and the trail entry; refused as `landing` is. `landed` follows; a board whose parts are still open stays at the merge |
 | `landed` | the team has merged | never sent by a pipeline: the admin team raises it itself after the merge — for the live view only in the post-merge refresh, into view copies of the boards (`apply-event.js --view`; nothing tracked written; "The live view of a landing", below), from which the **next run's `sized` seeds** the landed state into its own branch (or a grade-1 run's `seed` does; "Seeding at sized", below), committed with it. On a tracking board with no unit started it is the plan's merge: `wip.landing` records it, the status stays `planned` and `wip.step` is `merge`, until `sub-issues-filed`. On any other issue's board: `status = built`; `asBuilt` (sha, date, PR, merge, version, and the merge's time `at` and the branch's step `commits`, which `apply-event.js` takes from `facts.mergedAt`, git or the pull request, §2, "The Timeline Tile's Legend", §4, "The fast path owns the Timeline"); the `built` milestone; every `pending` part resolved; the trail completed; `impact` reconciled from `final-implementation.md` and the reconciled `consequences.md`, `basis` `as-built`, each difference from the planned impact in `impact.changes`, naming the `entry` it changed where there is one (§2, Consequences; the As built Tab shows them); `wip.step = landed` and `wip.current` empty. For a sub-issue, on its tracking board, the standing rule (§3): the unit `landed`, out of `wip.current` (which clears its mirror at the next embed), `wip.next` recomputed as the next unit in landing order; its `impact.units` entry reconciled, `basis` `as-built`, each difference from the unit's planned impact in its `changes[]`; its effect on the initiative's impact recorded in the tracking board's `impact.changes`, always: each difference its landing makes, with `unit` set to the unit's Row id, or one no-change entry `{unit, when, none: true}` when it changed nothing; that `basis` stays `plan` until the last unit lands and becomes `as-built` with it (§2, Consequences); the last unit's landing lands the tracking board once that is so (§3, "The units' own runs"). A unit with no board of its own (a grade-1 unit) has no `landed` of its own: after its merge the team raises `unit-landed` (below). Its `enrich: yes` names only what is left: a part still open, the consequences not yet as built (`lib.js` `reconciliation()`), a landed unit's summary, impact entry or effect on the initiative's impact (`lib.js` `unitLeft()`); with nothing left, `enrich: no`. Then the repository work board is regenerated |
@@ -1515,8 +1530,8 @@ embed writes the board's `plan.js` beside it (§1).
 | `seed` | the team accepts a grade-1 run's `state-boards` request (team-raised; it names no board; `facts.tracking`, `facts.unit` and `facts.state` `complete` when the issue is a unit of a tracking issue) | never sent by a pipeline: the seeding of a `sized` alone, into the grade-1 run's tree from the main checkout's view copies, the committed repository work board regenerated, and the run's unit marked `complete` on its tracking board; lays no board; raised again, nothing ("Seeding at sized", below) |
 | `unit-landed` | the team has merged a tracking issue's unit that has no board (a grade-1 unit; team-raised with `--view` from the main checkout, naming no board; `facts.tracking`, `facts.unit`, `facts.merge`, `facts.pr`, `facts.mergedAt`, optional `facts.state` `landed`) | never sent by a pipeline: the post-merge refresh of a unit with no board of its own, into the tracking board's view copy alone ("The live view of a landing", below): the standing rule's `landed` move (§3), as a sub-issue's `landed` makes it — the unit `landed`, the plain fact of its landing as its summary, its merge and pull request on its Row, out of `wip.current`, `wip.next` the next unit in landing order or none, the chain's detail, one trail entry — and at the tracking issue's last unit the tracking board's own landing (§3, "The units' own runs"), with which a tracking issue that is itself a sub-issue lands as a sub-issue does, its unit landed on its own tracking board's view copy (§3, "A sub-issue lands"); no tracked file written; `enrich: yes` names the unit's summary, impact entry and effect on the initiative's impact, and at the last unit the impact's reconciliation where it is still to do; raised again, nothing, or the tracking board's landing once that is done |
 | `backfill-start` | a tracking board is laid after its units' runs started (team-raised, on the tracking board's folder; never sent by a pipeline, never raised with `--view`, `--arrived` or `--at`; `facts.unit`, the unit's issue number, and `facts.at`, the unit's start as its own board records it, `plan.sized`, a UTC ISO time; the user's decision of 2026-11-20, q-418 1a, console/kbt1-board-choices/answer) | one unit's start recorded at its recorded time, as the standing rule records a unit's start at its `sized` (§3, "Next is the next one up") had the board existed then: the unit's Cell in `wip.current`, `wip.step = implementation` from that time (a board laid not started, `new.js --step none`, keeps its own steps before it unrecorded: no visit frozen, no sizing written; a step the board does record is frozen at the start), `status` `building`, `wip.next` the next unit in landing order, the chain's detail and the trail entry "#n started" on that day. Where the unit's own board in the tree has landed, its landing follows by the standing rule at its merge's time (that board's `asBuilt.at`): the unit `landed` with the plain fact of its landing as its summary, out of `wip.current`, "#n landed" on that day, and what the landing leaves (its summary, impact entry and effect on the initiative's impact) named for a fill (`enrich: yes`); a unit whose board is not in the tree stays in progress, and its own events reach the board once its branch holds the board. It writes **exactly one** `notes.corrections` entry, `{what, when, backfill: {event: "sized", unit, at, landed?}}`, which says the start was recorded after the fact; no `wip.event`, no event note and no trail entry of its own; `wip.updated` never moves back; the trail stays in date order. **Refused, nothing written** (exit 3, as a refused correction is, below, "A refused correction is no failure"): on a board that is no tracking board, has landed or was cancelled, or has no Row for the unit; for a unit dropped, deferred, left for later or already in progress; when `facts.at` is missing, no UTC ISO time, ahead of the clock or other than the start the unit's board in the tree records; when it comes before any time the board records (its run's start, its last event, its step's start, so an earlier unit's start too, a visit's or a wait's bound, a stretch when the run was not running), so the backfills come in the order the units started, before any later event, on a board laid not started; and where the unit's board has landed but records no merge or no merge time, or a merge before its start. Raised again, its entry on record, a `duplicate` that writes nothing. A retime names none of its times (`lib.js` `RETIME_NOT`): it writes no time of its own. The cases: `verify/cases-backfill-start.js` |
-| `retime` | one event's recorded time is corrected: the run sends it for one of its own events, or the presenter has the team raise it (`~/.claude/agents/admin-team/presenter.md`, "Timing corrections"; `facts.event`, the event retimed, `facts.from`, the time the record holds for it, `facts.to`, the time it should hold, UTC ISO times, and `facts.reason`, in plain words, all required; with `--view` where the board's latest state is a view copy; admin-team/dashboards/retime; a run's own, the user's decision of 2026-11-13, dashboards/run-sent-corrections) | sent by the run for its own events, raised with `--arrived` as every run's event is, or raised by the admin team itself through `apply-event.js` at the presenter's word, without it; `enrich: no`. Every place the record holds the old time moves to the new one, and nothing else (`lib.js` `retimePlan()`): `plan.sized`, the foundation's time, the running visit's start, every visit's `since` and `ended` and its snapshot's event stamp, the waits it bounds, the questions and qa passes it stamped, the Tests Tab's results, and, when the new time falls on another UTC day, its trail entry's date (found by the label the event writes); on a sub-issue, its tracking board's record of the same time (the unit's start, its review, its landing, which the standing rule stamped there). It writes **exactly one** `notes.corrections` entry, `{what, when, retime: {event, from, to}}`: what was recorded and why (the reason, reworded as any fact is), what it is now, and what moved with it (§2: a factual error is corrected in place under `notes.corrections`); no `wip.event`, no event note, no trail entry of its own; the step, the FullPulse and the detail do not change; `wip.updated` moves, never back. **Refused, nothing written** (a refusal, never a failure: exit 3, below, "A refused correction is no failure"): when a fact is missing, or `to` equals `from` or is after the event's time; when the event is one a retime does not correct (`run-restarted`, whose stretch's bounds are its own facts, the board-less `reseed`, `seed`, `unit-landed`, and `backfill-start`, which writes no time of its own); when the record does not hold the old time (for `sized`, when `plan.sized` is not it); when another event is named at that same time (their stamps cannot be told apart); when the old time is a bound of a stretch when the run was not running; when the new time crosses any other recorded time (a visit's or a wait's bound, a stretch's, another event's, a question's, `wip.updated`, the merge's `asBuilt.at`), strictly: it may meet a neighbour's time, never pass it; and, on a day change, when the trail holds more than one entry of that event on the old day, or the new day would pass a neighbouring entry's date: a retime corrects a time and never reorders the record. A board that has landed or was cancelled takes it too: a correction of a fact is the one edit its written record takes (§2), so it is not re-rendered onto the template and is otherwise kept as it closed (`~/.claude/agents/admin-team/presenter.md`, "Closed work boards"). Raised again, its entry on record, a `duplicate` that writes nothing. **A run's own retime** (the user's decision of 2026-11-13, dashboards/run-sent-corrections: a run may correct itself, within limits) is held to the run's limits besides: only for its **own events**, never the team's records (`run-restarted`, `retime`, `reword`, `state-boards`, `landing`, `merge`, `landed`, `sub-issues-filed`, `reseed`, `seed`, `unit-landed`, `backfill-start`: `lib.js` `TEAM_RECORDS`), and only **until its land is sent** (refused once the board records a landing or merge visit, or has landed or was cancelled: `landSent()`); the 2-minute arrival check stays as it is, and a run whose true time was replaced by the arrival time sends a `retime` with its own clock reading and the reason. Two bounds the decision did not state, built to the presenter's recommendation (open choices of 2026-11-13, for the user to confirm): a run's `facts.to` is a clock reading to the second in UTC, as `date -u +%FT%TZ` writes it (a rounded or estimated time is what the arrival check exists to keep off the board), and never later than the event's arrival can have been, its recorded time plus the 2-minute tolerance (an event happens before it is sent, and its recorded time is its arrival or within the tolerance of it); earlier it is bounded as every retime is, by the neighbouring recorded times, which a retime never crosses. What marks a request as the run's is `--arrived`, with which the team raises every run's event (the board stores no sender); what marks an event as the team's is its name (`TEAM_RECORDS`). The presenter keeps its own right to have either correction raised, held only to the limits every retime has. The repository work board reads the corrected board at its next regeneration |
-| `reword` | one event's recorded text is reworded: the run sends it for one of its own events before its Document commit, or the presenter has the team raise it then (the user's decisions of 2026-11-13, dashboards/reword-event and dashboards/run-sent-corrections; `~/.claude/agents/admin-team/presenter.md`; `facts.event`, the event whose text it is, `facts.recordedAt`, the UTC ISO time the record holds for it, `facts.from`, the passage as the record holds it, `facts.to`, what it should read (an empty string takes the passage out), and `facts.reason`, in plain words, all required; with `--view` where the board's latest state is a view copy; admin-team/dashboards-skill/reword-event) | sent by the run for its own events, raised with `--arrived`, or raised by the admin team itself through `apply-event.js` at the presenter's word, without it; the same limits either way; `enrich: no`. The event's own places are found by the stamps it wrote (`lib.js` `rewordPlan()`): a report, by its `finished` time (a stage's, a step's, a remediation step's, a Document task's, in `wip` or a finished visit's snapshot: the report that closed several stages is each of their reports, and the remediation's steps repeat the report that closed them), the detail of `wip` or of a visit whose `event` is that event, `wip.waitingOn` while `wip.event` is that halt, a question's text and options by their `asked` time (`wip.asked`, `wip.interview`, a visit's `asked`), a Quality Review's note by its `at`; and with them every whole copy of what one of those places held, anywhere in `wip` or the trail, and the event's own trail entry and event note where they hold the passage. Every one of them that holds `from` takes `to` (every occurrence; an empty `to` takes the passage out with one adjacent run of spaces), and nothing else: no time, step, state or FullPulse changes; on a sub-issue its tracking board's mirror of the run follows at its re-embed, and a mirror that still holds a reworded text fails the event. It writes **exactly one** `notes.corrections` entry, `{what, when, reword: {event, at, from, to}}`: which text of which event was reworded and where, why (the reason, reworded as any fact is), and what the passage reads now; `from` and `to` are kept as digests (`sha256:` and 12 hex digits), and the entry never quotes the withdrawn wording, so a reword takes a wording off the board and its note does not put it back; no `wip.event`, no event note, no trail entry of its own; `wip.updated` moves, never back. Its `to` is held to the writers' one rule (`GUIDANCE.md` §4) and **refused, never reworded**, where it would carry a grade, a barred internal name, an older wording of a step's name ("qa pass N") or a test set by number: a reword writes the wording it was asked to write, or nothing; a form the list does not bar that may still read as an agent ("the manager's") is written and warned on (`REWORD NAME`). **Refused, nothing written** (a refusal, never a failure: exit 3, below, "A refused correction is no failure"): when a fact is missing, or `to` equals `from`; when the event is the team's record (`TEAM_RECORDS`: its text is composed by the scripts from the team's facts, never a run's report); when the record holds no text of that event at that time; when none of its places holds `from` (the refusal names where it is held instead: another event's record; a Row, whose columns 1 to 3 are written once and whose column 4 is the presenter's, through `fill.js`; an open point, corrected through `fill.js` `wip.open`; or none of the run's recorded text, such as an issue's title, quoted verbatim, the function or the notes); when another event is named at the same time and a place found by its time alone holds the passage (whose text it is cannot be told); when a text would be left empty; when the board has landed or was cancelled (a closed board is kept as it closed: a reword changes a wording, not a fact, so the one edit a closed record takes is not extended to it); when the board's Document commit is recorded done (its `document-landing` task: a reword comes before it, by the user's rule). Raised again, its entry on record, a `duplicate` that writes nothing. The repository work board reads the reworded board at its next regeneration |
+| `retime` | one event's recorded time is corrected: the run sends it for one of its own events, or the presenter has the team raise it (R-1179 (Diverging, checking, fixing) [1179-T6], "Timing corrections"; `facts.event`, the event retimed, `facts.from`, the time the record holds for it, `facts.to`, the time it should hold, UTC ISO times, and `facts.reason`, in plain words, all required; with `--view` where the board's latest state is a view copy; admin-team/dashboards/retime; a run's own, the user's decision of 2026-11-13, dashboards/run-sent-corrections) | sent by the run for its own events, raised with `--arrived` as every run's event is, or raised by the admin team itself through `apply-event.js` at the presenter's word, without it; `enrich: no`. Every place the record holds the old time moves to the new one, and nothing else (`lib.js` `retimePlan()`): `plan.sized`, the foundation's time, the running visit's start, every visit's `since` and `ended` and its snapshot's event stamp, the waits it bounds, the questions and qa passes it stamped, the Tests Tab's results, and, when the new time falls on another UTC day, its trail entry's date (found by the label the event writes); on a sub-issue, its tracking board's record of the same time (the unit's start, its review, its landing, which the standing rule stamped there). It writes **exactly one** `notes.corrections` entry, `{what, when, retime: {event, from, to}}`: what was recorded and why (the reason, reworded as any fact is), what it is now, and what moved with it (§2: a factual error is corrected in place under `notes.corrections`); no `wip.event`, no event note, no trail entry of its own; the step, the FullPulse and the detail do not change; `wip.updated` moves, never back. **Refused, nothing written** (a refusal, never a failure: exit 3, below, "A refused correction is no failure"): when a fact is missing, or `to` equals `from` or is after the event's time; when the event is one a retime does not correct (`run-restarted`, whose stretch's bounds are its own facts, the board-less `reseed`, `seed`, `unit-landed`, and `backfill-start`, which writes no time of its own); when the record does not hold the old time (for `sized`, when `plan.sized` is not it); when another event is named at that same time (their stamps cannot be told apart); when the old time is a bound of a stretch when the run was not running; when the new time crosses any other recorded time (a visit's or a wait's bound, a stretch's, another event's, a question's, `wip.updated`, the merge's `asBuilt.at`), strictly: it may meet a neighbour's time, never pass it; and, on a day change, when the trail holds more than one entry of that event on the old day, or the new day would pass a neighbouring entry's date: a retime corrects a time and never reorders the record. A board that has landed or was cancelled takes it too: a correction of a fact is the one edit its written record takes (§2), so it is not re-rendered onto the template and is otherwise kept as it closed (R-1179 (Diverging, checking, fixing) [1179-T7], "Closed work boards"). Raised again, its entry on record, a `duplicate` that writes nothing. **A run's own retime** (the user's decision of 2026-11-13, dashboards/run-sent-corrections: a run may correct itself, within limits) is held to the run's limits besides: only for its **own events**, never the team's records (`run-restarted`, `retime`, `reword`, `state-boards`, `landing`, `merge`, `landed`, `sub-issues-filed`, `reseed`, `seed`, `unit-landed`, `backfill-start`: `lib.js` `TEAM_RECORDS`), and only **until its land is sent** (refused once the board records a landing or merge visit, or has landed or was cancelled: `landSent()`); the 2-minute arrival check stays as it is, and a run whose true time was replaced by the arrival time sends a `retime` with its own clock reading and the reason. Two bounds the decision did not state, built to the presenter's recommendation (open choices of 2026-11-13, for the user to confirm): a run's `facts.to` is a clock reading to the second in UTC, as `date -u +%FT%TZ` writes it (a rounded or estimated time is what the arrival check exists to keep off the board), and never later than the event's arrival can have been, its recorded time plus the 2-minute tolerance (an event happens before it is sent, and its recorded time is its arrival or within the tolerance of it); earlier it is bounded as every retime is, by the neighbouring recorded times, which a retime never crosses. What marks a request as the run's is `--arrived`, with which the team raises every run's event (the board stores no sender); what marks an event as the team's is its name (`TEAM_RECORDS`). The presenter keeps its own right to have either correction raised, held only to the limits every retime has. The repository work board reads the corrected board at its next regeneration |
+| `reword` | one event's recorded text is reworded: the run sends it for one of its own events before its Document commit, or the presenter has the team raise it then (the user's decisions of 2026-11-13, dashboards/reword-event and dashboards/run-sent-corrections; R-1179 (Diverging, checking, fixing) [1179-T8], "Wording corrections"; `facts.event`, the event whose text it is, `facts.recordedAt`, the UTC ISO time the record holds for it, `facts.from`, the passage as the record holds it, `facts.to`, what it should read (an empty string takes the passage out), and `facts.reason`, in plain words, all required; with `--view` where the board's latest state is a view copy; admin-team/dashboards-skill/reword-event) | sent by the run for its own events, raised with `--arrived`, or raised by the admin team itself through `apply-event.js` at the presenter's word, without it; the same limits either way; `enrich: no`. The event's own places are found by the stamps it wrote (`lib.js` `rewordPlan()`): a report, by its `finished` time (a stage's, a step's, a remediation step's, a Document task's, in `wip` or a finished visit's snapshot: the report that closed several stages is each of their reports, and the remediation's steps repeat the report that closed them), the detail of `wip` or of a visit whose `event` is that event, `wip.waitingOn` while `wip.event` is that halt, a question's text and options by their `asked` time (`wip.asked`, `wip.interview`, a visit's `asked`), a Quality Review's note by its `at`; and with them every whole copy of what one of those places held, anywhere in `wip` or the trail, and the event's own trail entry and event note where they hold the passage. Every one of them that holds `from` takes `to` (every occurrence; an empty `to` takes the passage out with one adjacent run of spaces), and nothing else: no time, step, state or FullPulse changes; on a sub-issue its tracking board's mirror of the run follows at its re-embed, and a mirror that still holds a reworded text fails the event. It writes **exactly one** `notes.corrections` entry, `{what, when, reword: {event, at, from, to}}`: which text of which event was reworded and where, why (the reason, reworded as any fact is), and what the passage reads now; `from` and `to` are kept as digests (`sha256:` and 12 hex digits), and the entry never quotes the withdrawn wording, so a reword takes a wording off the board and its note does not put it back; no `wip.event`, no event note, no trail entry of its own; `wip.updated` moves, never back. Its `to` is held to the writers' one rule (R-1185 (4. Facts) [1185-T12]) and **refused, never reworded**, where it would carry a grade, a barred internal name, an older wording of a step's name ("qa pass N") or a test set by number: a reword writes the wording it was asked to write, or nothing; a form the list does not bar that may still read as an agent ("the manager's") is written and warned on (`REWORD NAME`). **Refused, nothing written** (a refusal, never a failure: exit 3, below, "A refused correction is no failure"): when a fact is missing, or `to` equals `from`; when the event is the team's record (`TEAM_RECORDS`: its text is composed by the scripts from the team's facts, never a run's report); when the record holds no text of that event at that time; when none of its places holds `from` (the refusal names where it is held instead: another event's record; a Row, whose columns 1 to 3 are written once and whose column 4 is the presenter's, through `fill.js`; an open point, corrected through `fill.js` `wip.open`; or none of the run's recorded text, such as an issue's title, quoted verbatim, the function or the notes); when another event is named at the same time and a place found by its time alone holds the passage (whose text it is cannot be told); when a text would be left empty; when the board has landed or was cancelled (a closed board is kept as it closed: a reword changes a wording, not a fact, so the one edit a closed record takes is not extended to it); when the board's Document commit is recorded done (its `document-landing` task: a reword comes before it, by the user's rule). Raised again, its entry on record, a `duplicate` that writes nothing. The repository work board reads the reworded board at its next regeneration |
 
 **A tracking issue's unit boards** are laid when each unit's run starts, never ahead of it: a unit's `sized` lays its board on the fast path
 ("The foundation", below), inside the tracking folder as `<tracking folder>/<issue>-<unit slug>/`, with its Gap and Considered columns filled
@@ -1534,6 +1549,7 @@ the presenter is told either way. The committed repository work board on the def
 a landing.
 
 ### The foundation
+{"name":"The foundation","code":"G-S-DB-P-E-1","id":10098}
 
 **The board opens when the run starts** (admin-team/board/foundation-fast-path; WebTools #66's took ten minutes, the run working meanwhile). A
 `sized` on a folder with no board is applied at once on the fast path: `apply-event.js` lays the foundation (`lib.js` `foundationPlan()`, the laying
@@ -1564,6 +1580,7 @@ systems, the "part of" Chip), the WIP Panel at its step with the event's detail,
 **A failure falls back cleanly.** A step, a repository or a baseline nothing tells, a template changed since it was verified, a check or the live board failing: exit 1, every file put back, the laid board's folder and the live markers included, the seed with them, and `enrich: yes` naming `new.js ... --at <the event's time>`. The presenter lays it from the documents and raises the event again, which seeds and starts the unit on its tracking board. With `--view` (a landing's copies, never a run's start) a `sized` on a folder with no board writes nothing and answers `no-board`.
 
 ### The fast path
+{"name":"The fast path","code":"G-S-DB-P-E-2","id":10099}
 
 Most of what an event writes is decided by its facts alone. `plan/scripts/apply-event.js` writes that part, deterministically and
 with no reasoning, so the admin team runs it itself at every `plan-board` request and the board is up to date in a second or two
@@ -1575,7 +1592,7 @@ with what needs the folder's documents, only when the script says so.
 **A fill merges, so events keep applying.** The presenter writes through `fill.js`, never to `plan.json` directly. Composing a fill takes minutes, and
 events apply during it: the script merges the fields it is handed, a partial `plan.json`, onto the board as it stands then, under the short lock it shares with
 `apply-event.js`, embeds, checks, and puts every file back if the fill would add a failure. It refuses what the events own (`wip`, `trail`, `status`, `sized`,
-`branch`, `asBuilt`, `kind` and the board's identity), but for the narrow ways its head names, drops a grade, naming it, and holds the text it is given to the writers' one rule (`namerefs.js` `cleanWritten()`, `GUIDANCE.md` §4): reworded where a safe rewording exists and named in its notes, and refused, exit 2 with nothing written and the field and the name said, where it would still hold a barred name. One of the narrow ways is `wip.waitingOn`: where the fast path left the run's text out (an internal name or a grade in it) and wrote the detail in its stead, the presenter writes it, neutrally worded; while the board is halted or escalated the stop's trail entry and a detail that quoted the old text follow it, and once an event has taken the board out of the stop the last stop's trail entry alone takes it. Whichever event takes the board out of a stop clears `wip.waitingOn` and `wip.resume` (`apply-event.js`). Two more correct a text the board already stores, each for one that should never have been written (an internal name, a grade): `wip.detail` rewrites the WIP line, and `trailFix`, a list of `{label, to}`, rewords trail entries already there, each found by its label, a label not there named and skipped. And `wip.open`, `[{text, resolved}]`, corrects the time an open point already resolved was recorded at, on `wip.open` and on every snapshot holding the same record, a factual correction the fill also notes under `notes.corrections` (§2): an open point not yet resolved is refused, as resolving one is the events', and so is a time after the board's last event (KotlinBottools #23, a resolution stamped with the run's estimate). And `wip.document`, `[{id, started?, finished?, reason}]`, corrects the recorded start or finish of a task of the Document step, on an issue board and a tracking board alike: the task on `wip.document`, and every saved visit copy in `wip.history` that holds it, shown as the corrected times put it at that visit's end, with one `notes.corrections` entry the fill writes itself, `{what, when, taskTimes: [{id, field, from, to}]}`, from the reasons (§2); it corrects times only, so a key other than these four, a task the board does not hold, a start on a task still to come, a finish on a task not done, a finish before the start, a time after the board's last event and a time outside the Document step's own bounds (its first visit's start; while it runs the board's last event, else its last visit's end) are refused, nothing written, and the same correction again writes nothing (KotlinBottools #24, a halt's tasks the board did not yet read). `impact.units` merges by unit, and `impact.changes` and a unit entry's `changes` by what each names, so a concurrent entry stays: `{ ..., "$remove": true }` drops an entry, and a list there replaces nothing.
+`branch`, `asBuilt`, `kind` and the board's identity), but for the narrow ways its head names, drops a grade, naming it, and holds the text it is given to the writers' one rule (`namerefs.js` `cleanWritten()`, R-1185 (4. Facts) [1185-T13]): reworded where a safe rewording exists and named in its notes, and refused, exit 2 with nothing written and the field and the name said, where it would still hold a barred name. One of the narrow ways is `wip.waitingOn`: where the fast path left the run's text out (an internal name or a grade in it) and wrote the detail in its stead, the presenter writes it, neutrally worded; while the board is halted or escalated the stop's trail entry and a detail that quoted the old text follow it, and once an event has taken the board out of the stop the last stop's trail entry alone takes it. Whichever event takes the board out of a stop clears `wip.waitingOn` and `wip.resume` (`apply-event.js`). Two more correct a text the board already stores, each for one that should never have been written (an internal name, a grade): `wip.detail` rewrites the WIP line, and `trailFix`, a list of `{label, to}`, rewords trail entries already there, each found by its label, a label not there named and skipped. And `wip.open`, `[{text, resolved}]`, corrects the time an open point already resolved was recorded at, on `wip.open` and on every snapshot holding the same record, a factual correction the fill also notes under `notes.corrections` (§2): an open point not yet resolved is refused, as resolving one is the events', and so is a time after the board's last event (KotlinBottools #23, a resolution stamped with the run's estimate). And `wip.document`, `[{id, started?, finished?, reason}]`, corrects the recorded start or finish of a task of the Document step, on an issue board and a tracking board alike: the task on `wip.document`, and every saved visit copy in `wip.history` that holds it, shown as the corrected times put it at that visit's end, with one `notes.corrections` entry the fill writes itself, `{what, when, taskTimes: [{id, field, from, to}]}`, from the reasons (§2); it corrects times only, so a key other than these four, a task the board does not hold, a start on a task still to come, a finish on a task not done, a finish before the start, a time after the board's last event and a time outside the Document step's own bounds (its first visit's start; while it runs the board's last event, else its last visit's end) are refused, nothing written, and the same correction again writes nothing (KotlinBottools #24, a halt's tasks the board did not yet read). `impact.units` merges by unit, and `impact.changes` and a unit entry's `changes` by what each names, so a concurrent entry stays: `{ ..., "$remove": true }` drops an entry, and a list there replaces nothing.
 
     node ~/.claude/skills/dashboards/plan/scripts/fill.js <folder> --fields <fields.json> [--root <repo>] [--json]
 
@@ -1652,8 +1669,8 @@ script takes is applied whatever the event. Moved so far: the open points (`fact
 stage and a qa pass, raised by the event's name where the point names none (dashboards-skill/33); the Document step's event and its tasks, its
 state-boards task raised by the team, the seeding at `sized` (and alone, for a grade-1 branch, at the team-raised `seed`, admin-team/dashboards-skill/level-1-seed), a grade-1 unit landed on its tracking board's view copy after its merge (the team-raised `unit-landed`, admin-team/dashboards-skill/level-1-landed), a tracking board's own landing at its last unit once its impact is reconciled, the copies of an open point's report and a qa pass's test report (from `facts.documents` too, admin-team/board/qa-step), and a test
 set written by its old number written by its set's name (dashboards-skill/35); the pre-merge stamp of the state
-boards (`facts.premerge`, `system/RULES.md` §10); the "last amended by" title of a state board, read from the issue board's own
-`issueTitle` when the event carries no `facts.title` and none is on record (`system/RULES.md` §10, `title`). A landed unit's plain-fact summary on its tracking board, so `landed` on a sub-issue passes `check.js` without the presenter; and the post-merge refresh's `landed` into the live view's copies (`--view`, "The live view of a landing", below). The `built` milestone at `landed`, and at a tracking board’s own landing at its last unit, from the landing’s record (`apply-event.js` `builtMilestone()`; admin-team/dashboards/built-milestone-fast-path). And every Timeline input (below, "The fast path owns the Timeline"): the merge's time from git in the main checkout or from the pull request where the worktree's git cannot tell it, recorded at the next run's seeding where nothing could, never an enrichment; the run's start at a foundation laid after its event (`new.js --at`); the running visit kept to the clock on the board. The land's own `landing` and `merge` into the view copies with their real times (`--view`, before the merge or after it, raised again a duplicate; "The live view of a landing", below). A board's foundation at `sized` on a folder with no board ("The foundation", above), so the board opens when the run starts. The questions a halt puts in any step, with their options, and their answer when the halt ends (dashboards-skill/45). Each Row's Verdict, its kind and its statements, and its options where it holds none, at `plan-accepted`, from the run's `facts.verdicts`, so a stage's end waits on the fill behind the plan's acceptance only where it left Rows to that fill (p58/resolution, p58/q-222-source; below, "The verdicts at plan acceptance").
+boards (`facts.premerge`, R-1214 (10. State boards on a branch: the data-only path) [1214-T4]); the "last amended by" title of a state board, read from the issue board's own
+`issueTitle` when the event carries no `facts.title` and none is on record (R-1214 (10. State boards on a branch: the data-only path) [1214-T5], `title`). A landed unit's plain-fact summary on its tracking board, so `landed` on a sub-issue passes `check.js` without the presenter; and the post-merge refresh's `landed` into the live view's copies (`--view`, R-10102 (The live view of a landing) [10102-T4]). The `built` milestone at `landed`, and at a tracking board’s own landing at its last unit, from the landing’s record (`apply-event.js` `builtMilestone()`; admin-team/dashboards/built-milestone-fast-path). And every Timeline input (below, "The fast path owns the Timeline"): the merge's time from git in the main checkout or from the pull request where the worktree's git cannot tell it, recorded at the next run's seeding where nothing could, never an enrichment; the run's start at a foundation laid after its event (`new.js --at`); the running visit kept to the clock on the board. The land's own `landing` and `merge` into the view copies with their real times (`--view`, before the merge or after it, raised again a duplicate; R-10102 (The live view of a landing) [10102-T5]). A board's foundation at `sized` on a folder with no board (R-10098 (The foundation) [10098-T1]), so the board opens when the run starts. The questions a halt puts in any step, with their options, and their answer when the halt ends (dashboards-skill/45). Each Row's Verdict, its kind and its statements, and its options where it holds none, at `plan-accepted`, from the run's `facts.verdicts`, so a stage's end waits on the fill behind the plan's acceptance only where it left Rows to that fill (p58/resolution, p58/q-222-source; R-10100 (The verdicts at plan acceptance) [10100-T2]).
 
 **The fast path owns the Timeline.** Every input of an issue or tracking board's Timeline Tile, its two Legends, the Timeline Tab's KPI
 Tiles and their Tracers is written by `apply-event.js` at its event, from the facts and git, and nothing about the Timeline is a reason to
@@ -1684,7 +1701,7 @@ Timeline input no event writes: it exists only on a board backfilled at the user
 | at `plan-accepted`, from `facts.verdicts` (below, "The verdicts at plan acceptance"): each Row's `verdict.kind`, `verdict.list` and `verdict.statements`, and its options where it holds none, a Row's entry written whole or not at all; the `verdict` milestone, and the `considered` one where it wrote options and none stands, once every Row holds its verdict; the summary's `verdicts` line, naming each Row left to the fill and why | what the fill still writes (below, "What the fill still writes"): every Row the summary left to it, whole, and the rest of the columns of every other |
 | the branch (`branch-cut`); the plan's stage table on the stages at `branch-cut` and at every later `implementation-stage`, and the steps `facts.stages[].steps` gives a stage the table does not name (§3); the record of each stage, sub-step and task; each step's record from `step-complete` (§3, "The record of a step"); `wip.stages` from `facts.stages`, each with the Rows `facts.stages[].rows` gives (the board's Row ids only), else the Rows the board records for it, else, for the one stage a remediation report adds (`facts.remediation`, or any report while the board stands at `remediation`), the Rows the qa findings touch (`facts.rows`); two or more new remediation stages with no Rows of their own stay for the presenter (`facts.rows` is then the union of every finding); the derived As built states `pending`, `in-progress`, `partially-built` (a partially built Row only where it has a summary), never an outcome | the Rows each stage touches (`plan.md`); at a stage's end, at a remediation sub-step's and at a report that names a deviation, its Rows' summaries and outcomes (`as-planned`, `amended`, `deviated`), the deviations and impact changes from `final-implementation.md` |
 | `wip.open` from `facts.open`, at every event (raised by the event, or by the stage or the qa pass that names it; a resolved one recorded in the trail); `wip.interview` questions from `facts.questions`, and a halt's in any other step into `wip.asked`, each on the visit the halt ended, and every one marked answered when the halt ends (dashboards-skill/45) | the interview's answers' gist (a halt's, where the documents give one: `fill.js`'s `wip.asked`) |
-| `wip.qa` entries (pass, verdict, `running` included, counts by kind and severity, route, the `startUnrecorded` mark of a verdict with no `running` before it), `wip.qaMax`, `wip.remediation` (pass, route, steps: a grade in a step's name is reworded away as in any text from the facts, below, and elided "…" only where the rewording leaves one, never the step dropped; an `implementation-stage` during remediation — `facts.remediation`, or any report while the board stands at `remediation` — writes its sub-steps and, when it carries them, the stages too, and its trail entry and note follow the remediation, `facts.stage` first, never "qa next"); each pass named "Quality Review N" wherever the script writes it (`passnames.js` `passName()`), and "qa pass N" in any text it takes from the facts reworded to it (`renamePassText()`; `GUIDANCE.md` §4, "A qa pass is named "Quality Review N""); the pass's findings line in its detail and trail entry, the count, then the severities, then the kinds (`passnames.js` `findingsWords()`, "18 findings (2 minor, 16 other; 3 documentation, 15 code)"); the Rows the findings touch only from `facts.rows` | the findings' detail: the Rows they touch, the pass's note |
+| `wip.qa` entries (pass, verdict, `running` included, counts by kind and severity, route, the `startUnrecorded` mark of a verdict with no `running` before it), `wip.qaMax`, `wip.remediation` (pass, route, steps: a grade in a step's name is reworded away as in any text from the facts, below, and elided "…" only where the rewording leaves one, never the step dropped; an `implementation-stage` during remediation — `facts.remediation`, or any report while the board stands at `remediation` — writes its sub-steps and, when it carries them, the stages too, and its trail entry and note follow the remediation, `facts.stage` first, never "qa next"); each pass named "Quality Review N" wherever the script writes it (`passnames.js` `passName()`), and "qa pass N" in any text it takes from the facts reworded to it (`renamePassText()`; R-1185 (4. Facts) [1185-T14], "A qa pass is named "Quality Review N""); the pass's findings line in its detail and trail entry, the count, then the severities, then the kinds (`passnames.js` `findingsWords()`, "18 findings (2 minor, 16 other; 3 documentation, 15 code)"); the Rows the findings touch only from `facts.rows` | the findings' detail: the Rows they touch, the pass's note |
 | the statements' excerpts not copied yet (as `embed.js` copies them); the Verdict statements `facts.verdicts` gives (above) | the As built statements, and the Verdict statements of a Row the facts did not give (§2, "Statements") |
 | on a sub-issue, the standing rule on its tracking board: the unit's start (`sized`), `complete` (an approving qa pass), `landed`, `wip.next`, the chain's `wip.detail` (and for a unit with no board, `complete` at `seed` and `landed` at `unit-landed`, its merge and pull request on its Row); at the last unit, the tracking board's landing once its impact is reconciled (§3); a unit's summary where it has none, or only the plain fact its qa pass wrote: the plain fact of its state ("#n's run passed qa; it is not merged yet.", and at `landed` "#n landed through PR #p as <merge>." from the sub-issue's `asBuilt`) | the unit's summary from the documents, its `impact.units` entry and its effect on the initiative's impact |
 | at `landed`, `asBuilt` from the facts, its merge time and step commits (§4, "The fast path owns the Timeline"), the `built` milestone ("Merged", its pull request as the ref, "merged as <sha>", dated by the merge; written once, a `built` milestone already there kept; at a tracking board’s own landing at its last unit too), and `status = built` with the step `landed` only once every part is resolved; at `cancelled`, `status = abandoned` and the reason in `notes` | the landing's record, on the view copies and on the boards seeded at the next run's `sized` (every part resolved, the trail, the consequences reconciled), only what is left of it (`lib.js` `unitLeft()`, `reconciliation()`); the cancelled board's closing state |
@@ -1697,15 +1714,15 @@ Timeline input no event writes: it exists only on a board backfilled at the user
 | the snapshot of the step the event ends, `wip.history.<step>` (§3, "Finished steps"): every visit, each remediation loop and each qa verdict apart; the sizing visit at a board's first `sized`; on a sub-issue, the tracking board's own step its unit's start ends | nothing: a snapshot is never written by hand (a step with none is reconstructed on the board) |
 | the Tests Tab from an event's `facts.tests` (§2, "The Tests Tab"; `testslib.js` `mergeTests()`): each class of `added`, `amended` and `relevant` upserted (its set from its `testSet`, else its package or path, stored by its name in the board's `testSet`; `stage` the implementation stage reported, or, where several are reported at once, as the `facts.tests` paragraph below says; `rows` kept to the board's Rows), a class kept in the highest list it reached; `ran`, the classes qa ran with their counts, sets each one's latest result (with the qa pass) and its count, the tests that run counted, and puts a class in no list into Relevant (a run named with its module, `"<module> componentTest"` or `":<module>:componentTest"`, is the same entry as `componentTest` of that module, and so is `"componentTest (<module>)"`; in every list, a shell script's run in a set named with and without `.sh`, `"<script>.sh <set>"` and `"<script> <set>"` of the same module, `<set>` one of the seven sets' names after one space, is one class under the `.sh` name, whichever event gave it (KotlinBottools #39: a stage's `"gselftest.sh gating"` and a qa pass's `"gselftest gating"` had made two entries); no other suffix is dropped so, and a name with no set's name after it is not read so); a module's test task (`gatingTest` … `uatTest`) with no test failed, whose board's Added and Amended classes of that module in that task's set each have a test count, is those classes' results and no entry of its own, an earlier event's Relevant entry for it dropped (WebTools #69: such a run had been listed in Relevant as unchanged tests and its classes left "not run yet"), when its counts match them: with no test skipped, its passed count is the sum of their counts and each passed with its own count; with tests skipped, its skipped count is the summed count of the classes whose latest result is skipped (whole-class skips) and its passed count the summed count of the rest, the rest passed and the skipped classes skipped, each with the run's Quality Review and keeping its earlier note (WebTools #69, Quality Review 1: a run of 52 passed and 1 skipped, the class that needs JDK 11, had stayed a stray Relevant entry). Counts alone cannot tell which class skipped, so a skip attributed so is `enrich: yes` (`tests: <task> (<module>): skip attributed by count to <classes>; confirm from the report`), for the presenter to confirm from the qa report; a task run that cannot be attributed so stays a Relevant entry; `other` replaces the counts; `drop` removes a class, and one on no list is named in the summary (`tests.drop <class>: on no list of the board`), never passed over; `base` the ref of the diff | the Tests Tab when an implementation stage or a qa verdict carries no `facts.tests`: Added and Amended from the branch's diff against its base, Relevant, Other and the results from the qa report |
 
-**A grade in the facts is reworded, never written** (`GUIDANCE.md` §4; admin-team/dashboards-skill/23). Every text the script takes
+**A grade in the facts is reworded, never written** (R-1185 (4. Facts) [1185-T15]; admin-team/dashboards-skill/23). Every text the script takes
 from the facts (the detail, a note, what waits on the user, an interview question and its options, an open point, a qa pass's note, a
 remediation sub-step's name) goes through `system/scripts/levelrefs.js` `scrubLevels()` when it names a grade, then through
-`system/scripts/namerefs.js` `scrubNames()` when it names an internal name (`GUIDANCE.md` §4, "No internal names": "accepted by the admin
+`system/scripts/namerefs.js` `scrubNames()` when it names an internal name (R-1185 (4. Facts) [1185-T16], "No internal names": "accepted by the admin
 team" → "accepted", "a planner re-pass" → "a plan re-pass", "rookie-dev's fixes" → "the fixes", "code-reviewer" → "code check", "documentation-reviewer" → "documentation check", "(the
 user's call)" dropped; a text that still names a barred name, whatever the words around it, is left out and named for the presenter;
 the remediation routes' older ids are read as their neutral ones) (an identifier, the
 branch or the version, is never reworded: one that names a grade is left out, the presenter told; the slug inside a branch's name names
-none, `GUIDANCE.md` §4):
+none, R-1185 (4. Facts) [1185-T17]):
 a scope phrase becomes the unit's scope on a sub-issue's board and the issue's elsewhere ("diff inside grade 3" → "diff inside the unit's
 scope"), the grade before a noun is elided ("a grade-3 change" → "a change", "grade-3 re-pass" → "re-pass", the article mended), the
 label is dropped with the punctuation it leaves ("Sized; Label grade: 3; research starts" → "Sized; research starts"), "escalated to
@@ -1752,11 +1769,12 @@ a remediation's report, that remediation's fixes (`Quality Review n fixes`), els
 recorded set that a later event's entry (`ran` included) gives otherwise is replaced by it, and the summary says so with the set
 held and the set sent, each by its name (`TEST SET CHANGED`).
 
-The committed **repository work board** (§5) is regenerated at the moments `GUIDANCE.md` §11, "Re-rendering", gives it; between those it may lag, and a run's live state is on its own board, in
+The committed **repository work board** (§5) is regenerated at the moments R-1192 (11. One change, every dashboard type) [1192-T8], "Re-rendering", gives it; between those it may lag, and a run's live state is on its own board, in
 its worktree, and in the git-ignored live view (`docs/plans/.live/`), which the post-merge refresh brings up after each merge. The state
 boards' Context links to the landing issue's board are written in the Document step's state-boards task.
 
 ### The verdicts at plan acceptance
+{"name":"The verdicts at plan acceptance","code":"G-S-DB-P-E-3","id":10100}
 
 **`facts.verdicts`**, at `plan-accepted` (p58/resolution, p58/q-222-source): the run sends each Row's verdict in the board's own fields, so
 the fast path writes the Verdict column, and the Considered column where it is not yet written, with no document read, and a stage's end
@@ -1828,6 +1846,7 @@ written behind `architecture-signed-off`) is named for the fill. Nothing on a tr
 units' runs: the facts put the column on it at once, and without them the fill writes it, as before.
 
 ### Seeding at sized
+{"name":"Seeding at sized","code":"G-S-DB-P-E-4","id":10101}
 
 A landing's state is shown in the main checkout's live view by the post-merge refresh, in view copies (below), and committed by the next
 run (admin-team/dashboards-skill/35, in place of the next landing's pre-merge corrections), or by a grade-1 landing before it, which sends no
@@ -1853,7 +1872,7 @@ repository work boards; a `sized` raised again is a duplicate, and one raised af
 seeds, so nothing else writes them. The tracked boards then tie their copies, so `board.js --live` removes the copies, unless one is kept (below); a run cancelled there and its
 changes discarded rebuilds them by raising `landing`, `merge` and `landed` with `--view` again. Nothing is seeded from a copy whose merge the
 branch does not hold; the summary names the boards it seeded (`seeded`) and those it left. Every seeded board is checked with the issue's.
-A landed or cancelled board is seeded on the page it closed with, never re-rendered (`GUIDANCE.md` §8 and §11, "Re-rendering").
+A landed or cancelled board is seeded on the page it closed with, never re-rendered (R-1189 (8. Checks) [1189-T2] and R-1192 (11. One change, every dashboard type) [1192-T9], "Re-rendering").
 
 **The carry merges** (the user's decision of 2026-11-20, q-419 a, p79). A copy carried onto a tracked board, at `sized`, at `seed` and at `reseed`, is merged
 into the tracked board, never written over it, so a landing that changed the tracked board after the copy was made (a docs-only landing, which raises no
@@ -1905,9 +1924,10 @@ and one seeded with every unit landed but not built takes its copy, merged the s
 still unfinished is warned on and left: raise `landed` with `--view` once its parts are resolved, then `reseed` again.
 
 ### The live view of a landing
+{"name":"The live view of a landing","code":"G-S-DB-P-E-5","id":10102}
 
 The post-merge refresh shows the issue landed, and for a sub-issue its unit landed and the next one up, without writing a tracked file
-(`GUIDANCE.md` §11, "The landing flow"). The landed state goes into **view copies**: a copy of each board it changes, under the main
+(R-1192 (11. One change, every dashboard type) [1192-T10], "The landing flow"). The landed state goes into **view copies**: a copy of each board it changes, under the main
 checkout's git-ignored `docs/plans/.live/view/<the board's folder under docs/plans/>/` (`plan.json`, `dashboard.html`, `plan.js`). The
 admin team raises `landed` there through the fast path:
 
@@ -1979,6 +1999,7 @@ docs/plans/.live/view/<folder> --fields <fields.json>`), or raises `landed` with
   next run. A copy whose tracked board is gone is removed too.
 
 ## 5. The repository work board
+{"name":"5. The repository work board","code":"G-S-DB-P-RW","id":1199}
 
 `docs/plans/index.html`, from `board.json`, generated by `board.js` from every `plan.json`
 under `docs/plans/` plus the tracker's open issues (`gh issue list`, sub-issues, *blocked by*):
@@ -2003,7 +2024,7 @@ replaces; a `board.json` written before `units` draws it from the tracking issue
 up-next mark and a "blocked by #n" Pill for each blocker that has not landed (a unit of its tracking board not filed yet named by its slug, §3, `unit.blockedBy`), and is never active. A
 Row whose run waits on the user, **halted or escalated**, keeps its in-progress mark stopped to the
 **Ring alone, still**, around its state Pill (a tracking issue's Row, around the Pill it keeps above its
-chain), as a paused Cell does on its board (`GUIDANCE.md` §1): never the yellow Pill alone; the
+chain), as a paused Cell does on its board (R-1182 (1. Colour coding) [1182-T17]): never the yellow Pill alone; the
 Legend names the Ring when a Row draws it. A
 Row with a board of its own carries its impact's reconciliation state (§2, Consequences) as
 `reconciliation` in `board.json` — `{state, landed, total}`, `state` `planned` · `partial` ·
@@ -2121,7 +2142,7 @@ say), the entry records `"unassigned": true` with `system` `null`, the record of
 `board.js` keeps it, the Row reads "no system" with the muted swatch, and the entry is no longer
 reported as missing a system. An entry with neither is reported at every `board.js` run until one is recorded.
 
-**Its Tiles' Bars** (`GUIDANCE.md` §2): the Runs Tile segments every run by its state and the Landed Tile landed, merged, complete and the
+**Its Tiles' Bars** (R-1183 (2. Legends) [1183-T8]): the Runs Tile segments every run by its state and the Landed Tile landed, merged, complete and the
 closed ones it does not count, each with its Legend inside the Tile; the single-state Tiles carry none. **Its links**: `board.json` `links`
 (`repoBoard`, `readme`, relative to the board; `repoPage` on a board whose template is older, read alike; and present only while the file exists, `check.js` failing a dead one); on this machine a
 committed board names the live view (its marker, `docs/plans/.live/index.js`) and a Markdown link opens its rendered copy. Its Context's
@@ -2132,29 +2153,31 @@ Legend names the swatches its Cards drew. An older board laid before its run rea
 script every five seconds and redraws in place, keeping the scroll position and the Tab, and its
 header's live indicator reads as a board's (§3, "Live updates"; the dot is a FillPulse while a run is active
 and changing). The committed repository work board is regenerated only at landings and does not poll: "not live
-· as of" its generation. Both carry the theme Switch (`GUIDANCE.md` §1), and no inspector Switch or Hide Button: the board has no inspector
-(`GUIDANCE.md` §6). The repository work board draws no step
+· as of" its generation. Both carry the theme Switch (R-1182 (1. Colour coding) [1182-T18]), and no inspector Switch or Hide Button: the board has no inspector
+(R-1187 (6. Boards are self-contained) [1187-T7]). The repository work board draws no step
 Panel, research Ring or charging Arrow: it is one Row per run, and each run's detail is on its own
 board.
 
 ## 6. Who does what
+{"name":"6. Who does what","code":"G-S-DB-P-WD","id":1200}
 
 | Who | Does |
 |-----|------|
 | the `/resolve-issue` pipeline | sends `plan-board` events with the facts it has (step, on every event but `implementation-stage`; verdicts, counts, documents written, what waits on the user); corrects its own record through them, within its limits: a `retime` for one of its own events' times until its land is sent, a `reword` for one of its own events' texts until its Document commit (the user's decision of 2026-11-13, §4, their rows); never edits a board |
 | the planner, implementer, qa | write their Markdown as before; the board is read from it |
-| the admin team | runs the fast path, `apply-event.js`, at every `plan-board` request (§4); spawns the presenter only when one says `enrich: yes` or fails; on a tracking issue, after its plan's merge and with `--view`, raises `sub-issues-filed` per unit as it files each, and a final one closing the step (§4); brings any `issue defects` an event names (an issue title that names a grade) to the user, to retitle on GitHub; when it accepts the run's `state-boards` request in the Document step, raises its `state-boards` task through `apply-event.js` (on a grade-1 run, which has no board, raises `seed` instead, its unit marked `complete` where it is one, and names the seeded paths in its reply; after that unit's merge, raises `unit-landed` with `--view`, §4, "The live view of a landing") and has the state boards written (the presenter's `state-boards` mode), raises its `document-landing` task done just before the scan and the commit (a refused raise commits nothing and replies `needs-rework`, §4), and commits them on the branch; when it accepts an issue's `land`, raises `landing` and `merge` on the issue's board through `apply-event.js`, merges, has the post-merge refresh written (the live view only: `landed` raised with `apply-event.js --view` into the view copies, §4, "The live view of a landing") and raises `reseed` when it ends; the landed state is seeded into the next run's branch at its `sized` (§4, "Seeding at sized"; `GUIDANCE.md` §11, "The landing flow"); at the presenter's word, raises `retime` to correct one event's recorded time on a board (`~/.claude/agents/admin-team/presenter.md`, "Timing corrections"; with `--view` where its latest state is a view copy, so the next landing carries it; §4), and `reword` to reword one of a run's recorded texts before the board's Document commit (the same way); raises a run's own `retime` and `reword` as every run's event, with `--arrived`, which holds them to the run's limits (§4) |
-| the presenter (admin team service) | enriches what the fast path leaves (§4, "The fast path"), writing through `fill.js`, which re-embeds and checks; fills `board.json`; decides the Rows and the summaries from the documents; on a sub-issue's event, re-embeds and checks its tracking board too, whose units' runs `embed.js` mirrors (§3; the presenter never writes `unit.live` by hand); in its `state-boards` mode (the Document step), writes the state boards, stamping them through their data-only path, `system/scripts/apply-state.js` (`system/RULES.md` §10), the tracking board's re-embed and the repository work board; after a `sized` that seeded boards, enriches what the seeding left (a landed board's parts, its consequences) |
+| the admin team | runs the fast path, `apply-event.js`, at every `plan-board` request (§4); spawns the presenter only when one says `enrich: yes` or fails; on a tracking issue, after its plan's merge and with `--view`, raises `sub-issues-filed` per unit as it files each, and a final one closing the step (§4); brings any `issue defects` an event names (an issue title that names a grade) to the user, to retitle on GitHub; when it accepts the run's `state-boards` request in the Document step, raises its `state-boards` task through `apply-event.js` (on a grade-1 run, which has no board, raises `seed` instead, its unit marked `complete` where it is one, and names the seeded paths in its reply; after that unit's merge, raises `unit-landed` with `--view`, §4, "The live view of a landing") and has the state boards written (the presenter's `state-boards` mode), raises its `document-landing` task done just before the scan and the commit (a refused raise commits nothing and replies `needs-rework`, §4), and commits them on the branch; when it accepts an issue's `land`, raises `landing` and `merge` on the issue's board through `apply-event.js`, merges, has the post-merge refresh written (the live view only: `landed` raised with `apply-event.js --view` into the view copies, §4, "The live view of a landing") and raises `reseed` when it ends; the landed state is seeded into the next run's branch at its `sized` (§4, "Seeding at sized"; R-1192 (11. One change, every dashboard type) [1192-T11], "The landing flow"); at the presenter's word, raises `retime` to correct one event's recorded time on a board (R-1179 (Diverging, checking, fixing) [1179-T9], "Timing corrections"; with `--view` where its latest state is a view copy, so the next landing carries it; §4), and `reword` to reword one of a run's recorded texts before the board's Document commit (the same way); raises a run's own `retime` and `reword` as every run's event, with `--arrived`, which holds them to the run's limits (§4) |
+| the presenter (admin team service) | enriches what the fast path leaves (R-10099 (The fast path) [10099-T4]), writing through `fill.js`, which re-embeds and checks; fills `board.json`; decides the Rows and the summaries from the documents; on a sub-issue's event, re-embeds and checks its tracking board too, whose units' runs `embed.js` mirrors (§3; the presenter never writes `unit.live` by hand); in its `state-boards` mode (the Document step), writes the state boards, stamping them through their data-only path, `system/scripts/apply-state.js` (R-1214 (10. State boards on a branch: the data-only path) [1214-T6]), the tracking board's re-embed and the repository work board; after a `sized` that seeded boards, enriches what the seeding left (a landed board's parts, its consequences) |
 | the admin team's executor | commits nothing at an event: a run's issue board lives in its worktree until that run's document-landing commit, which commits it (and its tracking board's `plan.json` and `dashboard.html` when the sub-issue's events changed them; a mirror conflict between branches is resolved by re-embedding, §3); a tracking plan's unit has no board until its own run's `sized` lays it, and that run's document-landing commit commits it; commits the Document step's state boards, the regenerated repository work board among them, on the issue's branch as one `docs:` commit, and the boards seeded at `sized` with the run's document-landing commit |
 
 ## 7. Writing
+{"name":"7. Writing","code":"G-S-DB-P-WR","id":1201}
 
 Sentences, not fragments; present tense in columns 1–3, past tense in column 4; file paths and
 identifiers in `` `code` `` spans and issues as `#n` (the board links both); an option's name short, its signature in
 `signature` (§2, "An option's signature"); a Cell's summary
 stands alone in two to four lines, and the detail link goes to the Markdown section that holds
 the rest. No code listings. Numbers only where they decide something. Never a grade
-(`GUIDANCE.md` §4): no "grade 3" or "a grade-3 change" anywhere on a
+(R-1185 (4. Facts) [1185-T18]): no "grade 3" or "a grade-3 change" anywhere on a
 board; say what the work is (one system, a bug fix, docs only). A test set is called by its name, never by a number ("component",
 never "L2"); a C4 level keeps its label, and the old test levels a quoted landed document keeps stay as quoted.
 
@@ -2167,6 +2190,7 @@ name) is part of that name and no path, while a sentence's full stop after a pat
 are left alone. The board itself guesses no path in prose.
 
 ## 8. What `check.js` enforces
+{"name":"8. What `check.js` enforces","code":"G-S-DB-P-CE","id":1202}
 
 Fails: schema/repo/issue/slug/title/function/baseline/status missing or bad; a slug that is not
 the folder name or doesn't start with the issue number; a `built` plan with a `pending` part or
@@ -2229,7 +2253,7 @@ date; a `unit.landing` that is not `{pr, merge}` (a pull request's number, a com
 not a tracking board (§3, "The units' landings"); a bad date, sha, state, kind, verdict, step or column value; a placeholder left from the
 template (a statement's excerpt and a code span are quoted text, never one); an embedded copy that differs from `plan.json`; a Panel without a Legend; a dead
 `href="#"`; a code block longer than five lines anywhere in the data; a grade named in any
-text of `plan.json` or `board.json` (`GUIDANCE.md` §4: "grade 3", "a grade-3 change", "graded", "Label grade: 3", "a grade-3 re-pass", "inside grade 3",
+text of `plan.json` or `board.json` (R-1185 (4. Facts) [1185-T19]: "grade 3", "a grade-3 change", "graded", "Label grade: 3", "a grade-3 re-pass", "inside grade 3",
 "(#61, grade 3)", "work grade"; the forms are in
 `system/scripts/levelrefs.js`, and the browser pass, on a board that gets one, applies them to every Tab's rendered text);
 an `impact` that is neither `null` nor an object, a bad `basis`, `release.bump`, `kind`,
@@ -2249,11 +2273,11 @@ with an open pull request or a branch, not started only with neither), that carr
 that shows a branch once merged or landed, and a tracker state on a Row without `tracker`, a built board whose impact is still the plan's, a
 planned board whose impact claims `as-built`, `impact.units` on a board that is not a tracking
 board, or an entry that names no unit Row or repeats one; a system colour in a status spectrum
-(`GUIDANCE.md` §1: a `--sys-N` slot, chromatic, with a hue outside 175°–295°, read from the board's
+(R-1182 (1. Colour coding) [1182-T19]: a `--sys-N` slot, chromatic, with a hue outside 175°–295°, read from the board's
 CSS by `system/scripts/palette.js`). With `--auto` or `--browser`, a failing browser pass, which
 also fails an Consequences Tab that shows planning information (a dashed element, a planned or as-built
 Pill, a list of changes from the planned impact), a dashed element anywhere that marks nothing
-planned or pending (`GUIDANCE.md` §1) and a system colour the browser computes in a status spectrum.
+planned or pending (R-1182 (1. Colour coding) [1182-T20]) and a system colour the browser computes in a status spectrum.
 
 The Tests Tab (§2, `testslib.js` `testsProblems()`) fails: a `tests` that is not an object, `tests` on a tracking board (its units' boards hold
 them), a list that is not a list, a class with no name, a `testSet` that is not a set's name, an older board's `testLevel` that is not one of `1` `2` `3` `4a` `4b` `4c` `5`, a test count or
@@ -2276,7 +2300,7 @@ after it, and a break's visit (`outage`) not counted (§2: a visit a wait or a b
 reference names a section that is gone, whose excerpt is not copied yet, or whose section has changed since its excerpt was copied
 (§2, "Statements"); a statement's text that ends with its own "(§…)"; a verdict or an As built Cell that keeps its summary beside
 its statements; an outcome recorded with verdict statements but no as-built statements; as-built statements beside a verdict that
-has none; a system slot that is not the shared palette's colour (`GUIDANCE.md` §1), so the system
+has none; a system slot that is not the shared palette's colour (R-1182 (1. Colour coding) [1182-T21]), so the system
 would look different here than on the other boards; `consequences.md` in the folder while the Consequences Tab is empty (`impact` null, or no entry, no
 summary and no `none` statement); an `impact.none` that the entries contradict; a release that
 does not fit the work (a change with a downstream effect and no version bump; a change with no
@@ -2338,7 +2362,7 @@ copy the template over it and `embed.js`), and a template not verified since it 
 data ("L2 test", "L2 component": `TEST SET BY NUMBER`, write the set's name, admin-team/dashboards-skill/35); a `fixOf.board` that is not what the
 folders on disk give, and a fix with no GitHub parent whose folder is not inside the issue it fixes.
 
-With `--auto`, also (`GUIDANCE.md` §8, "Features"): a template feature the board lacks fails (`FEATURE MISSING`), through a declared
+With `--auto`, also (R-1189 (8. Checks) [1189-T3], "Features"): a template feature the board lacks fails (`FEATURE MISSING`), through a declared
 divergence too. Always: a `links` entry whose file is gone fails (`DEAD LINK`), a `links` missing or not what the files give is a warning;
 `units` or a `<unit-id>.units` address in `wip.current` on a board that is not a tracking board (or one naming no unit Row), `sub-issues`
 or `boards` as a non-tracking board's step, a FullPulse on a board whose run has not started, and a unit with no issue once its tracking board
@@ -2350,14 +2374,14 @@ research has started — a research question recorded, or the research phase pas
 defect in the issue, quoted verbatim, which the grade failure above leaves out (`levelrefs.js` `issueTitleRefs()`); it leaves out as well a
 slug made from a title, wherever a path puts it (`slug`, `folder`, a unit's `folder` and `board`, `issueBoards`, a board link, a report's
 copy, a path a text cites), and the slug inside a branch's name (`branch`, a Row's `tracker.branch`, a fact that names one: the
-`<number>-<slug>` after `issue-` or after its type; the user's decision of 2026-11-14, batch-8/branch-slug), and flags none (`GUIDANCE.md` §4; the user's decision of 2026-11-14, batch-8/q-54; `levelrefs.js` `maskSlugs()`).
+`<number>-<slug>` after `issue-` or after its type; the user's decision of 2026-11-14, batch-8/branch-slug), and flags none (R-1185 (4. Facts) [1185-T20]; the user's decision of 2026-11-14, batch-8/q-54; `levelrefs.js` `maskSlugs()`).
 An older wording in any text of `plan.json` — a pass named "qa pass N" or "the 2nd qa pass", one with no number named a "qa pass" ("no new
 qa pass"), the qa step named "qa" ("qa next", "Halted at qa"), the remediation step named "Remediation for …" or a "remediation loop", a
 halt's fix step named with its pass or its article ("Halted at the Correction of Quality Review 2", "Held still at the Resolution"), the
 Document step's commit named "Document-landing commit", a findings line with its kinds before its severities, the documentation check
 under its label before dashboards-skill/52 ("the documentation review pass", lowercase as the scripts wrote it; the Document step's task
 "Documentation review" is not it) — fails a board not landed and `board.json`, and is a warning on a landed board,
-kept as it landed, `BOARD WORDING` (`GUIDANCE.md` §4, "A qa pass is named "Quality Review N"";
+kept as it landed, `BOARD WORDING` (R-1185 (4. Facts) [1185-T21], "A qa pass is named "Quality Review N"";
 `passnames.js` `passRefsIn()`); an issue's title, quoted verbatim, is left out.
 
 A private repository of the organizations named anywhere in the data, an issue's title or an excerpt included, or in the board's page
@@ -2369,11 +2393,12 @@ the check fails, `PRIVATE REPOSITORIES UNREAD`, saying why (§1, "Private reposi
 repositories; a repository without its owner, name, default branch and `https://github.com/` URL, or marked other than public; a `links` or `boards` entry that is not a path in the
 repository (a `boards` entry `{path, ref}`); an `unlinked` entry without its issue, path and why; a repository's `board` that is neither `null` nor `work-board/1` data; a Row
 without its issue and title, or holding a machine's path in `board` or `folder`; a grade in the data, or an older wording in a repository's; a `notShown` entry that is not a
-public repository's name, URL and why; and a `board.js` beside it, as it has no sidecar. With `--auto`, the features it takes (`GUIDANCE.md` §8, "Features").
+public repository's name, URL and why; and a `board.js` beside it, as it has no sidecar. With `--auto`, the features it takes (R-1189 (8. Checks) [1189-T4], "Features").
 
 ## 9. Existing plans and the template
+{"name":"9. Existing plans and the template","code":"G-S-DB-P-EP","id":1203}
 
-**When a board is brought onto the template** is `GUIDANCE.md` §11, "Re-rendering". A board with a declared divergence is spliced (`system/scripts/splice.js`), three ways.
+**When a board is brought onto the template** is R-1192 (11. One change, every dashboard type) [1192-T12], "Re-rendering". A board with a declared divergence is spliced (`system/scripts/splice.js`), three ways.
 
 Folders written before this format keep their Markdown; a run that reopens one adds a board
 beside it rather than converting it. `plan/examples/38-handshake-empty-name/` is the worked
@@ -2405,10 +2430,11 @@ paragraph alone:
 `plan/examples/38-handshake-empty-name/` is split this way; `verify/fixtures/` keeps one Row in the older form for coverage.
 
 ## 10. The org work board
+{"name":"10. The org work board","code":"G-S-DB-P-OW","id":1204}
 
 One board for the SpartanLaboratories organization, the **org work board**: how the work is going across its repositories. It lives at
 `docs/plans/org-work-board/` in the `OrganizationPage` repository and is committed: `index.html` (its template plus its data, like every
-board, `GUIDANCE.md` §3) and `board.json` (its data, `schema: "org-work-board/2"`, raised from `/1` for its Ideas Panel, below; a `/1` file is
+board, R-1184 (3. A board is a template plus data) [1184-T3]) and `board.json` (its data, `schema: "org-work-board/2"`, raised from `/1` for its Ideas Panel, below; a `/1` file is
 read alike, with no ideas). The committed board has no sidecar. Its generator,
 `plan/scripts/org-board.js`, and its template, `plan/template/org-board.html`, are in this skill.
 
@@ -2427,8 +2453,8 @@ repository Panel shows that repository's runs, its landed issues and its trackin
 repository with no data shows its Panel empty, and no Button.
 
 **Its Ideas Panel** (hook-85, choice 7), after the organization Panels and headed "Ideas", shows the organization's ideas file,
-`docs/plans/org-work-board/ideas.json` beside the board (`GUIDANCE.md` §13, "The ideas files"): one idea Card per idea, its kind as a Tag, its
-text, the repositories or parts it concerns and the issue it names, a lone `owner/repo#n` linked as `GUIDANCE.md` §5 links one, and no state, owner,
+`docs/plans/org-work-board/ideas.json` beside the board (R-10086 (The ideas files) [10086-T2]): one idea Card per idea, its kind as a Tag, its
+text, the repositories or parts it concerns and the issue it names, a lone `owner/repo#n` linked as R-1186 (5. Context, roadmap, work) [1186-T4] links one, and no state, owner,
 date or priority; with its Legend. It is `board.json` `ideas`, each idea's id, kind, text, concerns and issue (never its `noted` or `source`),
 copied at every generation; a file that does not pass its check (`ideas.js`) stops the generation; with no idea in the file the Panel says so. The
 ideas of a repository's own file are not on the board: its Whiteboards draw them. A private repository is named in no idea (the writer
@@ -2439,16 +2465,16 @@ nowhere on the board. What decides it is the repository's visibility on GitHub, 
 repository's text is elided with "…", and stays elided in what the live view draws from a checkout, and the generator writes nothing while its output would still name one. The
 reference-only list lives beside the generator, in this skill (`plan/template/org-board.repositories.json`).
 
-**Colours and Legends.** System colours are per repository Panel: each one draws its repository's own system colours (`GUIDANCE.md` §1),
-so one colour in two Panels may be two systems, and each repository Panel carries its own Legend (`GUIDANCE.md` §2).
+**Colours and Legends.** System colours are per repository Panel: each one draws its repository's own system colours (R-1182 (1. Colour coding) [1182-T22]),
+so one colour in two Panels may be two systems, and each repository Panel carries its own Legend (R-1183 (2. Legends) [1183-T9]).
 
 **Its links.** A board not on its repository's default branch links to the run's branch copy once that branch is on GitHub with the board's file on it, and until
 then is unlinked, with a Chip saying so. Opened locally, the links point at the live files in the sibling checkouts, and fall back to the
 GitHub URL for a repository with no sibling checkout; on the website, at the served URLs. The website serves no boards yet, so until it
-does those links are GitHub URLs. Nothing machine-local is committed (`GUIDANCE.md` §10).
+does those links are GitHub URLs. Nothing machine-local is committed (R-1191 (10. Hygiene) [1191-T1]).
 
 **Internal names.** The board's Row data comes only from the repositories' work boards, never from the text of a closed issue board. The generator is a writer under the
-writers' one rule (`namerefs.js` `cleanWorkBoard()`, `GUIDANCE.md` §4). A source the board reads that carries an internal name is fixed at that source: text a board stores is
+writers' one rule (`namerefs.js` `cleanWorkBoard()`, R-1185 (4. Facts) [1185-T22]). A source the board reads that carries an internal name is fixed at that source: text a board stores is
 corrected through `fill.js` (§4, "A fill merges, so events keep applying"), and a repository's generated data is corrected at that
 repository's next regeneration. The board keeps no rewording table.
 
