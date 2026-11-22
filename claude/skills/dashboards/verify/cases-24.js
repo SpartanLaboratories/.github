@@ -5,7 +5,9 @@
 // in the step panel (the dot a button, ringed in ink and pressed, the viewing line with "back to now", the selection kept across the live
 // redraw), a step with no snapshot reconstructed from what survives (labelled "reconstructed from the history", the template's rule the
 // same as lib.js's), a tracking board's unit through its mirror and its own steps in a row of their own, a landed board beside its landing;
-// and the feature probe. Each group returns [title, cases], a case [name, ok, detail].
+// and the feature probe. Beside them, the same template's other selection held across the live redraw: an entry picked on Who feels it
+// (hook-340), with Consequences, and two defects of its look (a numbered As built statement's number, a long version in the release line's .badge on a narrow page).
+// Each group returns [title, cases], a case [name, ok, detail].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 
@@ -229,6 +231,52 @@ module.exports = function cases24(X) {
     c.push(["the template as dashboards-skill/23 left it misses it, named with its step", !!old && F.probe(old, "plan-board").some(m => m.id === "finished-steps" && m.since === "dashboards-skill/24"), old ? F.probe(old, "plan-board").map(m => m.id).join(", ") : "no recorded history"]);
     const f = F.FEATURES.find(x => x.id === "finished-steps");
     c.push(["it fits the issue boards only, with the reason for each type it does not", !!f && JSON.stringify(f.types) === '["plan-board"]' && ["system", "supersystem", "work-board"].every(k => f.notFor && /no progress strip/.test(f.notFor[k])), JSON.stringify(f && f.notFor)]);
+  });
+
+  /* 8. the selection on Who feels it across the live redraw (hook-340), as group 5 holds a finished step's: the entry Chip and its line
+     highlighted again after dashboardRedraw(), the inspector's default text once the entry is gone, Consequences beside it; and two
+     defects of the same template's look: the gap after a numbered As built statement's number, and the long version in the release line's .badge, which wraps */
+  guard("the template: an entry picked on Who feels it stays highlighted across the live redraw, the inspector's default once it is gone, Consequences alike; a numbered As built statement's number set apart; a long version in the release line's .badge wraps on a narrow page", c => {
+    if (!chrome) { c.push(["the rendered pages (no browser found: set CHROME)", false, "no Chrome or Edge"]); return; }
+    const EX = J("plan/examples/38-handshake-empty-name/plan.json");
+    if (!((EX.impact || {}).downstream || []).length || EX.impact.downstream.length < 2) { c.push(["the worked example has two downstream entries or more", false, String(((EX.impact || {}).downstream || []).length)]); return; }
+    const PW = `const out={}, tab=id=>{ const t=document.getElementById(id); if(t) t.click(); }, ins=()=>document.querySelector("#insp-body"),
+      on=()=>[...document.querySelectorAll("#who-body .who-orbits .entry-chip.on, #who-body .who-list>li.on")].map(e=>e.tagName.toLowerCase()+":"+e.dataset.imp),
+      sel=()=>[...document.querySelectorAll("#impact-body .icard.sel")].map(e=>e.dataset.imp), kick=()=>{ const k=ins().querySelector(".kicker"); return k?k.textContent:null; },
+      pick=s=>{ const e=document.querySelector(s); if(e) e.dispatchEvent(new MouseEvent("click",{bubbles:true})); return !!e; },
+      redraw=f=>{ const d=JSON.parse(JSON.stringify(PLAN)); f(d); return dashboardRedraw(d); };`;
+    const rw = view(planPage("who-redraw", EX, PW + `
+      tab("t-built"); tab("t-who"); out.picked=pick('#who-body .who-orbits .entry-chip[data-imp="downstream.1"]'); out.click={tab:CUR_TAB,on:on(),kick:kick()};
+      out.r1=redraw(d=>{ d.impact.summary=(d.impact.summary||"")+" (redrawn)"; }); out.redraw={tab:CUR_TAB,on:on(),kick:kick(),ref:INSPECTED&&INSPECTED.ref,sum:/\\(redrawn\\)/.test(document.querySelector("#who-body").textContent)};
+      out.r2=redraw(d=>{ d.impact.downstream=d.impact.downstream.slice(0,1); }); out.gone={tab:CUR_TAB,on:on(),kick:kick(),inspected:INSPECTED,dflt:ins().innerHTML===DEFAULT_INSPECT.who};
+      document.body.dataset.r=JSON.stringify(out);`));
+    const ck = rw.click || {}, rd2 = rw.redraw || {}, gn = rw.gone || {};
+    c.push(["a click on entry Chip 2 rings it and its line and shows the entry in the inspector", rw.picked && ck.tab === "who" && JSON.stringify(ck.on) === '["g:downstream.1","li:downstream.1"]' && /^IMPACT/.test(ck.kick || ""), JSON.stringify([rw.picked, ck, rw.err])]);
+    c.push(["after a live redraw (dashboardRedraw) the entry Chip and its line are highlighted again, the entry still in the inspector", rw.r1 === true && rd2.tab === "who" && rd2.sum && JSON.stringify(rd2.on) === '["g:downstream.1","li:downstream.1"]' && rd2.ref === "downstream.1" && /^IMPACT/.test(rd2.kick || ""), JSON.stringify(rd2)]);
+    c.push(["a redraw that removes the entry shows the inspector's default text for Who feels it, nothing highlighted", rw.r2 === true && gn.tab === "who" && gn.inspected === null && gn.dflt === true && !(gn.on || []).length && gn.kick === null, JSON.stringify(gn)]);
+    const ri = view(planPage("impact-redraw", EX, PW + `
+      tab("t-built"); tab("t-impact"); out.picked=pick('#impact-body .icard[data-imp="downstream.1"]');
+      out.r1=redraw(d=>{ d.impact.summary=(d.impact.summary||"")+" (redrawn)"; }); out.redraw={tab:CUR_TAB,sel:sel(),kick:kick()};
+      out.r2=redraw(d=>{ d.impact.downstream=d.impact.downstream.slice(0,1); }); out.gone={tab:CUR_TAB,sel:sel(),inspected:INSPECTED,dflt:ins().innerHTML===DEFAULT_INSPECT.impact};
+      document.body.dataset.r=JSON.stringify(out);`));
+    c.push(["Consequences beside it: the Consequences Card stays selected across the redraw, and the default text once it is gone", ri.picked && ri.r1 === true && JSON.stringify((ri.redraw || {}).sel) === '["downstream.1"]' && /^IMPACT/.test((ri.redraw || {}).kick || "") && ri.r2 === true && (ri.gone || {}).inspected === null && (ri.gone || {}).dflt === true, JSON.stringify([ri.redraw, ri.gone, ri.err])]);
+    /* a numbered As built statement: its number set apart from its text, on Final state, the Design Tab's As built cell and the inspector */
+    const num = (EX.rows || []).find(r => r.verdict && r.verdict.list === "numbered" && r.asBuilt && Array.isArray(r.asBuilt.statements) && r.asBuilt.statements.length > 1);
+    if (!num) { c.push(["the worked example has a numbered row with as-built statements", false, "none"]); return; }
+    const GAP = `[...document.querySelectorAll(".stmts.marked.num .n")].filter(n=>n.offsetParent).map(n=>{ const a=n.getBoundingClientRect(), b=n.nextElementSibling&&n.nextElementSibling.getClientRects()[0]; return [n.closest(".inspector")?"inspector":(n.closest('[role="tabpanel"]')||{}).id, b?Math.round(b.left-a.right):null]; })`;
+    const rn = view(planPage("numbered", EX, PW + `
+      tab("t-built"); tab("t-built-final"); out.final=${GAP}; pick('#p-built-final .bcard[data-row="${num.id}"]'); out.insp=${GAP}.filter(x=>x[0]==="inspector"); tab("t-design"); out.design=${GAP};
+      document.body.dataset.r=JSON.stringify(out);`));
+    const gaps = [...(rn.final || []), ...(rn.insp || []), ...(rn.design || [])];
+    c.push(["a numbered As built statement's number stands apart from its text (a gap of 4 px or more) wherever it is drawn: Final state, the inspector, the Design Tab", (rn.final || []).length > 1 && (rn.insp || []).length > 1 && (rn.design || []).length > 1 && gaps.every(g => g[1] != null && g[1] >= 4), JSON.stringify([rn.final, rn.insp, rn.design, rn.err])]);
+    /* a version in the release line's .badge longer than the narrow page is wide wraps inside the line: the page does not scroll sideways. Headless Chrome lays
+       a page out no narrower than about 500 px whatever the window asked for, so the version is made longer than that (about 400 px of it
+       on the data of a real board already overflowed a true 400 px page) */
+    const lg = copy(EX); lg.impact.release = { ...(lg.impact.release || {}), bump: "none", unreleased: true, version: "1.0.0-SNAPSHOT of the six verification artifacts, built and never published", note: "Verification case: a long version." };
+    const rl = view(planPage("long-badge", lg, PW + `tab("t-built"); tab("t-impact"); const b=document.querySelector("#impact-body .ihead .badge"), r=b&&b.getBoundingClientRect();
+      out.n={sw:document.scrollingElement.scrollWidth,w:document.documentElement.clientWidth,badge:b?b.textContent:null,right:r?Math.round(r.right):null,h:r?Math.round(r.height):null}; document.body.dataset.r=JSON.stringify(out);`), "400,900");
+    const n4 = rl.n || {};
+    c.push(["on a narrow page a version in the release line's .badge longer than the page is wide wraps inside the line, and the page does not scroll sideways", !!n4.badge && n4.badge.length > 120 && n4.w < 700 && n4.sw <= n4.w && n4.right <= n4.w && n4.h > 25, JSON.stringify([n4, rl.err])]);
   });
   return groups;
 };

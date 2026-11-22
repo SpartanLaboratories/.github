@@ -171,9 +171,14 @@ module.exports = function casesInspectorHide(X) {
     const V = require(sk("verify/verified.json")).templates, dev = require(sk("system/scripts/deviation.js"));
     ["system", "supersystem"].forEach(k => {
       const key = FILE[k], rec = V[key] || {}, cur = dev.sha(T[k]);
-      const old = (rec.history || []).slice().reverse().find(v => v.sha256 !== cur && v.file && fs.existsSync(sk("verify/history/" + v.file)) && !/inspector-hide/.test(rd(sk("verify/history/" + v.file))));
-      if (!old) { c.push([`${NAME[k]}: an older recorded version to splice from`, false, "none in verify/history/"]); return; }
-      const root = path.join(sc, "splice-" + k), page = wr(path.join(root, "docs", "dashboards", "b", "index.html"), rd(sk("verify/history/" + old.file)));
+      /* the newest recorded version without the Hide button, read through history.js: verify/history/ first, rebuilt from the history
+         clone (--history-repo) where a copy of the skill has no cache */
+      let oldHtml = null;
+      const old = (rec.history || []).slice().reverse().find(v => { if (v.sha256 === cur) return false;
+        const h = require(sk("system/scripts/history.js")).readVersion(sk(key), x => x.sha256 === v.sha256, { historyRepo: X.historyRepo });
+        if (h == null || /inspector-hide/.test(h)) return false; oldHtml = h; return true; });
+      if (!old) { c.push([`${NAME[k]}: an older recorded version to splice from`, false, "none in verify/history/, and none rebuilt"]); return; }
+      const root = path.join(sc, "splice-" + k), page = wr(path.join(root, "docs", "dashboards", "b", "index.html"), oldHtml);
       wr(path.join(root, "docs", "dashboards", "_template", `${k}.html`), T[k]);
       const r = cp.spawnSync(process.execPath, [sk("system/scripts/splice.js"), page, "--template", tp(key)], { encoding: "utf8" }), h = rd(page);
       c.push([`${NAME[k]}: spliced from the version of ${old.verified || "?"} (${old.sha256.slice(0, 12)}), its inspector's markup its own (the heading alone) and the Hide button wired by the renderer`,

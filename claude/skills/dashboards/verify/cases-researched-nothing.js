@@ -8,7 +8,8 @@
 // B3. sub-issues-filed leaves a true summary on each filed unit whose run has not started; a summary written otherwise is kept.
 // B4. No template class names an element's kind without its type word (TERM CLASS): .wip-panel, .unit-card, .dep-item.
 // B5. A small fix's steps line has no research step: STEPS_BY_LEVEL, its sized at plan (one naming research refused), every research event refused,
-//     its gap milestone counted under the plan, its Timeline naming no research, new.js laying it at plan.
+//     its gap milestone counted under the plan and written by the fill that writes the Rows (check.js warns without it), its Timeline naming
+//     no research, new.js laying it at plan.
 // Each group returns [title, cases].
 "use strict";
 const fs = require("fs"), path = require("path"), cp = require("child_process"), os = require("os");
@@ -168,6 +169,16 @@ module.exports = function casesResearchedNothing(X) {
     c.push(["…and under research on a small feature's line, as before", lib.milestoneStep(f3, p.milestones[0]) === "research", lib.milestoneStep(f3, p.milestones[0])]);
     const TL = lib.timelineSteps(p, { now: T(30) });
     c.push(["its Timeline names no research, among the steps or as unrecorded", !(TL.left || []).includes("research") && !/research/.test(lib.timelineLeftOut(TL)), js([TL.left, lib.timelineLeftOut(TL)])]);
+    /* the gap milestone is the fill's that writes the Rows, as no researched comes (plan/RULES.md §2, column 1): written with them, the column
+       header dated; left out, check.js warns */
+    const gapFill = (issue, ms) => { const rr = root0(), FF = `docs/plans/${issue}-a-fix`, LL = ev(rr, FF, "sized", { step: "plan", baseline: "abc1234" }, T(1), { grade: 2 });
+      const sys = ((LL.p || {}).systems || [])[0], fields = wr(path.join(sc, `fill-${issue}.json`), js({ function: "Verification case: the run fixes a check.",
+        rows: [{ id: "fix", name: "The check", system: (sys || {}).slug || "x", where: "src/Main.kt", gap: { summary: "The check misses a case.", evidence: "`src/Main.kt:12`" } }], ...(ms ? { milestones: ms } : {}) }));
+      const f = run(sk("plan/scripts/fill.js"), [path.join(rr, ...FF.split("/")), "--fields", fields, "--json"], { env }), ck = run(CHECK, [path.join(rr, ...FF.split("/"))], { env });
+      return { f, out: (ck.stdout || "") + (ck.stderr || ""), p: JSON.parse(rd(at(rr, FF))) }; };
+    const gw = gapFill(87, [{ date: "2026-11-13", column: "gap", label: "Gap written from the issue" }]), gn = gapFill(86, null);
+    c.push(["a small fix's fill that writes the Rows writes the gap milestone with them: check.js says nothing of it; without it, check.js warns", gw.f.status === 0 && gn.f.status === 0 && (gw.p.milestones || []).some(m => m.column === "gap") && !/no "gap" milestone/.test(gw.out) && /no "gap" milestone/.test(gn.out),
+      js([gw.f.status, gn.f.status, gw.p.milestones, gw.out.slice(0, 200), gn.out.slice(0, 200)])]);
     const tpl = rd(PB);
     c.push(["the template counts the gap milestone under the plan on such a line, as lib.js does", /const lineStep=\(P,s\)=>s==="research"&&P&&P\.wip&&Array\.isArray\(P\.wip\.steps\)&&P\.wip\.steps\.length&&!P\.wip\.steps\.includes\("research"\)\?"plan":s;/.test(tpl), "lineStep"]);
     /* new.js */

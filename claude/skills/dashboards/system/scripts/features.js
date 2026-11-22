@@ -246,7 +246,7 @@ const FEATURES = [
     notFor: { supersystem: "its Structure tab draws the systems in a layout of its own", "plan-board": "no structure map", "work-board": "no structure map" },
     test: h => need(/Number\(MODEL\.structure\.h\)/.test(scripts(h)), "the structure map is fixed at 1000×612 (MODEL.structure.h not read)") },
   /* dashboards-skill/theme-switch and /inspector-switch, dated 39: the header's switches
-     (GUIDANCE.md §12, "Switch"). A board drawn before them keeps its theme button and has no inspector switch until its next rebuild (the
+     (R-10040 (Subtyped), "Switch"; R-1116 (2. Specific elements), "Switch"). A board drawn before them keeps its theme button and has no inspector switch until its next rebuild (the
      splice, its next event, board.js --refresh-template); a landed issue board is kept as it landed (§11). */
   { id: "switch-look", name: "the theme switch drawn as a switch: a track with a knob that slides to the palette shown (role=switch, aria-checked), the knob still under reduced motion", since: 39, types: ALL,
     test: h => { const s = scripts(h), c = css(h); return need(/class="switch-track"/.test(h) && /setAttribute\("role","switch"\)|role="switch"/.test(h) && /setAttribute\("aria-checked"/.test(s) && /\.switch-knob\{/.test(c) && /prefers-reduced-motion:\s*reduce\)\{\.switch-track,\.switch-knob\{transition:none\}/.test(c),

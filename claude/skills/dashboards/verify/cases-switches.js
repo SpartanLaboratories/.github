@@ -1,6 +1,6 @@
 // The cases of the header's switches (dashboards-skill/theme-switch and /inspector-switch; the
 // features dated 39), run by verify-templates.js (it passes its helpers in), or on its own with no browser: node verify/cases-switches.js [--out <dir>].
-// GUIDANCE.md §12, "Switch": a track with a knob that slides to the side of the state shown, a real toggle (role="switch", aria-checked),
+// R-10040 (Subtyped), "Switch", and R-1116 (2. Specific elements), "Switch": a track with a knob that slides to the side of the state shown, a real toggle (role="switch", aria-checked),
 // in the neutrals, the knob jumping under reduced motion. The theme switch on every dashboard type and on the rendered Markdown copies
 // (☀ light, ☾ night); the inspector switch on every board with an inspector (system, supersystem and repository state boards, issue and
 // tracking boards; not the repository work board, which has none): shown by default, the choice remembered across boards and reloads
@@ -116,9 +116,14 @@ module.exports = function casesSwitches(X) {
     const V = require(sk("verify/verified.json")).templates;
     ["system", "supersystem"].forEach(k => {
       const key = `system/template/${k}.html`, rec = V[key] || {}, cur = require(sk("system/scripts/deviation.js")).sha(T[k]);
-      const old = (rec.history || []).slice().reverse().find(v => v.sha256 !== cur && v.file && fs.existsSync(sk("verify/history/" + v.file)) && !/inspectorSwitch/.test(rd(sk("verify/history/" + v.file))));
-      if (!old) { c.push([`${NAME[k]}: an older recorded version to splice from`, false, "none in verify/history/"]); return; }
-      const root = path.join(sc, "splice-" + k), tdir = path.join(root, "docs", "dashboards", "_template"), page = wr(path.join(root, "docs", "dashboards", "b", "index.html"), rd(sk("verify/history/" + old.file)));
+      /* the newest recorded version without the switch, read through history.js: verify/history/ first, rebuilt from the history clone
+         (--history-repo) where a copy of the skill has no cache */
+      let oldHtml = null;
+      const old = (rec.history || []).slice().reverse().find(v => { if (v.sha256 === cur) return false;
+        const h = require(sk("system/scripts/history.js")).readVersion(sk(key), x => x.sha256 === v.sha256, { historyRepo: X.historyRepo });
+        if (h == null || /inspectorSwitch/.test(h)) return false; oldHtml = h; return true; });
+      if (!old) { c.push([`${NAME[k]}: an older recorded version to splice from`, false, "none in verify/history/, and none rebuilt"]); return; }
+      const root = path.join(sc, "splice-" + k), tdir = path.join(root, "docs", "dashboards", "_template"), page = wr(path.join(root, "docs", "dashboards", "b", "index.html"), oldHtml);
       wr(path.join(tdir, `${k}.html`), T[k]);
       const r = cp.spawnSync(process.execPath, [sk("system/scripts/splice.js"), page, "--template", tp(key)], { encoding: "utf8" }), h = rd(page);
       c.push([`${NAME[k]}: spliced from the version of ${old.verified || "?"} (${old.sha256.slice(0, 12)}), it carries the switch look and the inspector switch, its head reading the inspector's choice`,

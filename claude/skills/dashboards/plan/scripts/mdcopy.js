@@ -107,7 +107,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);pa
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .topbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;padding:18px 0 8px;font-size:12px;color:var(--muted);max-width:980px;margin:0 auto}
 .topbar code{overflow-wrap:anywhere}
-/* the theme switch (GUIDANCE.md §1, Themes; §12, "Switch"): ☀ light at its left end, ☾ night at its right, the knob at the palette shown */
+/* the theme switch (GUIDANCE.md §1, Themes; R-10040 (Subtyped), "Switch"): ☀ light at its left end, ☾ night at its right, the knob at the palette shown */
 .switch{appearance:none;display:inline-flex;align-items:center;gap:5px;font:600 11px/1 var(--mono);padding:3px 7px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap}
 .switch:hover{color:var(--ink);border-color:var(--ink-2)}
 .switch-track{position:relative;flex:none;width:28px;height:16px;border:1px solid var(--ink-2);border-radius:8px;background:var(--surface-2);transition:background-color .18s ease}

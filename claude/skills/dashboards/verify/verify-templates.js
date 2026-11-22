@@ -11,6 +11,12 @@
 // no --part, runs no case and records a template exactly as a whole run does (its renderings checked, then its hash and history), and only
 // when all n parts are there, each passed, on the fingerprint the files have now; otherwise it records nothing and says why. A part that
 // fails keeps its scratch and output as a whole run does, and is run again on its own; parts never run with --browser.
+// How many parts is the caller's: n such that every part ends under two minutes; one section a part (n the number of sections, which each
+// part's summary line gives, "… of <sections> sections") is the safe choice on a slow machine. A copy of the skill verified outside
+// ~/.claude keeps the finding tool beside its skills/ folder (<copy>/skills/dashboards and <copy>/tools/finding, as in ~/.claude and in the
+// .github mirror's claude/), since the scripts and cases that find words read ../../../../tools/finding/ from their own folders; and it
+// keeps verify/history/ (copied with it, or rebuilt from --history-repo by system/scripts/history.js) for the cases that splice an older
+// recorded version.
 // By default it runs only the checks that need no browser, and opens none (GUIDANCE.md §8: a skill or template change gets no browser
 // pass from the skill's own runs; the user checks it in a browser from what the report lists). It renders each template with its fixtures
 // into a scratch folder and runs system/scripts/check-board.js --auto --no-browser on every rendering, and runs the case groups below
@@ -2181,7 +2187,9 @@ catch (e) { report("the dashboards-skill/23 cases", [["the cases run to the end"
 /* The changes of dashboards-skill/24 (verify/cases-24.js): the finished steps on an issue board's progress strip clickable: the
    snapshots apply-event.js freezes into wip.history (each remediation loop and each qa pass apart; deterministic, idempotent), new.js's sizing,
    the standing rule's on a tracking board, check.js on wip.history, the reconstruction of a step with no snapshot, the template's buttons,
-   panel, viewing line and selection across the live redraw, a tracking board's unit and own steps, and this run's feature probe. */
+   panel, viewing line and selection across the live redraw, a tracking board's unit and own steps, and this run's feature probe; beside
+   them, an entry picked on Who feels it or Consequences across the live redraw, a numbered As built statement's number set apart, and a
+   long version in the release line's .badge wrapping on a narrow page. */
 if (runs()) try { require("./cases-24.js")({ sk, out, targets, dumpDom, inner, chrome, checker, embedJs, checkJs, node, stub, withData, historyRepo, NEEDS_BROWSER, notRun }).forEach(([what, cases]) => report(what, cases)); }
 catch (e) { report("the dashboards-skill/24 cases", [["the cases run to the end", false, String(e.stack).split(/\r?\n/).slice(0, 3).join(" ")]]); }
 

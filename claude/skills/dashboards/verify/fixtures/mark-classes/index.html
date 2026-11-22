@@ -90,7 +90,7 @@ a{text-underline-offset:3px}
 .newer:empty{display:none}
 .newer.liveview{border-style:dashed}
 @keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.65)}}
-/* The header's switches (GUIDANCE.md §12, "Switch"): a track with a knob that slides to the side of the state shown, a real toggle
+/* The header's switches (R-10040 (Subtyped), "Switch"; R-1116 (2. Specific elements), "Switch"): a track with a knob that slides to the side of the state shown, a real toggle
    (role="switch", aria-checked) in the boards' neutrals, never the accent or a status colour. The theme switch's ends are ☀ light and
    ☾ night, its knob at the palette shown; the inspector switch's knob stands right, its track filled, while the inspector is shown. The
    knob slides in a short transition, and jumps under reduced motion. */
@@ -712,7 +712,7 @@ a.more:hover{text-decoration:underline}
 .stmts.marked{list-style:none;padding-left:0}
 .stmts.marked>li,.stmts.marked.num>li{display:block}
 .stmts.marked>li>.verdict-pill{display:flex;width:max-content;max-width:100%;margin:0 0 3px;font-size:11.5px;padding:1px 6px;white-space:normal}
-.stmts .n{font:600 12px var(--display);color:var(--muted)}
+.stmts .n{font:600 12px var(--display);color:var(--muted);margin-right:6px}
 /* The Verdict's section chip (plan/RULES.md §2, "Statements"; dashboards-skill/53): a Verdict statement's reference as a neutral chip,
    "§R2", with the gap's kind chip's look, never the link blue; it opens the section's excerpt. */
 a.section-chip{display:inline-block;font:600 12px/1.3 var(--display);color:var(--ink-2);border:1px solid var(--line);border-radius:2px;padding:0 5px;letter-spacing:.04em;text-decoration:none;max-width:100%;overflow-wrap:anywhere;vertical-align:baseline;border-bottom:1px solid var(--line)!important}
@@ -818,6 +818,9 @@ pre.src .k{color:var(--link);font-weight:600} pre.src .s{color:var(--ink-2)}
 .legend i.cmpk{border:1.5px solid color-mix(in srgb,var(--sc) 60%,var(--line));border-left:4px solid var(--sc);background:color-mix(in srgb,var(--sc) 12%,var(--surface))}
 .ihead{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:0 0 8px;font-size:12.5px;color:var(--ink-2)}
 .ihead a{text-decoration:none;border-bottom:1px solid var(--line)}
+/* a long version in the release line's .badge wraps inside the line, so a phone's page never scrolls sideways; on one line it stands as
+   tall as every other .badge */
+.ihead .badge{white-space:normal;max-width:100%;overflow-wrap:anywhere;line-height:1.3;padding-block:1.2px}
 .isum{margin:0 0 10px;max-width:110ch;color:var(--ink);font-size:13px}
 .inone{border:1px solid var(--line);border-left:4px solid var(--ink-2);border-radius:0;padding:12px 14px;margin:0 0 12px;font-size:14px;color:var(--ink-2);max-width:110ch}
 .inone p{margin:0 0 4px}
