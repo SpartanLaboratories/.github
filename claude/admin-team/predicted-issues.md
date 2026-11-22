@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":43,"last":"2026-11-22"}
+{"id":"p9","count":44,"last":"2026-11-22"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -316,6 +316,12 @@ The permission system raises the denial.
     denied is about the merge call, the entry for a destructive action denied about an action a grant covers, the entry for
     [Create Public Surface] about the permission system denying a publish itself); added as "The Publisher's spawn after a
     land is denied by the auto mode classifier".
+  - 2026-11-22, about 05:19Z: a member's rule check `--write` on its own brief, a file on the register's not-converted
+    list, recorded the brief's new pointers in the register; the member then restored its brief as told, and the register
+    was left with recordings no pointer carries, a case no entry holds (the entry for the live rule check giving a pointer
+    the next id is about a placed file lacking an id the built register holds, the entry for the direction manager's write
+    pass about a refusal); added as "A member's rule check `--write` on a file the register does not convert leaves the
+    register with recordings no pointer carries".
 
 ## A count changes in this mirrored file
 
@@ -703,6 +709,7 @@ The internal-names scan reads documents, boards and the comments in source code;
 Since 2026-11-13 the internal-names list holds no exception for a library’s name that only coincides with a barred name (the user’s decision: any case for an exception is brought to the user first). A document, a board or a code comment that names a Reactive Streams `Publisher`, a `java.util.concurrent.Executor` or a domain `verifier` is now a find, in backticks too (a longer word that contains a barred name, such as OkHttp’s `RoutePlanner`, is not), and the scan reads every line of each file a commit carries, so a file that already holds such a name stops the next commit that touches it. The dashboards skill’s `namerefs.js` holds its own copy of the list and must follow it, or the boards and the commit scan disagree.
 
 - **Resolution (decided by the user, 2026-11-13):** a find goes back to the requester to reword (`needs-rework`); a requester with a reason to keep it resends asking for an exception, and only then does the team put the case to the user at the console, with the file, the line and the requester’s reasons, replying `needs-user` meanwhile. An exception the user grants the first time is a one-off, a pass for that commit and that file recorded in the ledger; when the same case comes up again the team asks the user whether it should become a rule, a row in the list’s Allowed section. Each repository is swept ahead of time, read only, and its files that hold a barred name are listed, so the rewording is planned (`agents/admin-team/GUIDANCE.md`, Service: version control, “Internal names block a commit”; `nomenclature/internal-names.md`).
+- **Resolution (decided by the user, 2026-11-17, q-95 a, and 2026-11-22, q-361 a and q-399 a):** how long a pass lasts, in place of “a pass for that commit and that file” in the resolution of 2026-11-13: a pass the user grants holds for that file and the same line text on every later request on the same branch until the branch lands; one granted on a mirror-sync holds on that one request alone, all its attempts. The same case, which brings the question whether it should become a rule, is the same barred word used in the same meaning, or naming the same library’s type, in any file or repository; a different meaning of the same word is a different case (`agents/admin-team/GUIDANCE.md`, Service: version control, Executing a request, “Internal names block a commit”).
 - **Predicted:** the admin team, on recording the decision, 2026-11-13.
 - **Encounters:**
   - 2026-11-13: the organization repository, the commit that opens Policy: the documentation standard’s page names its outer ring’s readers as “system architects” (`policy/documentation/audience-reach.md:58` in the prepared package). Found before the commit was sent and put to the user at the console.
@@ -1573,3 +1580,19 @@ After a land merges a change whose version bump moves a published module, the te
 - **Predicted:** the admin team, on meeting it, 2026-11-22.
 - **Encounters:**
   - 2026-11-22, about 04:37Z: the land of WebTools #39, whose version bump moved `webtools-udp` to 2.0.1a. The merge went through; the spawn of the Publisher in consider mode for that module was denied by the team session's auto mode classifier, reason "[Destructive or Unwanted Actions]". Not retried, and no other route tried; the landing was finished without the release and the candidate recorded `publish-failed`: nothing published, no tag, no release. The Coordinator put the release to the user as a question. As the team's ledger records it (its classifier-refusal line, the run's progress line before it, and the publish-failed line after it), read by the Archivist; the spawn as the team reported it, not re-checked by the Archivist.
+
+## A member's rule check `--write` on a file the register does not convert leaves the register with recordings no pointer carries
+
+```json
+{"id":"p92","count":1,"last":"2026-11-22"}
+```
+
+A member writes pointer lines into a file of its own that is on the register's not-converted list (`notConverted` in `admin-team/rule-files.json`) and runs the rule checker's `--write --defer-policies`. The checker reads the file all the same: it gives the pointers ids and records them in the register. When the member then restores its file, as its prompt has it, the register keeps recordings no pointer carries, the live plain rule check fails, and the register no longer matches the bytes last placed and mirrored. No document was found that says the checker reads no line of a not-converted file: the list only marks the file's entry as not converted (the hook's reading of the organization repository's rule scripts, not re-checked by the Archivist). It is not "The live rule check gives a pointer the next id when the built register already holds the approved one and the placed file does not", which is about a placed file lacking an id its built register holds, nor "The direction manager's after-edit write pass of the rule checker is refused as destructive", which is about a refusal.
+
+- **Proposed resolution:** none decided. The two options of the team's hook-408, neither decided:
+  - a) Member-line hand-offs expect it: a prompt that has a member write lines into a not-converted file and run the checker's `--write` says the register will record them, and how the register is put back when the file is restored.
+  - b) The checker records nothing from a file on the register's not-converted list.
+  As practised on the encounter: a direction manager job runs `--write --defer-policies` again on the restored file, which takes the stale recordings off, and confirms the register back at its placed bytes and the plain check passing.
+- **Predicted:** the admin team, on meeting it, 2026-11-22.
+- **Encounters:**
+  - 2026-11-22, found about 05:19Z, resolved about 05:21Z: in the rule rework, the Communication Clarity Officer's job applying its four brief lines of a landing step ran `rule-check.js --write --defer-policies` on its brief, which is on the not-converted list (read by the Archivist in the register). The run wrote four pointer ids into the brief and four recordings into the register; the Officer restored its brief as its prompt said, leaving the four recordings, and the live plain check read "FAIL: 3 finding(s)". The cause, as the team recorded it: the prompt had told the Officer the checker reads no line of an unconverted brief, which was wrong. The Coordinator chose a short direction manager job (option B, placing the brief with the ids, set aside because it would have forced two later packages to be rebuilt); its `--write --defer-policies` took the four recordings off, the register back byte for byte at the file the step placed and mirrored, `rule-index.md` unchanged, the plain check "OK: 68 file(s), 519 id(s)", the brief unchanged and no mirror-sync needed. The four pointer edits go with a later step of the rework. As the team's ledger records it (its issue-encountered and issue-resolved lines), read by the Archivist; when the Officer's job ran, and so how long the register stood stale, is not recorded there and not checked by the Archivist.

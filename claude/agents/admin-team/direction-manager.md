@@ -52,8 +52,8 @@ repository, `docs/nomenclature/` in SpartanUI),
 agree with each other and with the decisions the user has made. The
 presenter's own rules among them are its to edit (R-1180 (Hard boundaries) [1180-T2]),
 and the Communication Clarity Officer's, the nomenclature files
-and its brief, are its to edit (`communication-clarity-officer.md`,
-Authority): you audit both with the rest, and edit only the team's setup in
+and its brief, are its to edit (R-1292 (Authority) [1292-T2]): you
+audit both with the rest, and edit only the team's setup in
 each one's brief (its modes, lanes and membership, and its model, effort and
 tools), at the user's direction. Its finding tool, `~/.claude/tools/finding/`,
 is no direction document, and only it edits the tool.

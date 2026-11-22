@@ -19,14 +19,15 @@ which keep them off the boards. A find of the scan blocks the `commit`, `prepare
 wording to say instead, or that it has none, and the requester rewords the find, by hand where
 there is no wording, and resends, or resends asking for an exception (below); a find in a board
 the admin team generates is the team's to fix. What the commit scan reads, how each scan finds a
-term, and what only resembles one, is in [`finding.md`](finding.md).
+term, and what only resembles one, is in
+R-142 (Finding — what a scan reads and how it finds a vocabulary's words) [142-T6].
 
 Only the user decides adding, changing or removing a term in this file; the admin team's
 Communication Clarity Officer makes the edit, and brings to the user the terms it proposes. A case
 for an exception to anything the list bars is brought to the user first, save a marker of section
 4, which the Communication Clarity Officer adds and writes itself:
 how the case is put, and how an exception the user grants is recorded, is in the admin team's
-brief ([`admin-team/GUIDANCE.md`](../agents/admin-team/GUIDANCE.md), "Internal names block a commit").
+brief (R-10122 (Executing a request) [10122-T3], "Internal names block a commit").
 
 The list has four sections:
 
@@ -37,9 +38,10 @@ The list has four sections:
    rule, and the markers that clear a word's technical sense.
 
 ## 1. The pipeline's agents, sessions and roles
+{"name":"1. The pipeline's agents, sessions and roles","code":"G-N-IN-P","id":1299}
 
 Each row is headed by its name, a proper noun written as one CamelCase word, and lists the name's
-known aliases. The aliases are what the scan matches, as [`finding.md`](finding.md) says.
+known aliases. The aliases are what the scan matches, as R-1120 (Matching a term) [1120-T3] says.
 
 | Name | Aliases | What it is | Allowed when |
 |------|---------|------------|--------------|
@@ -63,9 +65,10 @@ known aliases. The aliases are what the scan matches, as [`finding.md`](finding.
 | **TestInspector** | **test-inspector** | The agent that audits a change set against the test sets. | never |
 
 ## 2. The approval flow
+{"name":"2. The approval flow","code":"G-N-IN-AF","id":1300}
 
 Each row is headed by a phrase, and a row that names a form lists every word the form takes. The
-phrases and the forms are what the scan matches, as [`finding.md`](finding.md) says. A product's
+phrases and the forms are what the scan matches, as R-1120 (Matching a term) [1120-T4] says. A product's
 own user is matched as well, so a sentence about one names it in the product's own terms ("the
 player", "the caller").
 
@@ -77,6 +80,7 @@ player", "the caller").
 | **"signed off by the user"** | A decision stated in the passive: "signed off", "approved", "decided", "chosen" or "answered", followed by "by the user". | never |
 
 ## 3. Work grades
+{"name":"3. Work grades","code":"G-N-IN-WG","id":1301}
 
 | Term | What it is | Allowed when |
 |------|------------|--------------|
@@ -85,6 +89,7 @@ player", "the caller").
 | **"the recorded grade"** | The word in any other form: "grade", "grades", "graded", "re-grade", "work grade", and a hyphenated compound that holds it. | as section 4's markers say |
 
 ## 4. Allowed
+{"name":"4. Allowed","code":"G-N-IN-A","id":1302}
 
 | Term | What it is |
 |------|------------|
@@ -92,11 +97,12 @@ player", "the caller").
 | **The qa step, its passes and its data keys** | "Quality Review 2", the Quality Reviews tile. |
 
 ### Markers
+{"name":"Markers","code":"G-N-IN-A-1","id":10168}
 
 A word below is no find where one of its markers stands directly before it or joins it in a
 compound ("dispatch executor", "carrier-grade"), where one of its markers after follows it
 ("publisher key"), and, where its row says "no find", where the word itself stands in code. How a
-scan reads each is in [`finding.md`](finding.md).
+scan reads each is in R-10059 (A technical sense by its marker) [10059-T7].
 
 The markers are the Communication Clarity Officer's to manage, for any word the list bars: it adds
 and removes them, writes them here and points the word's row at them, each a technical modifier or

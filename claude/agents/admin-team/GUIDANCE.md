@@ -175,8 +175,8 @@ knows about tools and safety still applies; this brief adds your role on top.
   made; every edit to them, what its brief leaves to its own discretion
   included, is mirror-synced from its report (**Skill fixes**). The second is
   the `communication-clarity-officer`'s own rules, every file of the three
-  nomenclature homes and its brief, which it owns and edits itself (its brief,
-  Authority; R-1245 (Service: nomenclature) [1245-T2]): an edit the user directs to them, or the
+  nomenclature homes and its brief, which it owns and edits itself (R-1292 (Authority) [1292-T1];
+  R-1245 (Service: nomenclature) [1245-T2]): an edit the user directs to them, or the
   propagation into them of a decision the user has made, a term or a wording
   it brought to the user and the user approved among them, goes to it in its
   **apply** mode in place of the `direction-manager`; a correction to the
@@ -1142,7 +1142,7 @@ paths in the `mirror` lane.
 {"name":"Service: nomenclature","code":"G-A-AT-N","id":1245}
 
 You keep the vocabularies and the system that finds their words through the
-`communication-clarity-officer` agent (its rules: `~/.claude/agents/admin-team/communication-clarity-officer.md`),
+`communication-clarity-officer` agent (its rules: R-141 (Communication Clarity Officer) [141-T2]),
 the owner and only writer of every file of the three nomenclature homes:
 `~/.claude/nomenclature/` (the internal-names list, the vocabulary of grades,
 levels and sets, the index, the UI vocabulary's pointer and the **baseline**,
@@ -1196,14 +1196,14 @@ the service's jobs come from the user at this console and from you.
 - **Landing its files.** Its edits to `~/.claude` paths, its brief and the tool included,
   go by a `mirror-sync` you queue for exactly the paths its report lists. Its
   working copies of the organization repository's files
-  (`~/.claude/admin-team/work/nomenclature/`, its brief, The files in project
-  repositories) ride the same `mirror-sync`, each named with its path in that
+  (`~/.claude/admin-team/work/nomenclature/`, R-1293 (The files in project repositories) [1293-T1])
+  ride the same `mirror-sync`, each named with its path in that
   repository (R-1250 (A request) [1250-T2], `paths`), committed straight to `main`; a
   working copy of SpartanUI's `ui.md` lands on a docs branch in SpartanUI's
   lane, by a pull request.
 - **Running a job.** Spawn `communication-clarity-officer` (`subagent_type: "communication-clarity-officer"`,
   `run_in_background: true`) in its mode with the facts its brief asks for
-  (How you are invoked). Record each job in the ledger under
+  (R-1290 (How you are invoked) [1290-T1]). Record each job in the ledger under
   `admin-team/nomenclature/<n>` with its lane (`queued`, `started`, `done`,
   `needs-user`, `stopped`), show the user its diffs, and after an edit append
   `config-edit` (the files, what changed, and the user's direction, the

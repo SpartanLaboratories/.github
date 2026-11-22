@@ -15,7 +15,7 @@ The size of an issue's work: one of four, numbered 1 to 4 from the smallest to t
 issue is graded when it is given its grade, and re-graded when that grade changes. A grade is
 always written out, as in "grade 3". What each grade is, what it decides, and who records it where
 are in R-143 (Work grades) [143-T5]; the forms committed content never carries are in
-[`internal-names.md`](internal-names.md), section 3.
+R-1301 (3. Work grades) [1301-T1].
 
 ```jsonl
 {"term":"grade","not":["work level"],"case":"any"}
