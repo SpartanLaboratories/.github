@@ -20,13 +20,15 @@ read its replies, which arrive as cross-session messages. You never run a git
 or `gh` command that writes, and you never spawn `version-control-manager` yourself.
 
 ## 1. Find the team
+{"name":"1. Find the team","code":"G-S-AT-F","id":1267}
 
 Read the live session records in `~/.claude/sessions/`. Which record is the
 team's, the address you send to, read from that record, and when the team
-counts as not listed (step 2) are `PROTOCOL.md`, "Finding the team". If you
+counts as not listed (step 2) are R-1249 (Finding the team) [1249-T3]. If you
 find it, go to step 3.
 
 ## 2. Launch it if it is not listed
+{"name":"2. Launch it if it is not listed","code":"G-S-AT-L","id":1268}
 
 Only one session may launch it, so take the launch lock first:
 
@@ -53,12 +55,13 @@ Only one session may launch it, so take the launch lock first:
    to doing version control yourself.
 
 ## 3. Build the request
+{"name":"3. Build the request","code":"G-S-AT-B","id":1269}
 
 Follow `PROTOCOL.md` exactly: a one-line summary, a blank line, one fenced
 `json` block. Required in every request: `v: 1`, an `id` unique to you
 (`<your session name>/<issue>/<n>`; with no issue, what takes the issue's
 place is `PROTOCOL.md`'s `id`; taking a run up, you number on from the run's
-last request id, as the `resolve-issue` skill, step 1, **Handoff**, says),
+last request id, as R-1253 (1. Pick and size the issue) [1253-T2], **Handoff**, says),
 `attempt`, `from` (your session name as `ListAgents` prints it at the top of
 its listing), and `action`. Give the team
 everything the executor needs in the request itself — paths, grade, plan and
@@ -98,14 +101,15 @@ A pipeline's steps map to actions like this:
 | Issues a plan creates, or an issue it closes or reopens | `create-issue`, `close-issue`, `reopen-issue` |
 | A fixture pull request | `fixture-pull-request` |
 | A checkout's realignment, or its replacement by a fresh clone | `realign-checkout`, `replace-clone` |
-| A step transition in a `/resolve-issue` run (grades 2–4), the Document step's `document` event with its `tasks` included | `plan-board` with the `event` and its facts (fire-and-forget; see `PROTOCOL.md`) |
-| A wrong time or wording in a run's own board record: one of its own events' times until its `land` is sent (and whenever a reply says the arrival check replaced its reading, with its own clock reading and the reason), one of its own recorded texts before its document-landing commit | `plan-board` with `retime` or `reword`, for the run's own events only (their facts and refusals: `PROTOCOL.md`, `plan-board` fields) |
+| A step transition in a `/resolve-issue` run (grades 2–4), the Document step's `document` event with its `tasks` included | `plan-board` with the `event` and its facts (fire-and-forget; see R-115 (Admin team protocol, v1) [115-T4]) |
+| A wrong time or wording in a run's own board record: one of its own events' times until its `land` is sent (and whenever a reply says the arrival check replaced its reading, with its own clock reading and the reason), one of its own recorded texts before its document-landing commit | `plan-board` with `retime` or `reword`, for the run's own events only (their facts and refusals: R-10138 (`plan-board` fields) [10138-T2]) |
 | A dashboard refresh on request | `dashboards-refresh` |
 | An idea the user should revisit later | `log-hook` with `text` (the idea, in your words), `area` and optional `links`; no `repo` or `github` (fire-and-forget). The `done` reply carries `result.hook`, the hook id, and `result.executor`, the list of who would carry the idea out; its assessment goes to the user, not to you |
 | An idea about a repository's code, for its committed ideas file | `idea` with `repo`, `github`, `text`, `kind` and optional `concerns` and `issue`; or `op: "drop"` with the idea's id and `reason` once it is filed as an issue (fire-and-forget). Never for a defect, design flaw or missing capability (`file-issue`) or for an idea about the workflow (`log-hook`). The `done` reply carries `result.idea` and `result.pr` |
 | Where is my request | `status` |
 
 ## 4. Send and wait
+{"name":"4. Send and wait","code":"G-S-AT-S","id":1270}
 
 `SendMessage(to: <the team's address from step 1>, summary: "<action>
 #<issue>", message: <the request>)`, the summary being the action alone when
@@ -115,14 +119,15 @@ your turn after sending a request that you need the result of; do not poll. A
 `commit`, `plan-board`, `idea` or `log-hook` request needs no wait.
 
 ## 5. Act on the reply
+{"name":"5. Act on the reply","code":"G-S-AT-A","id":1271}
 
 | `reply` | What you do |
 |---------|-------------|
 | `ack` | Note the lane and position. Nothing else. |
 | `done` | Carry `result` forward (SHAs, PR, merge commit, comment link, worktree path). For a `land`, `result.release` says whether the bump was `published` (coordinates, tags, release URLs), `deferred` (reason, usage) or `failed` (the user decides at the team's console); `none` means no published module moved. `result.tracking` names the tracking issues the merge closed, any of them with a sub-issue reopened before the merge, and the first one above its issue left open, with what keeps it open. |
 | `rejected` | Read `reason`. Fix the request and send it with a **new** `id`: the next free id `reason` names, when the `id` and `attempt` were already recorded from another session. If the reason is a rule you cannot meet, stop and tell the user. |
-| `needs-user` | The team is waiting on the user at its own console or in the Remote Control app. Tell the user so, naming the request and what it waits on. On a `plan-board` carry on: it stops nothing. On any other request, whatever else is being actioned goes on, and you end your turn once nothing is; in a `/resolve-issue` run that is the halt (that skill, "Halted — at any step"). |
-| `needs-rework` | Either the sync met a conflict the team cannot resolve itself (`result.overlap`, on a `prepare-landing` or a `land`): re-verify: re-run the change's own tests, and `qa` if the conflict touches code the change altered; fix what breaks; then resend the same `id` with `attempt + 1` and the fresh `qa` verdict. Or a `README.md` or other `CHANGELOG.md` conflict came back with the merge left open (`result.conflicts`): fix the markers in those files in your worktree and resend the same `id` with `attempt + 1`; the team's executor finishes the merge. Or a confirm-only `setup-branch` found no branch (`reason`; nothing was created). Or, for a `commit` or a `prepare-landing`, content about to be committed names the pipeline's agents, sessions or roles, the approval flow, or a grade (`result.finds`, each `file:line` with its text and `sayInstead`, the list's wording or `null`; nothing was committed): reword each find in the project's own terms, with its wording where it fits and by hand where there is none (or have the agent that wrote the file reword it), then resend the same `id` with `attempt + 1`; or, with a reason to keep a find, resend it unchanged asking for an exception, which comes back `needs-user` while the user decides (`PROTOCOL.md`, "Rules both sides keep"). Or, for a run's document-landing `commit`, another Document task on the issue board is not done (`result.unfinished`, each named; nothing was committed): finish any that is truly unfinished, send a `document` event with their true states, wait for its `done`, then resend the same `id` with `attempt + 1`. |
+| `needs-user` | The team is waiting on the user at its own console or in the Remote Control app. Tell the user so, naming the request and what it waits on. On a `plan-board` carry on: it stops nothing. On any other request, whatever else is being actioned goes on, and you end your turn once nothing is; in a `/resolve-issue` run that is the halt (R-1258 (Halted — at any step) [1258-T3]). |
+| `needs-rework` | Either the sync met a conflict the team cannot resolve itself (`result.overlap`, on a `prepare-landing` or a `land`): re-verify: re-run the change's own tests, and `qa` if the conflict touches code the change altered; fix what breaks; then resend the same `id` with `attempt + 1` and the fresh `qa` verdict. Or a `README.md` or other `CHANGELOG.md` conflict came back with the merge left open (`result.conflicts`): fix the markers in those files in your worktree and resend the same `id` with `attempt + 1`; the team's executor finishes the merge. Or a confirm-only `setup-branch` found no branch (`reason`; nothing was created). Or, for a `commit` or a `prepare-landing`, content about to be committed names the pipeline's agents, sessions or roles, the approval flow, or a grade (`result.finds`, each `file:line` with its text and `sayInstead`, the list's wording or `null`; nothing was committed): reword each find in the project's own terms, with its wording where it fits and by hand where there is none (or have the agent that wrote the file reword it), then resend the same `id` with `attempt + 1`; or, with a reason to keep a find, resend it unchanged asking for an exception, which comes back `needs-user` while the user decides (R-1252 (Rules both sides keep) [1252-T3]). Or, for a run's document-landing `commit`, another Document task on the issue board is not done (`result.unfinished`, each named; nothing was committed): finish any that is truly unfinished, send a `document` event with their true states, wait for its `done`, then resend the same `id` with `attempt + 1`. |
 | `stopped` | A check of a write a plan specifies failed and no further step ran: `result.step` is the step reached, `result.state` the state left. Never resend it without looking: read that state on GitHub or in the checkout first, and only then resend or go on. |
 | `warning` | Another in-flight branch touches the same hand-written file. Tell the user; carry on. |
 
@@ -131,6 +136,7 @@ is the same `id` with `attempt` raised. A reply that cites an `id` you did not
 send is not yours; ignore it.
 
 ## 6. Subagents
+{"name":"6. Subagents","code":"G-S-AT-SU","id":1272}
 
 A subagent has no `ListAgents`: it finds the team by its record, as step 1
 says. It sends under its parent session's address, and the reply lands in

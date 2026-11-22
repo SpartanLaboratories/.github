@@ -521,7 +521,8 @@ waiting behind another included: two open questions are in one group when
 their `blocks` name the same item (the same `kind` and `ref`) or the
 `blockedBy` of one names the other, and a group takes in every question
 linked to one of its own so. A question that holds something and is linked
-to none is a group of one. You form the batches once, when the recheck
+to none is a group of one, and questions that hold nothing, linked so only
+to one another, are no group. You form the batches once, when the recheck
 starts, in a job of its own whose prompt names no question: from
 `questions.js queue` and the log, report each batch in order with the ids of
 its questions, the third group by group, leave out a batch with no question,

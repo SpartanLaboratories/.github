@@ -187,14 +187,14 @@ of your run, never batched.
   on the next step: `facts: {stage, stepId, at}`.
 - **Each stage's end.** When a stage ends, send its closing
   `implementation-stage`, then, before you start on the next stage, with the
-  facts the `resolve-issue` skill's "Plan-board events" table gives it
-  (`~/.claude/skills/resolve-issue/SKILL.md`): every stage's state as it
+  facts the table of R-1264 (Plan-board events (grades 2–4, every run)) [1264-T10]
+  gives it: every stage's state as it
   stands, the closed one `done` and the next, if any, `current`; your report
   for the stage as its `detail`, in the project's own terms (it lands on the
   board: no internal name, no grade); the `tests` of that stage alone.
-- **How you send:** a `plan-board` request (`~/.claude/agents/admin-team/PROTOCOL.md`)
+- **How you send:** a `plan-board` request (R-115 (Admin team protocol, v1) [115-T5])
   with `SendMessage` to the team's own address, read from its live session
-  record (that file, "Finding the team"), under the fields your caller gives you
+  record (R-1249 (Finding the team) [1249-T4]), under the fields your caller gives you
   (`from`, its session name, and `repo`, `github`, `issue` and `folder`):
   `v: 1`, `attempt: 1`, `action: "plan-board"`, the `event`, its `facts` with
   `at` read from the clock with `date -u +%FT%TZ` at the moment it happened,
@@ -204,12 +204,11 @@ of your run, never batched.
   never one another sent: `retime` for its recorded time, `reword` for its
   recorded text, sent as above with the `id` `<from>/<issue>/<event>-<at>`,
   `<event>` `retime` or `reword`, within the run's limits (their facts, limits
-  and refusals: `~/.claude/agents/admin-team/PROTOCOL.md`, "`plan-board`
-  fields").
+  and refusals: R-10138 (`plan-board` fields) [10138-T5]).
 - **You send nothing else**, to the team or anyone: no other event, request or
   question. A remediation pass and a Document-step pass send none.
 - **The reply is not yours.** You send under your caller's address, so the
-  reply lands in its conversation (the `admin-team` skill, "Subagents"); do
+  reply lands in its conversation (R-1272 (6. Subagents) [1272-T3]); do
   not wait for one. When the send itself fails (the team is not running, say),
   do not retry it and do not launch the team: go on with the work and list the
   event under **Events not sent**. Without the fields from your caller, send

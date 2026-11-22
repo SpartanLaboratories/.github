@@ -31,18 +31,19 @@ allowed-tools: Bash(gh issue list *), Bash(gh issue view *), Bash(gh pr list *),
 {"name":"The resolve-issue skill","code":"G-S-RI","id":16}
 
 Work **one** GitHub issue toward resolution using the project's agents — or,
-named on a planned tracking issue, its sub-issues (see "Tracking issues and run
-modes"). Follow the steps in order. Within a run, wait for each spawned agent to
+named on a planned tracking issue, its sub-issues
+(see R-1254 (Tracking issues and run modes) [1254-T1]). Follow the steps in order.
+Within a run, wait for each spawned agent to
 finish before starting the next. All version control runs through the
 **`admin team` session**: load the `admin-team` skill and send it requests
 (it launches the team if it is not running). The team's executor acts
-autonomously except at the team's gates (see `admin-team/GUIDANCE.md`, "Gates and
-standing grants"), which the user confirms at the team's console; a request
+autonomously except at the team's gates
+(see R-10124 (Gates and standing grants) [10124-T3]), which the user confirms at the team's console; a request
 waiting on one comes back `needs-user`; a **Maven
 publish** is the team's own decision within its monthly budget, never yours
 to ask for; a **downstream-consumer issue** is never filed (reported
 instead), and **sub-issues** are filed only from a list the user approved,
-in advance with `--no-signoff` (see "Prompt flags") or when asked. You
+in advance with `--no-signoff` (see R-1256 (Prompt flags) [1256-T2]) or when asked. You
 yourself never commit, push, merge, tag, publish, label, or file/comment on an
 issue, and never spawn `version-control-manager`.
 
@@ -61,7 +62,8 @@ skill runs a different pipeline per grade:
 **No internal names in committed content.** Every document and board this run commits (plans,
 research, architecture, `consequences.md`, `final-implementation.md`, the issue board) never names
 the pipeline's agents, sessions or roles, never refers to the approval flow, and never states a
-grade, as `~/.claude/nomenclature/internal-names.md` lists them with what is fine. That
+grade, as R-126 (Internal names — what committed content never names) [126-T21] lists them with
+what is fine. That
 covers the text you send in `plan-board` facts (`detail`, `open`, `questions`, `reason`), which
 lands on the committed issue board. In
 every text a `plan-board` fact carries (detail, notes, `waitingOn`, questions and options, open
@@ -75,19 +77,21 @@ content breaks it (the document-landing commit of step 6 included) is blocked: t
 replies `needs-rework` with `result.finds` (`file:line`, the text, and `sayInstead`, the list's
 wording or `null`); reword each find, with its wording where it fits and by hand where there is
 none, and resend the same `id` with `attempt + 1`. With a reason to keep a find, resend it asking for an exception instead,
-which waits on the user as `needs-user` (`~/.claude/agents/admin-team/PROTOCOL.md`, "Rules both sides
-keep"); under `--unattended` the run rewords instead and asks for no exception ("Prompt flags").
+which waits on the user as `needs-user`
+(R-1252 (Rules both sides keep) [1252-T2]); under `--unattended` the run rewords instead
+and asks for no exception (R-1256 (Prompt flags) [1256-T3]).
 
 ## 1. Pick and size the issue
+{"name":"1. Pick and size the issue","code":"G-S-RI-P","id":1253}
 
 - Repo: `gh repo view --json nameWithOwner -q .nameWithOwner`.
 - **Target:** `$ARGUMENTS` is an optional issue number, an optional mode
-  word, `consecutive` or `concurrent`, any of the prompt flags ("Prompt
-  flags") and, in a chain member's invocation, `--chain <n>` ("Chain
-  members"), in any order. A word starting `--` that is none of these stops
+  word, `consecutive` or `concurrent`, any of the prompt flags
+  (R-1256 (Prompt flags) [1256-T4]) and, in a chain member's invocation, `--chain <n>`
+  (R-1255 (Chain members) [1255-T1]), in any order. A word starting `--` that is none of these stops
   the run before anything else: ask the user what it meant. If the number names a **planned
-  tracking issue**, or a mode word is given, see "Tracking issues and run
-  modes" below. If `$ARGUMENTS` is any other issue number, that is the issue.
+  tracking issue**, or a mode word is given, see
+  R-1254 (Tracking issues and run modes) [1254-T2] below. If `$ARGUMENTS` is any other issue number, that is the issue.
   Otherwise list open issues oldest-first —
   `gh issue list --repo <repo> --state open --json number,title,createdAt,labels,url --limit 200 --jq 'sort_by(.createdAt)'`
   — and take the earliest one that is **not** labelled `blocked`, `wontfix`,
@@ -99,7 +103,7 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
   call to plan the oldest issue: its issue comes from the arguments or, with
   none, from this step's own listing.
 - If there are no open issues, say so and stop.
-- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it. One a run left when it stopped with work unfinished, not the second kind a finished run leaves ("Session handoffs" in the global `CLAUDE.md`), means you are taking a run up: set `restarted` on the first request, with the run's own clock readings (`~/.claude/agents/admin-team/PROTOCOL.md`, `restarted`). With no such handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up. A handoff left with work unfinished names the run's prompt flags, and the run that takes it up keeps them ("Prompt flags", **Flags in force**). It also names the run's last request id, and the session that takes the run up numbers its requests on from it; a clash that still arrives comes back `rejected`, naming the next free id, and is resent under it (`~/.claude/agents/admin-team/PROTOCOL.md`, `id`). A handoff left at an implementation pause (step 4, **Built by the user**) is one left with work unfinished: the run that takes it up goes on from the pause, as that section says.
+- **Handoff.** Look for `~/.claude/handoffs/<owner>-<repo>-<issue>.md` (e.g. `SpartanLaboratories-WebTools-66.md`); if present and not empty, read it. One a run left when it stopped with work unfinished, not the second kind a finished run leaves (R-1128 (Session handoffs) [1128-T1]), means you are taking a run up: set `restarted` on the first request, with the run's own clock readings (R-1250 (A request) [1250-T3], `restarted`). With no such handoff, set it all the same when you find the run already in progress, its board or its branch for example: that is how you know you are taking a run up. A handoff left with work unfinished names the run's prompt flags, and the run that takes it up keeps them (R-1256 (Prompt flags) [1256-T5], **Flags in force**). It also names the run's last request id, and the session that takes the run up numbers its requests on from it; a clash that still arrives comes back `rejected`, naming the next free id, and is resent under it (R-1250 (A request) [1250-T4], `id`). A handoff left at an implementation pause (step 4, **Built by the user**) is one left with work unfinished: the run that takes it up goes on from the pause, as that section says.
 - Read the chosen issue in full: `gh issue view <n> --repo <repo> --comments`.
   An issue that is only partly done (an earlier tier/stage landed, more is
   open) still counts — this run's goal is the **next step**, not necessarily
@@ -109,11 +113,11 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
   the `consequences.md` of every landed sibling (a sub-issue of the issue's
   parent whose work has landed), for the follow-ups they leave open. A
   finished run's handoff holds only what cannot be committed and points at
-  its `consequences.md`, which holds the rest ("Session handoffs" in the
-  global `CLAUDE.md`). List the follow-ups in the report below; the user says
+  its `consequences.md`, which holds the rest (R-1128 (Session handoffs) [1128-T2]).
+  List the follow-ups in the report below; the user says
   which fall inside this run, and those go into the planner's brief (step 2).
   An item of a finished run's handoff that this run acts on or records
-  durably it clears as "Session handoffs" says.
+  durably it clears as R-1128 (Session handoffs) [1128-T3] says.
 - **Size it.** Ask the admin team for the issue's recorded grade (a `status`
   request naming the issue; grades are kept in its local state, never on GitHub),
   then re-check it yourself
@@ -128,10 +132,10 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
   for the user to say which fall inside this run, and a one-line statement
   of what you intend to do this run, and **confirm
   before proceeding** — this run creates branches and commits and posts a
-  comment (`--unattended` gives that go-ahead in advance: "Prompt flags"). If
+  comment (`--unattended` gives that go-ahead in advance: R-1256 (Prompt flags) [1256-T6]). If
   no grade is recorded or your check **disagrees** with it, say
   so plainly with the evidence and ask which grade to use; never pick for the
-  user, unless `--accept-grade` answers it ("Prompt flags"). The confirmed
+  user, unless `--accept-grade` answers it (R-1256 (Prompt flags) [1256-T7]). The confirmed
   grade is the run's grade.
 - Check `git status` is clean. If it is not, stop and ask the user to settle
   the working tree first; a run taken up at an implementation pause
@@ -146,6 +150,7 @@ keep"); under `--unattended` the run rewords instead and asks for no exception (
   backstop; step 3 never creates it.
 
 ## Tracking issues and run modes
+{"name":"Tracking issues and run modes","code":"G-S-RI-T","id":1254}
 
 A **planned tracking issue** is an open issue labelled `type: tracking` (a
 roadmap or a grade-4 plan) that has open sub-issues. A tracking issue with no
@@ -159,8 +164,8 @@ sub-issues yet is not planned: work it as an ordinary issue, at its grade.
 - **`/resolve-issue <n>`** on a planned tracking issue: run steps 1–8 on its
   **next** unblocked sub-issue in landing order — one sub-issue, one run.
 - **`/resolve-issue <n> consecutive`**: run steps 1–8 on every open sub-issue in
-  landing order, one after another, each in a session of its own ("Chain
-  members"). Each lands before the next one starts.
+  landing order, one after another, each in a session of its own
+  (R-1255 (Chain members) [1255-T2]). Each lands before the next one starts.
 - **`/resolve-issue <n> concurrent`**: start steps 1–8 at once on every open,
   unblocked sub-issue. Whenever one lands, start every sub-issue it unblocked.
   Keep going until every sub-issue is done.
@@ -180,7 +185,7 @@ sub-issues yet is not planned: work it as an ordinary issue, at its grade.
   sub-issue still open keeps its tracking issue open, whether or not it is
   a unit of the plan, and the land's reply names it.
 - **Flags.** The prompt flags given apply to every run in the chain, nested
-  plans and the sub-issues filed into it included ("Prompt flags"); under
+  plans and the sub-issues filed into it included (R-1256 (Prompt flags) [1256-T8]); under
   `consecutive`, each member is started with them.
 - **Isolation.** `consecutive` works in the main checkout, one sub-issue at a
   time: each member runs there, and the chain session changes nothing in the
@@ -214,10 +219,11 @@ sub-issues yet is not planned: work it as an ordinary issue, at its grade.
   waiting on the user, add a chain summary: what landed, what is in flight,
   what waits and on what, what remains, whether the tracking issue closed
   (or which sub-issues keep it open: **The end of a chain**), the decisions
-  taken by default in each run ("Prompt flags") and, under `consecutive`, any
+  taken by default in each run (R-1256 (Prompt flags) [1256-T9]) and, under `consecutive`, any
   member whose stop was refused, with its id, for the user to stop.
 
 ## Chain members
+{"name":"Chain members","code":"G-S-RI-C","id":1255}
 
 Under `consecutive`, the session the user invoked holds the chain and runs no
 sub-issue itself, so its context keeps the order and the members' reports,
@@ -235,7 +241,7 @@ alone.
 - **Starting a member.** For the next open, unblocked sub-issue in landing
   order, once `git status` is clean, run the member launcher from the main
   checkout with the member's session name `<owner>-<repo>-<sub-issue>` (its
-  handoff key, "Session handoffs" in the global `CLAUDE.md`), the sub-issue,
+  handoff key, R-1128 (Session handoffs) [1128-T4]), the sub-issue,
   the tracking issue and the chain's flags as one argument, empty when none is
   in force. Git Bash: `cmd //c "$USERPROFILE/.claude/skills/resolve-issue/launch-member.cmd"
   <name> <sub-issue> <n> "<flags>"`. It starts the member with `claude --bg`,
@@ -258,8 +264,8 @@ alone.
   folder and then, as that file's last line, `ended: landed`, `ended: planned`
   (grade 4, its sub-issues filed) or `ended: stopped` (handed back to the user,
   or abandoned), with a reason in a few words. That line is the last thing it
-  does, after its handoff when it stops with work unfinished ("Session
-  handoffs" in the global `CLAUDE.md`): the chain session stops it once it
+  does, after its handoff when it stops with work unfinished
+  (R-1128 (Session handoffs) [1128-T5]): the chain session stops it once it
   reads the line.
 - **Waiting.** The chain session waits for that line with the `Monitor` tool
   (loaded as the `admin-team` skill loads it): `until grep -q '^ended:'
@@ -286,7 +292,7 @@ alone.
 - **The chain session sends the admin team nothing about a sub-issue.** Each
   run's requests come from its member alone, sent through the `admin-team`
   skill as any run sends them (the team's record and address:
-  `~/.claude/agents/admin-team/PROTOCOL.md`, "Finding the team"), so the team
+  R-1249 (Finding the team) [1249-T2]), so the team
   never takes a member for a new session taking a run up.
 - **A chain taken up.** The chain folder is the chain's state, and the chain
   session leaves no handoff. A session invoked again with `consecutive` on the
@@ -299,11 +305,12 @@ alone.
   relay its report, as "When a member ends" says.
 
 ## Prompt flags
+{"name":"Prompt flags","code":"G-S-RI-F","id":1256}
 
 A prompt flag is the user's answer, given in advance for this run, to the
 prompts it covers: the run takes the prompt's recommendation instead of
-waiting. The global `CLAUDE.md` makes this an exception to "Never Guess
-Intent — Ask" and to its grade re-check and escalation rules. With no flag,
+waiting. The global `CLAUDE.md` makes this an exception to
+R-1125 (Never Guess Intent — Ask) [1125-T2] and to its grade re-check and escalation rules. With no flag,
 every prompt waits on the user as the steps say.
 
 | Flag | The prompts it answers with their recommendation |
@@ -311,7 +318,7 @@ every prompt waits on the user as the steps say.
 | `--no-questions` | The planner's `HALT — interview` (the grade-2 intent check included) and `HALT — research`; a non-empty **Considerations** list, the one an architecture brings included (step 2); a verification pass's recommended additions and modifications (step 2), each applied as recommended. The run resumes the same planner with the recommendations as the answers, as it would with the user's. |
 | `--no-signoff` | `HALT — architecture`: the design is approved as proposed, and with it the sub-issue list it proposes, so step 7 files that list with no second halt. A re-pass's proposed amendment to its parent architecture (step 2) is approved as proposed. An architecture's Considerations stay questions: without `--no-questions` the run waits on them alone. |
 | `--accept-grade` | The step-1 grade question: when the recorded grade and the run's check disagree, or none is recorded, the run's check is the run's grade. |
-| `--accept-escalation` | An `ESCALATE — grade` that proposes a higher grade, and the step-4 diff check: the run resumes at the grade the evidence shows ("Escalation"). An escalation into grade 4 then goes to the architecture, where `--no-signoff` decides whether the run waits. |
+| `--accept-escalation` | An `ESCALATE — grade` that proposes a higher grade, and the step-4 diff check: the run resumes at the grade the evidence shows (R-1257 (Escalation — at any step) [1257-T1]). An escalation into grade 4 then goes to the architecture, where `--no-signoff` decides whether the run waits. |
 | `--unattended` | All four above, and the step-1 go-ahead ("confirm before proceeding"). A find the admin team blocks for internal names is reworded, never resent asking for an exception. |
 | `--confirm-before-land` | None: it adds one halt (below). It combines with any of the others. |
 | `--no-implement` | None: it adds a halt before each pass of the build, for the user to build it (below). It combines with any of the others. |
@@ -345,8 +352,8 @@ every prompt waits on the user as the steps say.
     wait at its console;
   - the harness's permission prompts.
 
-  In a chain, each stops only its own sub-issue ("Tracking issues and run
-  modes", **Halts**).
+  In a chain, each stops only its own sub-issue
+  (R-1254 (Tracking issues and run modes) [1254-T3], **Halts**).
 - **What a default leaves behind.** A prompt a flag answers is no halt: the run
   sends no `halted` or `resumed` for it, and no board-event fact, document or
   comment names the prompt, the flag or the default; the choice shows only as
@@ -356,7 +363,7 @@ every prompt waits on the user as the steps say.
 - **Flags in force.** The step-1 report names the flags in force. A handoff the
   run leaves with work unfinished names them, and a run that takes it up
   keeps them; flags named in the invocation that takes it up replace them. In
-  a chain they apply to every sub-issue run ("Tracking issues and run modes",
+  a chain they apply to every sub-issue run (R-1254 (Tracking issues and run modes) [1254-T4],
   **Flags**).
 - **`--confirm-before-land`.** Once step 6's tasks are done, before its final
   `document` event and the document-landing commit, the run halts and puts the
@@ -373,6 +380,7 @@ every prompt waits on the user as the steps say.
   report says so.
 
 ## Escalation — at any step
+{"name":"Escalation — at any step","code":"G-S-RI-E","id":1257}
 
 Any agent may report `ESCALATE — grade`: the work is bigger than its grade (a
 grade-1 change needs code, a grade-2 fix changes public API or state, a grade-3
@@ -380,10 +388,11 @@ feature needs a second system). When one does, **stop**, relay the evidence and
 the grade it proposes, and ask the user. On a new grade, resume from step 2 at
 that grade, carrying forward whatever is still valid (the branch, any plan).
 Never finish bigger work under a smaller grade, and never re-grade without the
-user; `--accept-escalation` is the user's answer in advance ("Prompt flags").
+user; `--accept-escalation` is the user's answer in advance (R-1256 (Prompt flags) [1256-T10]).
 The same applies to the **diff check** in step 4.
 
 ## Halted — at any step
+{"name":"Halted — at any step","code":"G-S-RI-H","id":1258}
 
 A run is **halted** when nothing is being actioned. That is the whole test: no
 kind of wait (a planner halt, a `qa` stop, a `needs-user` reply) halts a run by
@@ -397,9 +406,10 @@ itself.
   remains: nothing is being actioned, so the run is halted then.
 
 Send the `halted` event when the run becomes halted, not when the wait begins
-(see "Plan-board events" below).
+(see R-1264 (Plan-board events (grades 2–4, every run)) [1264-T1] below).
 
-## 2. Plan — `planner`  (grades 2–4)
+## 2. Plan — `planner` (grades 2–4)
+{"name":"2. Plan — `planner` (grades 2–4)","code":"G-S-RI-PL","id":1259}
 
 **Grade 1 skips this step.** The issue text is the spec.
 
@@ -407,7 +417,7 @@ Spawn `planner` with the repo-qualified issue reference (`<owner>/<repo>#<n>`),
 the issue text, the confirmed **grade**, and the follow-ups the user put
 inside this run (step 1, **Follow-ups**). For grade 2, pass
 `model: "sonnet"`; grades 3 and 4 use the planner's own model. The planner
-scales its pipeline to the grade (see `planner.md`, "Work grades") and writes
+scales its pipeline to the grade (see R-1226 (Work grades) [1226-T1]) and writes
 into the issue's folder under `docs/plans/` (see R-138 (Planning documents) [138-T4]).
 
 A **grade-3 sub-issue of a grade-4 plan** gets the planner's detailed re-pass:
@@ -416,10 +426,10 @@ planner re-validates the unit's slice against the code as it is now, including
 siblings that have landed, and writes a full implementation plan; steps 3–7
 then implement it in the same run as for any grade-3 issue. A re-pass that
 finds the parent architecture no longer fits halts with a proposed amendment —
-relay it to the user and wait (`--no-signoff` approves it: "Prompt flags").
+relay it to the user and wait (`--no-signoff` approves it: R-1256 (Prompt flags) [1256-T11]).
 
 At grade 3 the planner opens the plan step's stages on the board itself
-(`plan-stage`, "Plan-board events"): write, check/accept, write consequences
+(`plan-stage`, R-1264 (Plan-board events (grades 2–4, every run)) [1264-T2]): write, check/accept, write consequences
 and report, after a sub-issue's re-pass, which the board opens with the
 pass. At grade 4 it opens the architecture step's: write, which the board
 opens at `researched`, again for a design sent back or reconsidered, then
@@ -436,7 +446,7 @@ leads to. `architecture-signed-off` and `plan-accepted` each carry a
 `detail`: one plain sentence giving the result of the stage each closes. It
 lands on the committed board, so "No internal names in committed content"
 (above) holds for it. `plan-accepted` also carries the board verdicts block
-of the planner's report that leads to it (`verdicts`, "Plan-board events"):
+of the planner's report that leads to it (`verdicts`, R-1264 (Plan-board events (grades 2–4, every run)) [1264-T3]):
 the block of its last report, the one returned once the answers to whatever
 it put to the user are folded in, so it rests on the plan as accepted. Copy
 it as it stands, never editing it, and send no `verdicts` when that report
@@ -450,7 +460,7 @@ these shapes; route on it:
   **verbatim**, with the recommendations attached, and wait. Never answer on
   the user's behalf, and never pick the recommended option to keep things
   moving; a prompt flag that covers the halt is the user's answer given in
-  advance ("Prompt flags"). Once the user answers, **resume the same planner** with
+  advance (R-1256 (Prompt flags) [1256-T12]). Once the user answers, **resume the same planner** with
   `SendMessage` (its context is intact) carrying the answers — do not spawn a
   fresh `planner`, which would lose the interview and the research.
 - **`HALT — research`** — research overturned an answer or raised a new
@@ -459,12 +469,12 @@ these shapes; route on it:
   the architecture document path, the decomposition, the proposed sub-issues,
   and any open decisions, sending first what its **Plan stages not sent**
   calls for (above); wait for the user to approve it, as proposed or with
-  changes, or to have it reconsidered (`--no-signoff`: "Prompt flags"); then
+  changes, or to have it reconsidered (`--no-signoff`: R-1256 (Prompt flags) [1256-T13]); then
   resume the same planner with `SendMessage`. An approval is the sign-off:
   send `architecture-signed-off` at it, before you resume the planner. A
   design to be reconsidered is no sign-off: send none, and the planner
   redrafts it and returns a new `HALT — architecture`.
-- **`ESCALATE — grade`** — see "Escalation" above.
+- **`ESCALATE — grade`** — see R-1257 (Escalation — at any step) [1257-T2] above.
 - **`COMPLETE`** — the plan is drafted (grades 2–3), or the architecture is
   signed off and the sub-issue list is final (grade 4). Continue to step 3.
 
@@ -487,7 +497,7 @@ run's `sized` names `plan` as its next step, and its `detail` says it is
 checking the existing plan and names the plan document it is based on (for
 example "Checking the existing plan, `plan.md`, against master."): it is the
 board's one signal of a verification
-(`~/.claude/skills/dashboards/plan/RULES.md` §3, `wip.plan`). Only fall back
+(R-1197 (3. Work in progress) [1197-T27], `wip.plan`). Only fall back
 to a full replan if verification turns up the draft being unsound or badly
 stale.
 
@@ -497,12 +507,12 @@ modifications, **relay them to the user and wait for a decision before**
 anyone) edit the plan file on the strength of its own recommendation alone —
 the user may accept a delta, reject it in favor of an existing convention, or
 want it applied differently. Only after the user decides, resume `planner`
-to make the agreed edit (`--no-questions` decides in advance: "Prompt flags").
+to make the agreed edit (`--no-questions` decides in advance: R-1256 (Prompt flags) [1256-T14]).
 The `plan-accepted` that follows carries the board verdicts block of the
 planner's last report, as for any plan (above).
 
 - If the returned **Considerations** list is non-empty, **stop**: relay it to
-  the user and wait (`--no-questions`: "Prompt flags"). Do not guess a design.
+  the user and wait (`--no-questions`: R-1256 (Prompt flags) [1256-T15]). Do not guess a design.
   Once the user answers, resume the same planner with `SendMessage` carrying
   the answers, to fold them into the plan, and send `plan-accepted` when it
   returns `COMPLETE` with no Considerations left.
@@ -511,6 +521,7 @@ planner's last report, as for any plan (above).
   approach.
 
 ## 3. Branch — confirm the branch, `branch-cut`
+{"name":"3. Branch — confirm the branch, `branch-cut`","code":"G-S-RI-B","id":1260}
 
 Confirm the topic branch the run created when it was sized (step 1): send the
 admin team a confirm-only `setup-branch` request with the issue reference, the
@@ -519,7 +530,7 @@ branch, and record the confirmed grade if it differs", and carry forward the
 name, base and head its `done` reply reports; this step never creates the
 branch. A `needs-rework` reply means the branch does not exist and nothing was
 created. Then, at grades 2–4, send the `branch-cut` event with the
-branch and the plan's stages ("Plan-board events" below). A run whose branch
+branch and the plan's stages (R-1264 (Plan-board events (grades 2–4, every run)) [1264-T4] below). A run whose branch
 already exists still sends `branch-cut` after `plan-accepted`, with its stages.
 Under `--no-implement`, step 4 opens with the pause (**Built by the user**).
 
@@ -527,7 +538,8 @@ Under `--no-implement`, step 4 opens with the pause (**Built by the user**).
 bump), the confirmation that the architecture and `consequences.md` are final,
 and its `state-boards` task, which draws the planned systems dashed.
 
-## 4. Implement — `rookie-dev`  (grades 1–3)
+## 4. Implement — `rookie-dev` (grades 1–3)
+{"name":"4. Implement — `rookie-dev` (grades 1–3)","code":"G-S-RI-I","id":1261}
 
 - **Grade 1:** spawn `rookie-dev` with the issue text as its spec, the work
   grade, and "comment and documentation changes only — no executable line may
@@ -539,7 +551,7 @@ and its `state-boards` task, which draws the planned systems dashed.
 - **Grade 3:** spawn `rookie-dev` with the plan document path, the grade,
   and "implement it on the current branch; commit nothing".
 - **Grades 2–3, a plan with a stage table:** also give `rookie-dev` the fields
-  its board events need (`rookie-dev.md`, "Board events").
+  its board events need (R-1153 (Board events (when you run inside a /resolve-issue run)) [1153-T3]).
 
 **Built by the user (`--no-implement`, grades 2 and 3).** The run starts no
 implementation pass before the user has built: it pauses first, and spawns
@@ -552,8 +564,8 @@ implementation pass before the user has built: it pauses first, and spawns
   minor fixes and a remediation pass alike. Building what the user left,
   right after the check (below), is the same pass and brings no second
   pause. The Document step's passes change documents and do not pause.
-- **The pause.** Write the run's handoff ("Session handoffs" in the global
-  `CLAUDE.md`), since the session may stop while it waits: the pause, what
+- **The pause.** Write the run's handoff (R-1128 (Session handoffs) [1128-T6]),
+  since the session may stop while it waits: the pause, what
   the pass would build, the flags in force, the plan document, the branch,
   its base, any worktree and the run's last request id. Tell the user, in
   the run's session, where to build (the checkout, or the worktree's path),
@@ -563,7 +575,7 @@ implementation pass before the user has built: it pauses first, and spawns
   read as part of the change. At the first build of a grade-2 fix, add that
   the plan's regression test comes first, and that its failing run before
   the fix, when kept, goes in the word that hands the work back. Send
-  `halted` once the run is halted ("Halted — at any step"), with
+  `halted` once the run is halted (R-1258 (Halted — at any step) [1258-T1]), with
   `waitingOn` what the pass would build ("the implementation of the plan",
   "the fixes the review asks for"), never the flag. Where a plan re-pass
   gates part of the fixes (step 5), one pause covers them all: the user may
@@ -584,7 +596,7 @@ implementation pass before the user has built: it pauses first, and spawns
      is in place and what is left) or not started, with `path:line`
      evidence, and each deviation from the plan".
   2. **The record.** For each stage reported built, oldest first, send its
-     `late-update` ("Plan-board events" below): the board draws it done with
+     `late-update` (R-1264 (Plan-board events (grades 2–4, every run)) [1264-T5] below): the board draws it done with
      no time. At a fix pass with every fix made, send the event the pass
      would end with, an `implementation-stage` with `remediation`, its fixes
      done. Put each deviation to the user for its reasoning, one halt for
@@ -618,24 +630,25 @@ implementation pass before the user has built: it pauses first, and spawns
 **Steps laid out during a stage.** The run may add steps to a stage in the
 plan's stage table, or nest steps under one of its steps, when they only lay
 out work the plan already holds; anything else goes back to `planner` for a
-re-pass. Either way it then sends `implementation-stage` ("Plan-board
-events" below).
+re-pass. Either way it then sends `implementation-stage`
+(R-1264 (Plan-board events (grades 2–4, every run)) [1264-T6] below).
 
 Then:
 
 - If its report has a **Not done / blocked** list, **stop**: relay it and offer
   the user either one `planner` re-pass to resolve the gap or to hand back as
   is. Do not fill in the missing design yourself.
-- If it reports `ESCALATE — grade`, see "Escalation".
+- If it reports `ESCALATE — grade`, see R-1257 (Escalation — at any step) [1257-T3].
 - **Diff check.** Run `git diff --merge-base <base-branch> --stat`, with the
   untracked files from `git status --porcelain`, and read the diff against
   the grade: grade 1 touches only comments, KDoc and Markdown; grade 2 changes
   no public signature, persisted or shared state, or wire format, and stays in
   one component; grade 3 stays inside one system. If the diff crosses its
   grade, **stop and ask the user** with the evidence, as for an escalation
-  (`--accept-escalation`: "Prompt flags").
+  (`--accept-escalation`: R-1256 (Prompt flags) [1256-T16]).
 
-## 5. QA — `qa`  (grades 1–3)
+## 5. QA — `qa` (grades 1–3)
+{"name":"5. QA — `qa` (grades 1–3)","code":"G-S-RI-Q","id":1262}
 
 Spawn `qa` with `grade:<N>` over the change set (`git diff --merge-base
 <base-branch>` plus untracked files), the plan document path (or, for grade 1,
@@ -649,7 +662,7 @@ documentation only and matches the issue); documentation is reviewed in step 6.
 Keep its gate verdict, the test-inspector **Test run** block, the code review,
 and the path to the visual test report. At grades 2–3, just before each pass,
 this one and every re-run, send the `qa-pass` event with `verdict: "running"`
-("Plan-board events" below).
+(R-1264 (Plan-board events (grades 2–4, every run)) [1264-T7] below).
 
 - **PASS** -> step 6.
 - **CHANGES REQUESTED, every fix minor** — each is easily made and has no
@@ -671,13 +684,14 @@ this one and every re-run, send the `qa-pass` event with `verdict: "running"`
 Under `--no-implement`, each fix pass, on the spot or a remediation, opens
 with the pause and ends with the commit of step 4, **Built by the user**.
 
-## 6. Document  (every grade)
+## 6. Document (every grade)
+{"name":"6. Document (every grade)","code":"G-S-RI-D","id":1263}
 
 Runs after the last `qa` verdict — `PASS`, or `CHANGES REQUESTED` with every
 fix minor and fixed on the spot — and at grade 4 straight after step 3. From
 its first task on, only documents change on the branch, and the Dokka
 configuration a level-2 documentation finding needs (task 2). Report it on the issue
-board with the `document` event (see "Plan-board events" below): send it when
+board with the `document` event (see R-1264 (Plan-board events (grades 2–4, every run)) [1264-T8] below): send it when
 the step starts and at every task change, so each task's state stays current,
 with `tasks` giving the id, name and state of every task the grade and the
 repository apply to; a task they do not, such as the Dokka check where Dokka
@@ -690,7 +704,7 @@ boards (task 6):
 0. **Open — `admin team`: `prepare-landing`.** Send a `prepare-landing` request
    (the `admin-team` skill) with the fields a `land` carries: the issue, the
    **grade**, the branch and worktree, the change set (`paths`), the `qa`
-   verdict as the `qa` field of `~/.claude/agents/admin-team/PROTOCOL.md` writes it
+   verdict as the `qa` field of R-1250 (A request) [1250-T5] writes it
    (`NONE` for grade 4), `publish` (true only if the user asked for a publish
    this run). The team's executor commits the change set,
    syncs the branch with its base (a merge, the repository's way), decides
@@ -748,8 +762,8 @@ boards (task 6):
    confirms the architecture and `consequences.md` are final.
 5. **README and CHANGELOG** (grades 1–3). Spawn `rookie-dev` for a short pass
    from the plan's **Documentation impact** section and the as-built record
-   (`final-implementation.md`): the README delta the global "Repository READMEs
-   — keep current" rule calls for, proportional (none when the change leaves
+   (`final-implementation.md`): the README delta R-135 (READMEs and CHANGELOGs) [135-T5]
+   calls for, proportional (none when the change leaves
    the project's external shape as it was), and a CHANGELOG entry in the Keep a
    Changelog layout (`### Added` / `### Changed` / `### Fixed` / `### Removed`
    / `### Deprecated` / `### Security`) — under `## [X.Y.Z] - <date>` when
@@ -775,7 +789,7 @@ boards (task 6):
    and the answer.
 
 Then the **document-landing commit**. First finish any task that is truly
-unfinished (and, under `--confirm-before-land`, halt: "Prompt flags"), then
+unfinished (and, under `--confirm-before-land`, halt: R-1256 (Prompt flags) [1256-T17]), then
 send the final `document` event, with each task in its true
 state, and wait for its `done` before sending the `commit`: the team commits
 nothing while another task on the issue board is not done (a grade-1 run has
@@ -802,9 +816,10 @@ same `id` with `attempt + 1`. Then step 7.
 The presenter is not a pipeline step: it runs as a service of the `admin team`
 session, building the state boards on the run's `state-boards` request (task 6)
 and keeping the **issue board** true from the `plan-board` events you send at
-each step transition (see "Plan-board events" below).
+each step transition (see R-1264 (Plan-board events (grades 2–4, every run)) [1264-T9] below).
 
-## Plan-board events  (grades 2–4, every run)
+## Plan-board events (grades 2–4, every run)
+{"name":"Plan-board events (grades 2–4, every run)","code":"G-S-RI-PE","id":1264}
 
 At each of these moments send the admin team a `plan-board` request (the
 `admin-team` skill; fire-and-forget) with the `event` and the facts you have.
@@ -815,20 +830,20 @@ sends none.
 | Moment | `event` | Facts |
 |--------|---------|-------|
 | Step 1 sized (the run's first action after sizing) | `sized` | grade, baseline sha, the issue's systems if known, the next step; when the run verifies an existing plan (step 2), a `detail` saying it is checking the existing plan and naming the plan document it is based on |
-| The run is halted (see "Halted — at any step") | `halted` | what waits on the user; for every question it puts to the user, in any step, `questions`: each question's text (and its options, if any); then `resumed` with the answer's gist |
+| The run is halted (see R-1258 (Halted — at any step) [1258-T2]) | `halted` | what waits on the user; for every question it puts to the user, in any step, `questions`: each question's text (and its options, if any); then `resumed` with the answer's gist |
 | Research questions being drafted (sent by the planner itself) | `research-planning` | `drafted`: questions drafted so far |
 | A research batch spawned (sent by the planner itself) | `research-started` | `researching`: per question, its slug and the board Row ids it bears on (`[]` for none) |
 | A researcher returned (sent by the planner itself) | `research-returned` | `returned`: the question slug and its findings path |
 | Verification of the findings starts (sent by the planner itself) | `verification-started` | — |
-| Research verified, or nothing to research (sent by the planner itself, when `planner.md`, "Board events during research", says) | `researched` | the research README path; none when nothing was researched |
+| Research verified, or nothing to research (sent by the planner itself, when R-10108 (2.2 Research) [10108-T1], "Board events during research", says) | `researched` | the research README path; none when nothing was researched |
 | Grade-4 sign-off: the user approves the architecture, as proposed or with changes (step 2); it closes the architecture stage report and opens write consequences, the board staying at its architecture step until `plan-accepted` | `architecture-signed-off` | the architecture path, the approved unit list; `detail`: one plain sentence giving the result of the stage it closes |
-| A plan stage opens, on a grade-3 plan a `plan-writer` drafts, or an architecture stage at grade 4 (sent by the planner itself, when `planner.md`, "Board events at the plan step", says; `report` by the run where step 2 says) | `plan-stage` | `stage`: the stage it opens (`write`, `check`, `consequences` or `report`, or the pass's first stage to go back to it, `re-pass` on a sub-issue; at grade 4 `write`, `check` or `report`); `detail`: one plain sentence giving the result of the stage it closes |
+| A plan stage opens, on a grade-3 plan a `plan-writer` drafts, or an architecture stage at grade 4 (sent by the planner itself, when R-10111 (Board events at the plan step) [10111-T6] says; `report` by the run where step 2 says) | `plan-stage` | `stage`: the stage it opens (`write`, `check`, `consequences` or `report`, or the pass's first stage to go back to it, `re-pass` on a sub-issue; at grade 4 `write`, `check` or `report`); `detail`: one plain sentence giving the result of the stage it closes |
 | A plan or architecture stage passed over, recorded late with no time (sent by the planner itself for one it finds it passed over, and by the run for those step 2 says, never `report`); an implementation stage the check found built during an implementation pause (sent by the run: step 4, **Built by the user**) | `late-update` | `event`: `plan-stage`, or `implementation-stage` for an implementation stage, which also carries `stages`, every stage's id and name with its state as it then stands; `stage`: the stage; `detail`: one plain sentence giving its result; no `at` |
-| The plan accepted: planner COMPLETE, once whatever its report put to the user is answered (step 2); at grade 4 it closes write consequences | `plan-accepted` | the plan path, consequences path; `verdicts`: the board verdicts block of the planner's report that leads to the event, copied as it stands (step 2; `planner.md`, "The board verdicts block"), left out when the report carries none; `detail`: one plain sentence giving the result of the stage it closes |
+| The plan accepted: planner COMPLETE, once whatever its report put to the user is answered (step 2); at grade 4 it closes write consequences | `plan-accepted` | the plan path, consequences path; `verdicts`: the board verdicts block of the planner's report that leads to the event, copied as it stands (step 2; R-10120 (The board verdicts block) [10120-T5]), left out when the report carries none; `detail`: one plain sentence giving the result of the stage it closes |
 | Step 3 done | `branch-cut` | branch, worktree, `stages`: every stage of the plan, its id and name |
-| A stage of the plan's stage table ends; each rookie-dev report on a plan without one, and each remediation report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; a closing check stage's entry in `stages` also carries `result` (`passed` or `failed`), and the stage's report goes in `detail`, as its end report, written by whoever carries the stage out; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testSet, path, tests, rows). It names no `step`. A stage's end is sent by `rookie-dev` for the stages it builds (`rookie-dev.md`, "Board events"), and by the run for a stage it carries out itself, when the stage ends and before its next request. When `rookie-dev` returns, the run sends no `implementation-stage` for a stage it reported: only the events its report lists under **Events not sent**, and its own (a remediation's report, a halt, an escalation) |
+| A stage of the plan's stage table ends; each rookie-dev report on a plan without one, and each remediation report | `implementation-stage` | the stage, `stages`: every stage's id and name with its state (`done`, `current`, `todo`), `final-implementation.md` path, deviations; a closing check stage's entry in `stages` also carries `result` (`passed` or `failed`), and the stage's report goes in `detail`, as its end report, written by whoever carries the stage out; during a remediation loop also `remediation`: the qa pass it answers, the route (`on-the-spot` / `remediation` / `re-plan-then-remediation`) and its sub-steps with their state; `tests`: the test classes the stage added or amended (`added`/`amended`: class, module, testSet, path, tests, rows). It names no `step`. A stage's end is sent by `rookie-dev` for the stages it builds (R-1153 (Board events (when you run inside a /resolve-issue run)) [1153-T4]), and by the run for a stage it carries out itself, when the stage ends and before its next request. When `rookie-dev` returns, the run sends no `implementation-stage` for a stage it reported: only the events its report lists under **Events not sent**, and its own (a remediation's report, a halt, an escalation) |
 | The plan's stage table revised while a stage runs (steps added, or a step given steps of its own) | `implementation-stage` | `stages` as they stand, none closed, so the board reads the revised table and its nested steps; `detail`, the run's latest report. It names no `step` |
-| Each step the plan's stage table names completes, at any depth (one event per step, however long the list) | `step-complete` | `stage`, the stage's id; `stepId`, the step's id; no `detail` and no report. It names no `step`. The run sends it for a step it carries out itself, when the step completes and before its next request; `rookie-dev` sends it for its own (`rookie-dev.md`, "Board events"), and the run sends only those its report lists under **Events not sent**, once it returns |
+| Each step the plan's stage table names completes, at any depth (one event per step, however long the list) | `step-complete` | `stage`, the stage's id; `stepId`, the step's id; no `detail` and no report. It names no `step`. The run sends it for a step it carries out itself, when the step completes and before its next request; `rookie-dev` sends it for its own (R-1153 (Board events (when you run inside a /resolve-issue run)) [1153-T5]), and the run sends only those its report lists under **Events not sent**, once it returns |
 | Just before each `qa` pass is spawned | `qa-pass` | `qa: {pass: N, verdict: "running"}`, `at` |
 | Each qa verdict | `qa-pass` | pass number, verdict, finding counts by kind (test, code) and by `severity` (`minor` — easily made, no fallout — and `other`), the route step 5 takes from them, `rows`: the board Row ids the findings touch, report path; `tests`: what the qa run ran (`ran`: class, module, passed, failed, skipped) and the counts of the untouched modules' tests (`other.byModule`) from the test-inspector report |
 | Step 6 starts, each task change in it, and once more before the document-landing commit | `document` | `tasks`: every applicable task's id and name with its state (`done`, `current`, `todo`), like `implementation-stage`'s `stages` — ids `documentation-review`, `reconcile-documentation`, `dokka-check`, `reconcile-plan`, `readme-changelog`, `state-boards` (the board adds `document-landing`, which the run need not send); once `prepare-landing` replied, the code-landing sha |
@@ -856,12 +871,13 @@ board, never the team's, through two more events: `retime` for an event's
 recorded time, until it sends `land`, and `reword` for its recorded text, until
 the document-landing commit. When the team's reply says the arrival check
 replaced an event's `at`, send a `retime` with your own clock reading and the
-reason. Their facts and limits: `PROTOCOL.md`, `plan-board` fields. The
+reason. Their facts and limits: R-10138 (`plan-board` fields) [10138-T1]. The
 implementer and the planner may each correct the board events they sent
-themselves, the same two ways (`rookie-dev.md`, "Board events"; `planner.md`,
+themselves, the same two ways
+(R-1153 (Board events (when you run inside a /resolve-issue run)) [1153-T6]; R-10108 (2.2 Research) [10108-T2],
 "Board events during research"); the team's reply to one lands in your
-conversation, as every reply to a subagent's request does (the `admin-team`
-skill, "Subagents").
+conversation, as every reply to a subagent's request does
+(R-1272 (6. Subagents) [1272-T1]).
 
 The team raises the issue board's `state-boards` step itself inside the
 `state-boards` request of step 6, the commit task (`document-landing`) inside
@@ -881,13 +897,14 @@ carries them and they ride its document-landing commit. A grade-1 run sends no
 `sized`, and its landing carries the repository's pending corrections all the
 same: the team seeds them onto its branch when it accepts its `state-boards`
 request, and the document-landing commit carries the paths the reply names
-(the admin team's brief, Seeding). There is no separate corrections work
+(R-10127 (Board lanes) [10127-T9], Seeding). There is no separate corrections work
 in any landing.
 
 ## 7. Land it — `admin team`: `land`
+{"name":"7. Land it — `admin team`: `land`","code":"G-S-RI-L","id":1265}
 
 Under `--confirm-before-land`, the run has already halted once before the
-document-landing commit ("Prompt flags"). The change set is already committed: the code-landing commit (step 6, task 0)
+document-landing commit (R-1256 (Prompt flags) [1256-T18]). The change set is already committed: the code-landing commit (step 6, task 0)
 and the document-landing commit (end of step 6). Send the admin team a `land`
 request with the **grade**, the branch and worktree, the code-landing sha
 (`head`), the `qa` verdict as for `prepare-landing` (step 6,
@@ -899,8 +916,8 @@ version-bumping landing is considered for release regardless). The team:
 checks the base has not moved since the `prepare-landing` sync (if it has, it
 re-syncs; `needs-rework` on a conflict it cannot resolve itself); opens the PR, whose closing
 keywords also close the issue's tracking issue when this landing closes the last of its
-open sub-issues, and each tracking issue above it that closes in turn ("Tracking issues
-and run modes", **The end of a chain**; `result.tracking`); merges; posts the
+open sub-issues, and each tracking issue above it that closes in turn
+(R-1254 (Tracking issues and run modes) [1254-T5], **The end of a chain**; `result.tracking`); merges; posts the
 **issue-resolution comment** (steps taken + links to any plan/design docs); files
 an upstream issue if the work exposed one; deletes the branch and any worktree
 it allocated; considers the release — its publisher releases a moved
@@ -919,9 +936,9 @@ send a `file-sub-issues` request with the **user-approved** list: the team
 files each as a sub-issue of this issue, records its proposed grade in its own state (never on GitHub), and
 its landing-order dependencies as *blocked by* links, labels this issue
 `type: tracking`, and adds a comment listing the sub-issues. The issue stays
-open until the landing of its last sub-issue closes it ("Tracking issues and
-run modes", **The end of a chain**). If the user has not approved the list,
-neither at the sign-off nor in advance with `--no-signoff` ("Prompt flags"),
+open until the landing of its last sub-issue closes it
+(R-1254 (Tracking issues and run modes) [1254-T6], **The end of a chain**). If the user has not approved the list,
+neither at the sign-off nor in advance with `--no-signoff` (R-1256 (Prompt flags) [1256-T19]),
 send nothing and the list goes back to the user.
 
 - Relay the `done` reply's **result** as-is.
@@ -932,6 +949,7 @@ send nothing and the list goes back to the user.
 - Do not re-run or second-guess the team's completed steps.
 
 ## 8. Report
+{"name":"8. Report","code":"G-S-RI-R","id":1266}
 
 - The issue, its **grade**, and whether it is now **resolved**, a **step
   taken** (with what remains), or — grade 4 — **planned**, with the sub-issues
@@ -956,15 +974,15 @@ send nothing and the list goes back to the user.
   unresolved planner open decisions, and `version-control-manager`'s **Stopped — needs you**
   items (a failed publish, downstream-consumer coordination).
 - The **decisions taken by default** under the run's prompt flags, each as
-  "Prompt flags" lists it, or that none was taken. They stay in this report:
+  R-1256 (Prompt flags) [1256-T20] lists it, or that none was taken. They stay in this report:
   never on a board or in a document.
 - If the work exposed a defect in a repo that *consumes* the project (downstream),
   report it as coordination — do not file it. `version-control-manager` files upstream-only.
 
 A run that finishes (resolved, a step taken, or planned) leaves a handoff,
 `~/.claude/handoffs/<owner>-<repo>-<issue>.md`, only when something it leaves
-cannot be committed: the second kind "Session handoffs" in the global
-`CLAUDE.md` describes, holding only that and pointing at the run's
+cannot be committed: the second kind R-1128 (Session handoffs) [1128-T7]
+describes, holding only that and pointing at the run's
 `consequences.md`, where every follow-up that can be committed is.
 
 Do not start a second issue. One issue per `/resolve-issue` — except in the

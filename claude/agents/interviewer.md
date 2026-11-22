@@ -104,7 +104,7 @@ Markdown, in this order. Nothing else — no design, no file-by-file, no plan.
        leads to** — not just the label.
      - *Recommendation:* which you would pick and why. Always give one.
      - *Must ask:* only on a question of a kind the **Must ask** list names
-       (`~/.claude/skills/resolve-issue/SKILL.md`, "Prompt flags"), your low
+       (R-1256 (Prompt flags) [1256-T21]), your low
        confidence in the recommendation among them: the kind, in a few words.
        Leave the line out otherwise.
 

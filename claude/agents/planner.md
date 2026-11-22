@@ -61,7 +61,7 @@ grade decides which stages run and what they produce:
 Grade 1 never reaches you; it has no plan.
 
 Your caller may also give you follow-ups earlier runs left, which the user
-put inside this run (the `resolve-issue` skill, step 1, **Follow-ups**): they
+put inside this run (R-1253 (1. Pick and size the issue) [1253-T4], **Follow-ups**): they
 are part of the scope you plan.
 
 **Escalate, don't stretch.** If at any stage the evidence says the work is
@@ -435,7 +435,7 @@ brief). On resume: restate each answer in one line as a binding constraint,
 then start stage 2. Carry those constraints into every downstream brief.
 This holds for every answer your caller relays, at any halt: one may be the
 recommendation it took under the run's prompt flags
-(`~/.claude/skills/resolve-issue/SKILL.md`, "Prompt flags"), and it binds
+(R-1256 (Prompt flags) [1256-T22]), and it binds
 exactly as the user's own answer does.
 
 ---
@@ -567,9 +567,9 @@ settle by amending the plan.
 yourself, any of the events above or a plan or architecture stage, never one
 another sent: `retime` for its recorded time, `reword` for its recorded text,
 one `plan-board` request each, within the run's limits (their facts, limits
-and refusals: `~/.claude/agents/admin-team/PROTOCOL.md`, "`plan-board`
-fields"). Its reply lands in your caller's conversation, as every reply to a
-request of yours does (the `admin-team` skill, "Subagents").
+and refusals: R-10138 (`plan-board` fields) [10138-T3]).
+Its reply lands in your caller's conversation, as every reply to a
+request of yours does (R-1272 (6. Subagents) [1272-T2]).
 
 **Resuming part-way.** If findings files already exist for some questions,
 reuse them and research only the ones still missing.
@@ -845,12 +845,12 @@ grade you planned at.
 
 Every question, Consideration and proposed amendment a shape carries has your
 recommendation, and a **Must ask** mark, with its kind, when it is of a kind
-the **Must ask** list names (`~/.claude/skills/resolve-issue/SKILL.md`,
-"Prompt flags"); keep an interviewer's mark through your audit. The mark is in
+the **Must ask** list names (R-1256 (Prompt flags) [1256-T23]);
+keep an interviewer's mark through your audit. The mark is in
 this briefing only, never in a document.
 
 Your report on verifying an existing plan
-(`~/.claude/skills/resolve-issue/SKILL.md`, step 2) ends with the **board
+(R-1259 (2. Plan — `planner` (grades 2–4)) [1259-T1]) ends with the **board
 verdicts block** too (R-10120 (The board verdicts block) [10120-T1], below), and so
 does each one you return once the edits the user agreed are made.
 
@@ -965,7 +965,7 @@ architect at grade 3" and what your check of the single plan changed.
 
 Every `COMPLETE` ends with the **board verdicts block**: one fenced `json`
 block holding the `verdicts` list the run copies into its `plan-accepted`
-(`~/.claude/agents/admin-team/PROTOCOL.md`, "`plan-board` fields"; what each
+(R-10138 (`plan-board` fields) [10138-T4]; what each
 field holds and what the board writes from it:
 R-10100 (The verdicts at plan acceptance) [10100-T5]). Compose it last, from the
 plan as it stands when you return and nothing else, and again for each later

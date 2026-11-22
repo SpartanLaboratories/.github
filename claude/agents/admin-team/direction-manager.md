@@ -91,25 +91,25 @@ The global
 the user directed at the admin team's console: never as a propagation, never
 on a request or a report. Keep the JSON valid and the file's formatting,
 report the `diff -u`, and list the path for the mirror-sync. A deny rule lifted
-for one job (`admin-team/GUIDANCE.md`, Temporary permissions) is such a direction: the
+for one job (R-10124 (Gates and standing grants) [10124-T4], Temporary permissions) is such a direction: the
 user's one console answer directs both changes to
 `~/.claude/admin-team/settings.json`, the lift for that job and, when the
 job's section moves to history, the restore, which needs no second answer.
 An `autoMode.allow` line placed for one job after the classifier refused an
-action its section covers (`admin-team/GUIDANCE.md`, Temporary permissions, **Allow
+action its section covers (R-10124 (Gates and standing grants) [10124-T5], Temporary permissions, **Allow
 lines**) is such a direction too: the user's grant directs both placing it
 and, when the job's section moves to history, removing it. The section's
 `Settings:` line records each such change and names what you undo when it
 moves to history. Each such change the user's standing `autoMode.allow`
-line covers is sent as a call of its own (`admin-team/GUIDANCE.md`,
+line covers is sent as a call of its own (R-10124 (Gates and standing grants) [10124-T6],
 Temporary permissions, **Allow lines**).
 Without the user's standing `autoMode.allow` line that
 covers these changes, or when the classifier refuses one despite it, you stage
 the change instead: the edited copy with its `diff -u` under
-`~/.claude/admin-team/proposals/`, and the user places it (`admin-team/GUIDANCE.md`,
+`~/.claude/admin-team/proposals/`, and the user places it (R-10124 (Gates and standing grants) [10124-T7],
 Temporary permissions, **Allow lines**).
 This permission is the specific rule over the general no in
-`admin-team/GUIDANCE.md`, How the team works, the **Never** bullet.
+R-1239 (How the team works) [1239-T9], the **Never** bullet.
 
 ### You never edit the admin team's ledger or state, the Archivist's records, or any file in a project repository
 {"name":"You never edit the admin team's ledger or state, the Archivist's records, or any file in a project repository","code":"G-A-AT-DM-A-5","id":10012}

@@ -32,7 +32,7 @@ guessed. If you are unsure, ask me a question.
   answers, for that run, the prompts it covers with their recommendations, and this rule and
   the grade re-check and "Escalate, don't stretch" (R-143 (Work grades) [143-T1]) give way to it
   there; which prompts each flag covers, and what still stops a run, is in
-  `~/.claude/skills/resolve-issue/SKILL.md`, "Prompt flags".
+  R-1256 (Prompt flags) [1256-T1].
 
 ## Spartan Labs libraries — surface issues
 {"name":"Spartan Labs libraries — surface issues","code":"G-C-SI","id":1126}
@@ -91,7 +91,7 @@ cannot be committed. Every follow-up that can be committed goes in its `conseque
 the run finished, and points at that `consequences.md`, so it tells no session that work was
 interrupted. Each of its items is cleared once a later run or the user acts on it or records it
 durably, and the file is emptied when none is left. Later runs in the repository read it for its
-follow-ups (`~/.claude/skills/resolve-issue/SKILL.md`, step 1, **Follow-ups**).
+follow-ups (R-1253 (1. Pick and size the issue) [1253-T1], **Follow-ups**).
 
 ## graphify — the code knowledge graph
 {"name":"graphify — the code knowledge graph","code":"G-144-P1","id":"144-P1"}

@@ -88,11 +88,11 @@ deleted branch's tip, the label's name, colour and description, the comment's
 text), so it can be restored. The Phase 0 history rewrite's force-pushes and
 transfers are the exception: the report carries counts only, and the restore
 record is the `ref-map` in the job's local data folder. What a request can
-reach with them is the one rule in `admin-team/GUIDANCE.md`, Request groups.
+reach with them is the one rule in R-1240 (Request groups) [1240-T10].
 
 **Non-negotiable safety rails** (independent of the gates):
-- Never take an action the never-allowed group holds (`admin-team/GUIDANCE.md`, Request
-  groups). If a step seems to need one, stop and report why.
+- Never take an action the never-allowed group holds (R-1240 (Request groups) [1240-T11]).
+  If a step seems to need one, stop and report why.
 - Never commit unrelated pre-existing working-tree changes — separate them into
   their own `chore:` commit or leave them staged-out, and say which.
 - **Never commit IDE files or folders** — `.idea/`, `.vscode/`, `*.iml`,
@@ -273,7 +273,7 @@ that matches, a `target` the `Scope:` does not name, or a never-allowed action,
 stop at that step and report it under **Not done / blocked**, naming the action
 and the reason you were given or that none came; the team replies `rejected`,
 naming its group. A section records what the user granted at the team's console
-(`admin-team/GUIDANCE.md`, Gates and standing grants); it is not a relayed approval.
+(R-10124 (Gates and standing grants) [10124-T10]); it is not a relayed approval.
 
 **The mirror.** A `mirror-sync` brings the public copy of `~/.claude/` under
 `claude/` in `SpartanLaboratories/.github` back to matching `~/.claude/` for
@@ -305,9 +305,10 @@ says each is found, and prints each find
 with its `file`, `line`, `text` and `sayInstead`, the list's wording for what
 it found, or `null` where the list has none. A find the team passes, by its
 `file:line` and text, in the prompt it spawns you with for this request (a
-pass granted on an earlier request of the same branch included, at the line
+pass granted on an earlier request of the same branch included, or, for a
+`mirror-sync`, on an earlier attempt of the same request only, at the line
 where its text now stands), goes to the command as a `--pass` and is not a
-find (`admin-team/GUIDANCE.md`,
+find (R-10122 (Executing a request) [10122-T1],
 "Internal names block a commit"). Exit 0: no find. Exit 1: commit nothing,
 and report each find as the command printed it under **Stopped — internal
 names**; the team replies `needs-rework` or has its `presenter` reword a board
@@ -332,8 +333,8 @@ each file it is about to commit, not only the changed lines, for credentials
 (`/c/Users/`, `/home/`, `AppData`), a scratchpad path, and the user's account
 name, matched only as a whole word or a path segment (it is a prefix of the
 organisation names). Not finds: a standard install path
-(`C:/Program Files…`), the worktree-root fallback (`C:\wt\`, `admin-team/GUIDANCE.md`,
-Worktrees), a test fixture's made-up path, an example that names no real
+(`C:/Program Files…`), the worktree-root fallback (`C:\wt\`,
+R-10125 (Worktrees) [10125-T2]), a test fixture's made-up path, an example that names no real
 folder (such as the `D:/…` and `C:\Users\…` examples in this rule), a URL
 (the drive-letter pattern matches `s:/` inside `https://`), and a match that
 is no path (an escaped quote such as `n:\"`, a regular expression). On a
@@ -346,7 +347,7 @@ file yourself.
 **Rule check.** Every `mirror-sync` runs the organization repository's
 checker, `scripts/rule-check.js`, in the mirror clone: first
 `node scripts/rule-check.js --write --policies <clone>`, the run the
-`mirror-sync` row orders (`admin-team/GUIDANCE.md`), then, after the scans, the same
+`mirror-sync` row orders (R-10122 (Executing a request) [10122-T2]), then, after the scans, the same
 without `--write`. Both runs read G from a copy passed as `--claude <copy>`: a
 temporary folder outside `~/.claude` holding `CLAUDE.md`, `rule-index.md`,
 `admin-team/rule-files.json` and the folders that register lists, each copied
@@ -408,7 +409,7 @@ Conform to whatever you find. On top of that, the user's global
   commit, the first step is to create a topic branch off the default branch.
 - A default branch changes only by merging a PR, never by a push. This is the
   one statement of the rule. Outside the exceptions below, a push to a default
-  branch is temporarily-requestable (`admin-team/GUIDANCE.md`, Request groups).
+  branch is temporarily-requestable (R-1240 (Request groups) [1240-T12]).
   - `SpartanLaboratories/.github` and `SpartanLaboratories/OrganizationPage` are
     special repositories that can have exceptions. In `.github` the mirror's
     `mirror-sync` and every change to the pages and scripts of S, P and D (the
