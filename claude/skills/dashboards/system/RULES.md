@@ -148,7 +148,7 @@ Context Panel; every count on the board is counted. Each Chip is a Tag, its labe
 the right half beside it, and stacks them under 940 px (R-1187 (6. Boards are self-contained) [1187-T8], "The header"). A system board also carries its **visibility** as a Tag ("visibility public", "internal · org", "internal · repo", the registry's, §7) and, when the system is archived, a "status ⊟ archived" Tag (admin-team/dashboards-skill/35). A board written before the labels keeps its
 Chips, which the same CSS lays out alike, until the splice (§8) relabels them where their content says what they are (a version, the
 as-is stamp, the C4 model, the systems count), removes an old "last amended by" Chip and reports any other for the presenter to label. The header also carries the **inspector Switch** and the
-**theme Switch** (R-1187 (6. Boards are self-contained) [1187-T9], "The inspector Switch"; R-1182 (1. Colour coding) [1182-T26], Themes; R-1193 (12. Elements — one name per function) [1193-T6], "Switch"), which the template's renderer adds right of the
+**theme Switch** (R-1187 (6. Boards are self-contained) [1187-T9], "The inspector Switch"; R-1182 (1. Colour coding) [1182-T26], Themes; R-10040 (Subtyped) [10040-T1], "Switch"), which the template's renderer adds right of the
 breadcrumb, and the inspector its **Hide Button** right of its heading (R-1187 (6. Boards are self-contained) [1187-T10]), which the template's markup carries and the
 renderer adds to an inspector drawn before it; the presenter writes nothing for them. A system, supersystem or repository state board has **no
 live indicator**: it shows the code at a named commit and has no run to follow (R-1197 (3. Work in progress) [1197-T23],

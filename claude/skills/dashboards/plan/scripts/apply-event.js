@@ -222,7 +222,7 @@ function readRequest(file) {
 }
 
 const ID = /^[a-z0-9][a-z0-9-]*$/, STEPS = ["sizing", "interview", "research", "architecture", "sub-issues", "boards", "plan", "branch", "implementation", "qa", "remediation", "document", "landing", "state-boards", "merge", "landed", "halted", "escalated", "cancelled"];
-/* the remediation routes (plan/RULES.md §5, "QA"): their ids name no role (dashboards-skill/33); a request (or a board) that carries the
+/* the remediation routes (plan/RULES.md §5, "Quality Reviews"): their ids name no role (dashboards-skill/33); a request (or a board) that carries the
    older ids, each named for a role, is read through routeId() and written with the new ones */
 const ROUTES = ["on-the-spot", "remediation", "re-plan-then-remediation"], SSTATES = ["done", "current", "todo"];
 const ROUTE_OLD = { "rookie-dev": "remediation", "planner-then-rookie-dev": "re-plan-then-remediation" };

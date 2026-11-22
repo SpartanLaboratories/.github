@@ -142,7 +142,7 @@ the same Tag; its own board's header says it ("status ⊟ archived").
 **The decision not to run another qa pass: a neutral mark** (admin-team/dashboards-skill/31). A qa pass whose findings were fixed in
 place, with no further pass (its `on-the-spot` route), carries a small neutral mark beside its verdict Pill, with its glyph and words:
 "✎ fixed in place · no additional review" ("fixing" while the fixes are being made). It is a decision, not an outcome: it takes no status colour,
-and the pass keeps its own verdict Pill (R-1199 (5. The repository work board) [1199-T2], "QA").
+and the pass keeps its own verdict Pill (R-1199 (5. The repository work board) [1199-T2], "Quality Reviews").
 
 **Steps: four kinds of work** (admin-team/dashboards-skill/34, in place of dashboards-skill/32's neutral ramp). An issue board's Timeline
 Tile (R-10093 (The Timeline Tab) [10093-T1]; every issue board's since dashboards-skill/34, a board in flight its steps so far) draws the time
@@ -718,7 +718,7 @@ never the accent (§1).
 
 **The decisions of admin-team/dashboards-skill/31**, each weighed for every type:
 
-- **The decision not to run another qa pass, shown** (§1; R-1199 (5. The repository work board) [1199-T4], "QA"): applied to the repository work board's Quality Reviews column, plan
+- **The decision not to run another qa pass, shown** (§1; R-1199 (5. The repository work board) [1199-T4], "Quality Reviews"): applied to the repository work board's Quality Reviews column, plan
   boards (the Quality Reviews Tile's sub-line, the WIP Panel's Quality Review Pills) and tracking boards (each unit's run line, unit Card and inspector), all from
   one rule (`lib.js` `qaShown()`, `qaInPlace()`, and the templates' copies). Not to the state boards: they show no run. A landed board is
   never re-rendered (§11, above); the repository work board shows
