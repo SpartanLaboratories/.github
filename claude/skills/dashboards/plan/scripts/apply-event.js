@@ -640,6 +640,14 @@ function applyEvent(orig, ev, facts, req, now) {
          standing (from the parent's plan at a sub-issue's sized, after a Quality Review, or verifying an existing plan) is kept with its stages as they
          stand, never overwritten by the research's end */
       if (step === "plan" && !tracking && !(w.plan && ["writing", "re-pass"].includes(w.plan.state))) openPass(true);
+      /* a writing pass standing with no stages, laid by a sized at the plan step on an issue that is no sub-issue and whose line has a research
+         step (SpartanUI #2: sized at plan, halted, resumed, then researched), takes its four stages here, write current at the event's time, as
+         every writing pass on such a line runs them (plan/RULES.md §3, "The plan stages", S5); the pass and its since are kept. The same
+         researched raised again on a board it moved on before this fix writes them at its own time, so such a board is repaired by raising it again */
+      else if (step === "plan" && !tracking && !plan.parent && w.plan.state === "writing" && !lib.planStagesOf(w.plan).length && lib.planStagesLine(plan)) {
+        w.plan.stages = lib.seedPlanStages(lib.planPassIds(w.plan), now);
+        applied.push(`wip.plan writing: its ${w.plan.stages.length} plan stages, ${w.plan.stages[0].id} current (the pass stood with none)`);
+      }
       /* a tracking board's architecture step opens with its four architecture stages, where none stand */
       if (step === "architecture") openArch();
       setGlow(step);

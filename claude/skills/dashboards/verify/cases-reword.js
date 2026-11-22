@@ -105,6 +105,26 @@ module.exports = function casesReword(X) {
     const ck = run(CHECK, [B.dir]); c.push(["check.js passes the board", ck.status === 0, (ck.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
   });
 
+  guard("apply-event.js reword: what a halt waited on, once the halt has ended, is held by its own trail entry alone, which takes it (GeneralTools #7)", c => {
+    /* the fixture's halt of T3 has ended (its wait closed at T4, no wip.waitingOn): the trail's one halt entry on that date is all that holds the text */
+    const p = running(), B = lay("ended-halt", p), last = p.trail.length - 1, A0 = "the answer on the wording", A1 = "the answer on the public documents' wording";
+    const r = apply(B, p, "reword", W("halted", T3, A0, A1), NOW);
+    c.push(["applied: the halt's own trail entry takes the new wording, the trail growing by nothing", r.a.status === 0 && r.S.result === "ok" && r.p.trail[last].label === `Halted at the Document step: waiting on you (${A1})` && r.p.trail.length === p.trail.length && !holds(r.p, A0), js([r.a.status, r.S.result, r.S.refused, r.S.error, r.p.trail[last]])]);
+    const e = ((r.p.notes || {}).corrections || []).slice(-1)[0] || {};
+    c.push(["…one entry, naming the halt and its trail entry", ncorr(r.p) === ncorr(p) + 1 && e.what === `The halt of 2026-11-02 13:00:00 UTC is reworded in its trail entry: the as-built record words it so. The passage now reads "${A1}".`, e.what]);
+    c.push(["…the step, the waits and wip.event unchanged", r.p.wip.step === p.wip.step && js(r.p.wip.waits) === js(p.wip.waits) && js(r.p.wip.event) === js(p.wip.event), ""]);
+    const ck = run(CHECK, [B.dir]); c.push(["check.js passes the board", ck.status === 0, (ck.stdout || "").split(/\r?\n/).filter(l => /^FAIL/.test(l)).join(" | ").slice(0, 300)]);
+    /* what the refusals guard still holds */
+    const no = (name, plan, facts, re) => { const b = lay(`ended-halt-${++n}`, plan), g = files(b), x = apply(b, plan, "reword", facts, NOW);
+      c.push([name, x.a.status === 3 && x.S.result === "refused" && re.test(x.S.refused || "") && files(b) === g, js([x.a.status, x.S.result, x.S.refused, x.S.error])]); };
+    const two = running(); two.trail.push({ date: "2026-11-02", column: "built", label: `Halted at the Document step: waiting on you (${A0}, once more)` });
+    no("two halt entries on that date: which one is the halt's cannot be told, refused", two, W("halted", T3, A0, A1), /the trail holds 2 entries of halted on 2026-11-02.*cannot be told/);
+    const other = running(); other.trail.push({ date: "2026-11-02", column: "built", label: "Resumed at the Document step: the answer on the tests" });
+    no("a passage only another event's trail entry holds: still the record of another event", other, W("halted", T3, "the answer on the tests", A1), /it is held at trail\[\d+\]\.label: the record of another event/);
+    no("a time on that date the record names no halt at: no text of it", running(), W("halted", "2026-11-02T13:30:00Z", A0, A1), /holds no text of halted at 2026-11-02T13:30:00Z/);
+    no("the trail entry's whole text taken out: it would be left empty", running(), W("halted", T3, p.trail[last].label, ""), /trail\[\d+\]\.label would be left empty/);
+  });
+
   guard("apply-event.js reword: refused, nothing written, where the facts fall short, the passage is not the event's, the wording breaks the writers' rule, or the board is past its Document commit", c => {
     const plan = running(), B = lay("refusals", plan), f0 = files(B);
     const no = (name, facts, re, B0, p0) => { const b = B0 || B, pp = p0 || plan, g = files(b), r = apply(b, pp, "reword", facts, NOW);

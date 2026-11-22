@@ -1102,14 +1102,17 @@ const TEAM_RECORDS = ["run-restarted", "retime", "reword", "state-boards", "land
      - the detail (and what it waits on, wip.waitingOn) of wip, or of a visit's snapshot, whose `event` is { name, at } that event;
      - a question's text and options: any record in wip (wip.asked, wip.interview, a snapshot's asked) whose `asked` is that time;
      - a Quality Review's note, for qa-pass: wip.qa (or a snapshot's) whose `at` is that time;
-   and the copies of what one of those places held, whole (the same string anywhere in wip or the trail), and the event's own trail entry and
-   event note where they hold the passage. Every place that holds o.from takes o.to (every occurrence; an empty o.to takes the passage out with
+     - its own trail entry: the one entry on that time's date with the label the event writes, while the record names the event at that time
+       or holds another of its places;
+   and the copies of what one of those places held, whole (the same string anywhere in wip or the trail), and the event's
+   event note where it holds the passage. Every place that holds o.from takes o.to (every occurrence; an empty o.to takes the passage out with
    one adjacent run of spaces). Nothing else: no time, no step, no state; the rows (columns 1 to 3, written once, and the fills' column 4),
    the title, the function, the notes, the impact, the tests and the open points (wip.open, corrected through fill.js) are never searched.
    Refused, changing nothing: when the record holds no such event's places; when none of them holds o.from (the refusal says where o.from is
-   held instead); when another event is named at the same time and a place found by its time alone holds it (whose text it is cannot be told);
+   held instead); when the trail holds two or more entries of the event on that date and only they hold it (which one is the event's cannot
+   be told); when another event is named at the same time and a place found by its time alone holds it (whose text it is cannot be told);
    when a text would be left empty. Returns { refused } or { lines, paths, words, was }: was the texts reworded, as they read before. */
-const REWORD_PLACE = { report: "the report", detail: "the detail it wrote", waitingOn: "what it waited on", question: "a question it put", option: "an option of a question it put", note: "the review's note" };
+const REWORD_PLACE = { report: "the report", detail: "the detail it wrote", waitingOn: "what it waited on", question: "a question it put", option: "an option of a question it put", note: "the review's note", trail: "its trail entry" };
 function rewordPlan(plan, o) {
   const w = isObj(plan.wip) ? plan.wip : {}, T = o.at, E = o.event, from = o.from, to = o.to, anchors = [];
   const walk = (v, p, fn) => { if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${p}[${i}]`, fn)); else if (isObj(v)) { fn(v, p); Object.keys(v).forEach(k => walk(v[k], `${p}.${k}`, fn)); } };
@@ -1124,8 +1127,18 @@ function rewordPlan(plan, o) {
     if (E === "qa-pass" && x.at === T && Number.isInteger(x.pass) && typeof x.note === "string") anchors.push({ obj: x, key: "note", path: `${p}.note`, kind: "note", byTime: true, snap: /^wip\.history\./.test(p) });
   });
   const named = namedTimes(plan), others = [...new Set(named.filter(x => x.at === T && x.name !== E && x.name !== "run-restarted").map(x => x.name))];
+  /* the event's own trail entry, one of its places even where nothing else of its record holds the passage any more (a halt's waiting text,
+     cleared from wip by its resumed: GeneralTools #7). The trail holds a date and no time, so the entry is found as retimePlan() finds it: by the
+     label the event writes (RETIME_TRAIL), on the date of the time the record names the event at, while the record names the event at that time
+     or holds another of its places; the one such entry on that date is the event's own, and two or more cannot be told apart, so none is */
+  const tr = Array.isArray(plan.trail) ? plan.trail : [], re = RETIME_TRAIL[E] || null;
+  const ofDay = re && (anchors.length || named.some(x => x.name === E && x.at === T))
+    ? tr.map((x, i) => [x, i]).filter(([x]) => isObj(x) && typeof x.label === "string" && x.date === T.slice(0, 10) && re.test(x.label.replace(/`/g, "").trim())) : [];
+  if (ofDay.length === 1) anchors.push({ obj: ofDay[0][0], key: "label", path: `trail[${ofDay[0][1]}].label`, kind: "trail", byTime: false });
   const hits = anchors.filter(a => a.obj[a.key].includes(from));
   if (!hits.length) {
+    const held = ofDay.filter(([x]) => x.label.includes(from));
+    if (ofDay.length > 1 && held.length) return { refused: `the trail holds ${ofDay.length} entries of ${E} on ${T.slice(0, 10)}, and ${held.map(([, i]) => `trail[${i}].label`).join(", ")} hold${held.length === 1 ? "s" : ""} ${JSON.stringify(from.length > 60 ? from.slice(0, 59) + "…" : from)}: which one is this event's cannot be told` };
     /* where the passage is held instead, in words, for the refusal */
     const where = []; const look = (v, p) => { if (typeof v === "string") { if (v.includes(from)) where.push(p); } else if (Array.isArray(v)) v.forEach((x, i) => look(x, `${p}[${i}]`)); else if (isObj(v)) Object.keys(v).forEach(k => look(v[k], p ? `${p}.${k}` : k)); };
     look(plan, "");
@@ -1145,15 +1158,15 @@ function rewordPlan(plan, o) {
   walk(w, "wip", (x, p) => Object.keys(x).forEach(k => { const v = x[k]; if (typeof v === "string" && whole.has(v) && !places.has(`${p}.${k}`)) places.set(`${p}.${k}`, { obj: x, key: k, path: `${p}.${k}`, kind: "copy" });
     if (Array.isArray(v)) v.forEach((s, i) => { if (typeof s === "string" && whole.has(s) && !places.has(`${p}.${k}[${i}]`)) places.set(`${p}.${k}[${i}]`, { obj: v, key: i, path: `${p}.${k}[${i}]`, kind: "copy" }); });
     if (k === "event" && isObj(v) && v.name === E && v.at === T && typeof v.note === "string" && v.note.includes(from)) places.set(`${p}.event.note`, { obj: v, key: "note", path: `${p}.event.note`, kind: "copy" }); }));
-  const tr = Array.isArray(plan.trail) ? plan.trail : [], re = RETIME_TRAIL[E] || null;
   tr.forEach((x, i) => { if (!isObj(x) || typeof x.label !== "string") return;
     if (whole.has(x.label) || (re && x.date === T.slice(0, 10) && re.test(x.label.replace(/`/g, "").trim()) && x.label.includes(from))) places.set(`trail[${i}].label`, { obj: x, key: "label", path: `trail[${i}].label`, kind: "copy" }); });
   const L = [...places.values()].filter(a => typeof a.obj[a.key] === "string" && a.obj[a.key].includes(from));
   const emptied = L.find(a => !rep(a.obj[a.key]).trim());
   if (emptied) return { refused: `${emptied.path} would be left empty: a reword changes a passage of a text, never the whole of it (send the text it should read)` };
   L.forEach(a => { a.obj[a.key] = rep(a.obj[a.key]); });
-  /* what was reworded, in words (the correction's entry): the places of the board as it stands, the snapshots' copies counted with them */
-  const live = hits.filter(a => !a.snap), shown = live.length ? live : hits, kinds = [];
+  /* what was reworded, in words (the correction's entry): the places of the board as it stands, the snapshots' copies counted with them, and the
+     trail entry with them too, named only where it alone held the passage */
+  const live = hits.filter(a => !a.snap && a.kind !== "trail"), snaps = hits.filter(a => a.snap), shown = live.length ? live : snaps.length ? snaps : hits, kinds = [];
   const ids = [...new Set(shown.filter(a => a.kind === "report" && a.label).map(a => a.label))];
   shown.forEach(a => { const k = a.kind === "report" ? (ids.length ? `the report that closed ${listWords(ids)}` : REWORD_PLACE.report) : REWORD_PLACE[a.kind]; if (k && !kinds.includes(k)) kinds.push(k); });
   return { lines: [`${L.length} place${L.length === 1 ? "" : "s"} reworded: ${L.map(a => a.path).join(", ")}`], paths: L.map(a => a.path), words: kinds, was: [...whole] };

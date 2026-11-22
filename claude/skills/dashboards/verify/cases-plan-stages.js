@@ -171,6 +171,22 @@ module.exports = function casesPlanStages(X) {
     const B6 = lay("before", flight({ step: "plan", since: T0, updated: T0, event: { name: "researched", at: T0 }, plan: { state: "writing", since: T0 }, current: ["considered", "verdict"] }, { sub: false }));
     const p6 = apply(B6, "plan-stage", { stage: "check", detail: "x" }, T1);
     c.push(["a board from before the stages: refused, naming it, nothing written", p6.a.status === 1 && /a board from before the plan stages/.test(p6.S.error || "") && !board(B6).wip.plan.stages, js(p6.S.error)]);
+    /* an issue that is no sub-issue, its line with a research step, sized at its plan step (a writing pass with no stages), then researched
+       (SpartanUI #2): researched gives the standing pass its four stages, write current at its time, the pass's since kept */
+    const B7 = lay("sized-at-plan", flight({}, { sub: false }));
+    const s7 = apply(B7, "sized", { step: "plan" }, T0);
+    c.push(["sized at the plan step on a line with a research step, no sub-issue: a writing pass with no stages", s7.a.status === 0 && s7.p.wip.plan.state === "writing" && !s7.p.wip.plan.stages, js([s7.S.error, s7.p.wip.plan])]);
+    apply(B7, "research-planning", { drafted: 1 }, T1); apply(B7, "research-started", { questions: [{ question: "q-a", rows: [] }] }, T2);
+    const r7 = apply(B7, "researched", { documents: ["research/README.md"] }, T3);
+    c.push(["researched then gives that writing pass its four stages, write current from the event, its since kept", r7.a.status === 0 && r7.p.wip.step === "plan" && r7.p.wip.plan.state === "writing" && r7.p.wip.plan.since === T0 && ids(r7.p) === "write:current check:todo consequences:todo report:todo" && stage(r7.p, "write").started === T3, js([r7.S.error, r7.p.wip.plan])]);
+    const w7 = apply(B7, "plan-stage", { stage: "write", detail: "x" }, T4), k7 = apply(B7, "plan-stage", { stage: "check", detail: "The plan is drafted." }, T5);
+    c.push(["the planner's write writes nothing there, and check moves the pass on", w7.a.status === 0 && w7.S.result === "nothing" && k7.a.status === 0 && ids(k7.p) === "write:done check:current consequences:todo report:todo" && stage(k7.p, "write").report === "The plan is drafted.", js([w7.S.result, k7.S.error, k7.p.wip.plan])]);
+    const kk7 = checkOk(B7); c.push(["check.js passes that board", kk7.ok, kk7.out]);
+    /* a board such a researched moved on before the fix (at plan, its last event that researched, the writing pass with no stages): the same
+       researched raised again writes the stages at its own time and nothing else of note, and is no duplicate */
+    const B8 = lay("researched-again", flight({ step: "plan", since: T3, updated: T3, event: { name: "researched", at: T3 }, plan: { state: "writing", since: T0 }, current: ["considered", "verdict"], research: { phase: "complete", drafted: 1, since: { research: T2, complete: T3 } }, questions: [{ question: "q-a", rows: [], findings: "research/q-a.md", state: "complete", started: T2, returned: T2 }] }, { sub: false }));
+    const r8 = apply(B8, "researched", { documents: ["research/README.md"], at: T3 });
+    c.push(["the same researched raised again gives the stageless writing pass its stages at its time, the step and its since unchanged", r8.a.status === 0 && r8.S.result !== "duplicate" && ids(r8.p) === "write:current check:todo consequences:todo report:todo" && stage(r8.p, "write").started === T3 && r8.p.wip.plan.since === T0 && r8.p.wip.step === "plan" && r8.p.wip.since === T3, js([r8.S.error, r8.S.result, r8.p.wip.plan, r8.p.wip.since])]);
     const k = checkOk(B); c.push(["check.js passes the writing pass's board", k.ok, k.out]);
   });
 

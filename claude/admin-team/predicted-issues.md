@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":41,"last":"2026-11-21"}
+{"id":"p9","count":42,"last":"2026-11-22"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -307,6 +307,10 @@ The permission system raises the denial.
     background, a case no entry holds (the entry for a command moved to the background is about the harness's time limit,
     the entry for a removal stopped by the safety check about a call the harness stops); added as "A member's job goes
     outside the limits its prompt set on how commands are run".
+  - 2026-11-22, about 04:03Z: a land's merge of a pull request, a normal action of the team's under no grant, was denied
+    by the team session's auto mode classifier, a case no entry holds (the entry for a destructive action denied by the
+    classifier is about an action a grant covers, the entry for an action denied inside a compound command about an action
+    a standing allow line covers); added as "A land's merge, under no grant, is denied by the auto mode classifier".
 
 ## A count changes in this mirrored file
 
@@ -1150,7 +1154,7 @@ The team's brief has a temporary permission's lift of a deny rule made in the la
 ## A command runs past the harness's time limit and the harness moves it to the background
 
 ```json
-{"id":"p67","count":11,"last":"2026-11-21"}
+{"id":"p67","count":12,"last":"2026-11-22"}
 ```
 
 Named until 2026-11-20 "A member's command runs past 180 seconds and the harness moves it to the background"; renamed by the Archivist at the sixth encounter, a command of the Coordinator's own moved at a limit of 120 seconds, the fifth having also been reported at 120 seconds. The paragraph below is as first written, for a member's command.
@@ -1173,6 +1177,7 @@ A member's shell command that runs longer than the harness allows is moved to th
   - 2026-11-21, reported about 22:15Z: in a Presenter job building prototype boards in a scratch folder, an empty `python` heredoc the member ran early in the job hung and was moved to the background, where it ended by itself; in the member's words, "an empty python heredoc that hung and was moved to the background, where it ended, writing nothing". Like the fourth encounter, a hang rather than a command long by design, and a slip of the member's own: the job's prompt forbade a heredoc script and anything in the background, the member said so and wrote every later script as a file, and the presenter's brief now carries the pointer to the shared rule (R-145), as read by the Archivist. Nothing was written, wrongly or otherwise, and nothing lost; no process was left running by the member's account, which the Coordinator did not check. As the member reported it and the team's ledger records it, not re-checked by the Archivist.
   - 2026-11-21, reported about 22:22Z: in a second Presenter job of the same prototype work, building prototype state boards in a scratch folder, the same kind of slip: in the member's words, "a stray python command that waited in the background and ended by itself, writing nothing". The job's prompt forbade anything in the background, and the presenter's brief carries the pointer to the shared rule (R-145). Counted as a separate encounter, being a separate job with its own slip. The member's words do not say whether the harness moved the command to the background or it was started there, nor what it waited on; read as the earlier job's hang, not checked. Nothing was written and nothing lost; no process was left running by the member's account, which the Coordinator did not check. As the member reported it and the team's ledger records it, not re-checked by the Archivist.
   - 2026-11-21, reported about 23:14Z: in a direction manager's job writing a brief for another member's rule conversion, the same slip a third time today, the first in a member other than the Presenter: in the member's words, "an inline python command fed by an empty heredoc hung and was moved to the background; it asked for it to be stopped". By the member's own account the harness moved it to the background, rather than it being started there. Unlike the two Presenter cases, it did not end by itself: it was still waiting on its empty input about a quarter of an hour later, and the member, having no tool to stop it, asked the Coordinator to. The Coordinator found it with a process listing, two processes, a launcher and the interpreter it started, and stopped it with one process kill on the interpreter, which was allowed; the launcher ended with it, and no python process remained. The job's prompt forbade an inline or heredoc script and anything in the background, as the member said itself, and the direction manager's brief carries the pointer to the shared rule (R-145). Nothing was written by the command and nothing lost. As the member reported it and the Coordinator established it, the team's ledger recording it; the processes and their stopping not re-checked by the Archivist.
+  - 2026-11-22: in the work of the handler that takes one run's requests for the Coordinator (OrganizationPage #9), a background agent of the Coordinator's and not a member, a search over a scratch folder ran past its time limit and was moved to the background, where the handler's prompt said nothing in the background. The handler stopped it at once and reported it itself; the search changed nothing. Sent to the Archivist as an encounter of "A member's job goes outside the limits its prompt set on how commands are run", and counted here instead, as that entry's paragraph says of a slip the harness moved to the background. As the handler reported it and the Coordinator relayed it, not re-checked by the Archivist.
 
 ## A code-only graph refresh replaces model-made community names with hub-derived ones
 
@@ -1520,7 +1525,7 @@ When the user interrupts the Coordinator's turn at the console while a member's 
 ## A member's job goes outside the limits its prompt set on how commands are run
 
 ```json
-{"id":"p89","count":2,"last":"2026-11-22"}
+{"id":"p89","count":3,"last":"2026-11-22"}
 ```
 
 A job's prompt sets limits on how the member runs its commands (no inline `node -e`, no heredoc, nothing in the background, a plain copy of named files only, and the like), and the member goes outside one of them, saying so in its own report. A limit can be gone outside of by the member's slip, or because it was written too narrowly for the work the job had to do. It is not "A command runs past the harness's time limit and the harness moves it to the background": several of that entry's encounters were slips against such a limit too, but each was counted there because the harness moved the command to the background; a slip that hangs nothing and moves nothing belongs here. Nor is it "A member's removal of its own scratch files, appended to another command, is stopped by the harness's built-in safety check", where the harness stops the call. A slip of this kind noted in that entry's paragraph on 2026-11-21 (a `rm -f` with a wildcard that ran against its prompt's limit) was made before this entry existed and is not counted here.
@@ -1530,3 +1535,17 @@ A job's prompt sets limits on how the member runs its commands (no inline `node 
 - **Encounters:**
   - 2026-11-21: in a direction manager's job of the rule rework building one member's package, the member reported two departures from its prompt's limits. One was a slip: an inline `node -e "0"`, a no-op, inside a listing command, where the prompt said no inline `node -e` or `node -p`. The other, its build script copying folder trees into its scratch folder and unpacking two exports with `tar -xf` where the prompt allowed only a plain copy of named files, the Coordinator reads as the prompt's fault and not the job's: the build needs a stand-in of the tree, the earlier packages' builds did the same, and the limit was written too narrowly; the next prompt for that job allows it inside the job's own scratch folder. Both are recorded in this one encounter, counted once, one job being one encounter. Nothing hung, nothing was moved to the background, nothing was refused and no command had to be stopped. Logged by the Coordinator against "A command runs past the harness's time limit and the harness moves it to the background", which it does not fit, and added here instead. As the member reported it and the Coordinator relayed it, not re-checked by the Archivist.
   - 2026-11-22: in a Presenter's job filling one repository's issue board after a run's plan was accepted, the member reported of itself that it used one heredoc, where its prompt's limits forbade one: it created an empty helper file in the job's own scratch folder, which the job overwrote at once with the file tool. A slip, the limit not being too narrow for the work: the Coordinator's prompts already name it, and the next message to that job repeated it. Nothing hung, nothing was moved to the background, nothing outside the scratch folder was touched and nothing was refused. As the team's ledger records it (the job's done line, whose slip field holds the member's report), read by the Archivist; the member's account not re-checked by the Archivist.
+  - 2026-11-22: in the work of the handler that takes one run's requests for the Coordinator (OrganizationPage #9), a background agent of the Coordinator's and not a member, the handler made one read-only call to the remote to check a base, where its prompt said no network for itself. It changed nothing, and the executor then confirmed the base itself. A slip, reported by the handler itself; nothing hung, nothing was moved to the background and nothing was refused. Counted here though the heading names a member's job: the Archivist reads it as the same issue, a job going outside the limits its prompt set, whoever runs the job. As the handler reported it and the Coordinator relayed it, not re-checked by the Archivist.
+
+## A land's merge, under no grant, is denied by the auto mode classifier
+
+```json
+{"id":"p90","count":1,"last":"2026-11-22"}
+```
+
+A land's merge of a pull request is a normal action of the team's, run under no temporary grant, and the team session's auto mode classifier denies the executor's merge call before it runs, with the reason "Destructive or Unwanted Actions". At the first encounter the merge would have started the repository's deploy workflow, which the request's notes said. It is not "A destructive action a grant covers is denied by the auto mode classifier", which is about an action under a temporary grant, nor "An action a standing allow line covers is refused by the auto mode classifier when sent inside a compound command", which is about a covered step sent beside others. The user's global settings file holds both a permissions allow rule for `gh pr merge` and an `autoMode.allow` entry saying the user has authorized merging their own pull requests unconditionally, read by the Archivist; the classifier denied the merge with them in place. Not checked: whether the team session reads that file's `autoMode.allow` entries (the later fact under the grant entry found one read in a session run in the desktop app), whether the deploy the merge would start is what the classifier weighed, and whether earlier lands' merges ran clean under the same settings.
+
+- **Proposed resolution:** none decided. The options the Coordinator put to the user at the first encounter: a) the user merges the pull request and the team finishes the landing (recommended by the Coordinator); b) an `autoMode.allow` line the user directs in the launcher's settings for this one merge, placed by the direction manager, the team restarting before the merge can run; c) the merge is held. Until one is decided, the practice of the grant entry's rule: the refused call is not retried and no other route is tried.
+- **Predicted:** the admin team, on meeting it, 2026-11-22.
+- **Encounters:**
+  - 2026-11-22, about 04:03Z: the land of OrganizationPage #9. The executor's one call to merge pull request #39 with a merge commit (`gh pr merge` with `--merge`) was denied by the team session's auto mode classifier, reason "Destructive or Unwanted Actions"; the merge would start the repository's deploy workflow, staging automatically and production behind its own approval. Not retried, and no other route tried; the pull request is open and the base unmoved. The Coordinator put the merge to the user as a question. As the team's ledger records it (its classifier-refusal line and the question-asked line), read by the Archivist; the executor's call as the Coordinator reported it, not re-checked by the Archivist.
