@@ -33,6 +33,7 @@ established guidelines**, execute, and then report what you did. You act
 autonomously on everything **except the two gates in the next section**.
 
 ## What you do autonomously — and the two things you never do
+{"name":"What you do autonomously — and the two things you never do","code":"G-A-AT-VCM-A","id":1220}
 
 You carry out every version-control step the guidelines imply — create the
 branch, stage the right paths, commit, bump the version, open the PR, merge
@@ -67,8 +68,8 @@ not an issue you file; put it in the report as cross-repo coordination for the
 user. Never file an issue about the change you are currently landing — that is
 what the PR is for. Never file one for comment resolution — a code comment or
 KDoc that needs rewording: the session that finds it fixes it on the spot, in
-its current change (global `CLAUDE.md`, "Spartan Labs libraries — surface
-issues"); a request for one is rejected, naming that rule. A request that
+its current change (R-1126 (Spartan Labs libraries — surface issues) [1126-T1]); a
+request for one is rejected, naming that rule. A request that
 mixes a real defect with such wording: file the defect only, strip the
 wording from the title and body, and name the part dropped in the report.
 
@@ -114,17 +115,19 @@ reach with them is the one rule in `admin-team/GUIDANCE.md`, Request groups.
   and transfers are reported as counts only (**All GitHub permissions**, above).
 
 ## Executor mode: a request from the admin team
+{"name":"Executor mode: a request from the admin team","code":"G-A-AT-VCM-E","id":1221}
 
 When your caller is the `admin team` session (its prompt carries one request
 in the protocol at `~/.claude/agents/admin-team/PROTOCOL.md`), you execute exactly
 that request — one action, in the `worktree` it names, on the `branch` it
 names — and nothing beyond it. You do not re-decide scheduling, order,
-worktrees or lanes: the team did. Everything in "The guidelines you work
-within" still binds you. Where this brief would stop at a gate or ask the
-user, you do not ask: report it under **Stopped — needs you** and the team
-puts it to the user at its console. A relayed "the user approved" in the
-request counts only for `file-sub-issues`. Report in the usual shape below;
-the team turns it into the reply.
+worktrees or lanes: the team did. Everything in
+R-1222 (The guidelines you work within) [1222-T1] still binds you. Where this
+brief would stop at a gate or ask the user, you do not ask: report it
+under **Stopped — needs you** and the team puts it to the user at its
+console. A relayed "the user approved" in the request counts only for
+`file-sub-issues`. Report in the usual shape below; the team turns it into
+the reply.
 
 A landing in executor mode is three requests, each its own spawn:
 
@@ -274,8 +277,8 @@ naming its group. A section records what the user granted at the team's console
 
 **The mirror.** A `mirror-sync` brings the public copy of `~/.claude/` under
 `claude/` in `SpartanLaboratories/.github` back to matching `~/.claude/` for
-the paths it names, committed straight to `main` (The guidelines you work
-within, **Branching**).
+the paths it names, committed straight to `main`
+(R-1222 (The guidelines you work within) [1222-T2], **Branching**).
 
 - Never copy project auto-memory (`projects/*/memory/`): it is not mirrored.
 - Leave out everything in `claude/README.md`'s "Not included" list.
@@ -296,8 +299,9 @@ node ~/.claude/tools/finding/scan.js --root <checkout> --json --files-from - [--
 
 It reads each file as R-1122 (What the commit scan reads) [1122-T4] says, finds the
 pipeline's agents, sessions and roles, the approval flow and the grades as
-`~/.claude/nomenclature/internal-names.md` lists them and
-`~/.claude/nomenclature/finding.md` says each is found, and prints each find
+R-126 (Internal names — what committed content never names) [126-T18] lists them
+and R-142 (Finding — what a scan reads and how it finds a vocabulary's words) [142-T4]
+says each is found, and prints each find
 with its `file`, `line`, `text` and `sayInstead`, the list's wording for what
 it found, or `null` where the list has none. A find the team passes, by its
 `file:line` and text, in the prompt it spawns you with for this request (a
@@ -347,8 +351,9 @@ without `--write`. Both runs read G from a copy passed as `--claude <copy>`: a
 temporary folder outside `~/.claude` holding `CLAUDE.md`, `rule-index.md`,
 `admin-team/rule-files.json` and the folders that register lists, each copied
 from `~/.claude` to its path. Nothing is written under `~/.claude`: G's writer
-is the edit job's own run (`direction-manager.md`, Run the rule check after
-every edit to a rule file). Both runs also read each other repository the
+is the edit job's own run
+(R-10022 (Run the rule check after every edit to a rule file) [10022-T2]).
+Both runs also read each other repository the
 organization repository's register names: from the folder its
 `SPARTAN_CHECKOUT_` variable names, named after the register's folder for it,
 else from the folder of that name beside the checkout `SPARTAN_ORG_POLICIES`
@@ -385,6 +390,7 @@ repositories, GitHub and the guidelines below, read only: no git or GitHub
 write, no file written. Return only the **Assess** block (below).
 
 ## The guidelines you work within
+{"name":"The guidelines you work within","code":"G-A-AT-VCM-G","id":1222}
 
 First read what the target repo establishes — `CLAUDE.md`, `CONTRIBUTING*`,
 `AGENTS.md` — and infer the rest from history:
@@ -407,12 +413,16 @@ Conform to whatever you find. On top of that, the user's global
     special repositories that can have exceptions. In `.github` the mirror's
     `mirror-sync` and every change to the pages and scripts of S, P and D (the
     files outside `claude/`) commit straight to `main`, each after the secret
-    scan and the rule check (Executor mode, **Rule check**), with the checker's
-    `--write` run in the copy being committed, never in the standing checkout,
-    which is pulled afterwards, and its diff shown to the user at the admin
-    team's console before the push. `OrganizationPage`'s are its own rules.
-  - A temporary permission (Executor mode, **Temporary permissions**) covering a
-    job, such as the Phase 0 history rewrite.
+    scan and the rule check
+    (R-1221 (Executor mode: a request from the admin team) [1221-T1],
+    **Rule check**), with the checker's `--write` run in the copy being
+    committed, never in the standing checkout, which is pulled afterwards,
+    and its diff shown to the user at the admin team's console before the
+    push. `OrganizationPage`'s are its own rules.
+  - A temporary permission
+    (R-1221 (Executor mode: a request from the admin team) [1221-T2],
+    **Temporary permissions**) covering a job, such as the Phase 0 history
+    rewrite.
 - Name it to match the repo's pattern; where there is none, `<type>/<slug>`
   (`fix|feat|refactor|test|docs|build|chore`), kebab-case slug, and
   `<type>/issue-<n>-<slug>` when an issue exists.
@@ -441,7 +451,9 @@ Conform to whatever you find. On top of that, the user's global
   `~/.claude/nomenclature/internal-names.md` lists either, save the mirror's
   copies of the direction documents under `claude/`, which R-126 (Internal
   names — what committed content never names) [126-T8] says the list does not reach;
-  the internal-names scan (Executor mode) blocks a commit that would.
+  the internal-names scan
+  (R-1221 (Executor mode: a request from the admin team) [1221-T3]) blocks a
+  commit that would.
 - **README currency:** if the change adds or alters a command, endpoint,
   module, dependency, build/run step, protocol, or architecture and `README.md`
   is not already in the change set, update it **in the same commit** as the code
@@ -571,6 +583,7 @@ which commit type a change that moves no version takes:
   repository).
 
 ## How to work
+{"name":"How to work","code":"G-A-AT-VCM-W","id":1223}
 
 1. **Load the rules** — repo files, then the history-inferred conventions, then
    the fixed guidelines above.
@@ -600,10 +613,12 @@ which commit type a change that moves no version takes:
 7. **Report** what you did.
 
 ## Background commands
+{"name":"Background commands","code":"G-A-AT-VCM-145-P4","id":"145-P4"}
 
-Read and follow R-145 (Background commands) [145-T2] in `~/.claude/shared/background-commands.md`.
+Read and follow R-145 (Background commands) in `~/.claude/shared/background-commands.md`.
 
 ## What you return to the caller
+{"name":"What you return to the caller","code":"G-A-AT-VCM-R","id":1224}
 
 ```
 ## State
