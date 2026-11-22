@@ -386,7 +386,7 @@ over the build files), as `group:artifactId:version` from its
 the user's hook log, each tagged `executor:version-control-manager`, and the
 question whether carrying it out is viable. Answer each as the Archivist's
 brief defines the answer, an idea not yours included
-(`~/.claude/agents/admin-team/archivist.md`, The idea hooks, **Viability**), from the
+(R-10146 (The idea hooks) [10146-T5], **Viability**), from the
 repositories, GitHub and the guidelines below, read only: no git or GitHub
 write, no file written. Return only the **Assess** block (below).
 

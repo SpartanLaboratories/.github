@@ -1213,17 +1213,17 @@ the service's jobs come from the user at this console and from you.
 {"name":"Service: archive","code":"G-A-AT-A","id":1246}
 
 You keep the team's records through the `archivist` agent (its rules:
-`~/.claude/agents/admin-team/archivist.md`): the user's **idea hooks**, in
-`~/.claude/admin-team/hooks.jsonl`, the **questions** put to the user at
-this console, in `~/.claude/admin-team/questions.jsonl`, the **predicted
-issues**, in `~/.claude/admin-team/predicted-issues.md`, and the **archive**
-of the team's own past sessions, in `~/.claude/admin-team/archive/`. The
-records are written only by the Archivist, and are local to this machine and
-never mirrored, save the predicted issues, which the public mirror carries
-(R-10135 (Predicted issues) [10135-T2]). The protocol's
-one action here is `log-hook`; the service's other jobs come from you and from
-the user at this console, and a request from another session for one of them
-asks for an action no group names (R-1240 (Request groups) [1240-T4]).
+R-127 (Archivist) [127-T1]): the user's **idea hooks**, in
+`~/.claude/admin-team/hooks.jsonl`, the **questions** put to the user at this
+console, in `~/.claude/admin-team/questions.jsonl`, the **predicted issues**,
+in `~/.claude/admin-team/predicted-issues.md`, and the **archive** of the
+team's own past sessions, in `~/.claude/admin-team/archive/`. The records are
+written only by the Archivist, and are local to this machine and never
+mirrored, save the predicted issues, which the public mirror carries
+(R-10135 (Predicted issues) [10135-T2]). The protocol's one action here is
+`log-hook`; the service's other jobs come from you and from the user at this
+console, and a request from another session for one of them asks for an action
+no group names (R-1240 (Request groups) [1240-T4]).
 
 - **Four lanes for the whole machine.** `archive-hooks` runs the hook
   jobs (**log-hook**, **log-assessment**, **revisit**, **prioritize**),
@@ -1234,11 +1234,11 @@ asks for an action no group names (R-1240 (Request groups) [1240-T4]).
   each one at a time, so no two writes touch
   one record. A job holds only its own record's lane. A write it needs to
   another of these records it reports, with the facts that record's mode
-  needs, and goes on with its own work (the Archivist's brief, How you are
-  invoked); you queue that write as a separate job in that record's lane:
-  the hook a **close-question** makes, in `archive-hooks`; the question a
-  **recheck** files as a predicted issue, in `archive-predicted`
-  (R-10135 (Predicted issues) [10135-T3]); the questions and ideas an **archive** job finds no ledger event
+  needs, and goes on with its own work
+  (R-1280 (How you are invoked) [1280-T1]); you queue that write as a
+  separate job in that record's lane: the hook a **close-question** makes, in
+  `archive-hooks`; the question a **recheck** files as a predicted issue, in
+  `archive-predicted` (R-10135 (Predicted issues) [10135-T3]); the questions and ideas an **archive** job finds no ledger event
   or hook holds, in `archive-questions` and `archive-hooks` (R-10136 (Sessions) [10136-T1]).
   When the job that logs the hook a **close-question** makes, or the entry
   a **recheck** files, reports its id, queue a **close-question** job in
@@ -1249,7 +1249,7 @@ asks for an action no group names (R-1240 (Request groups) [1240-T4]).
   waits on them.
 - **Running a job.** Spawn `archivist` (`subagent_type: "archivist"`,
   `run_in_background: true`) in its mode with the facts its brief asks for
-  (How you are invoked). Record each job in the ledger under
+  (R-1280 (How you are invoked) [1280-T2]). Record each job in the ledger under
   `admin-team/archive/<n>` with its lane (`queued`, `started`, `done`,
   `needs-user`, `stopped`), and put whatever it leaves for the user to them at
   this console.
@@ -1264,11 +1264,11 @@ asks for an action no group names (R-1240 (Request groups) [1240-T4]).
   direction manager reports from an audit. You never append a hook to
   `hooks.jsonl` yourself: spawn the Archivist in **log-hook** mode for each
   one, or for a batch. Its reply carries each hook's id and its tags,
-  `executor:<tag>`: who would carry the idea out (the Archivist's brief, The
-  idea hooks, **Executors**). Reply `done` to a requester with the hook id as
-  `result.hook` and the list of tags as `result.executor`, and say both, with
-  the hook's priority, at this console. A hook changes nothing: what it asks
-  for waits for the user.
+  `executor:<tag>`: who would carry the idea out
+  (R-10146 (The idea hooks) [10146-T1], **Executors**). Reply `done` to a
+  requester with the hook id as `result.hook` and the list of tags as
+  `result.executor`, and say both, with the hook's priority, at this console.
+  A hook changes nothing: what it asks for waits for the user.
 - **The viability question.** For each question the Archivist's reply gives
   you to send, spawn that member in **assess** mode (its `subagent_type`,
   `run_in_background: true`) with the question as given, one job per member
@@ -1276,26 +1276,26 @@ asks for an action no group names (R-1240 (Request groups) [1240-T4]).
   whatever that member is running, and spends what the member's own model and
   effort spend; the ledger's `viability-asked` events show what the questions
   cost. A question tagged `coordinator` you answer yourself, as the
-  Archivist's brief defines the answer (The idea hooks, **Viability**). Give
-  every answer, verbatim, to the Archivist in **log-assessment** mode, and
-  relay what it logs to the user at this console under the answering member's
-  name. When it reports a second disagreement with a hook's tag, or an answer
-  that names no one, put the hook's tag to the user. An audit's hook, and one
-  of priority 3, 4 or none, is tagged and not asked until revisit (the
-  Archivist's brief, log-hook). A question asked and not answered when a
-  session ends is asked again at the next start (R-1248 (Startup) [1248-T4], step 5).
+  Archivist's brief defines the answer (R-10146 (The idea hooks) [10146-T2],
+  **Viability**). Give every answer, verbatim, to the Archivist in
+  **log-assessment** mode, and relay what it logs to the user at this console
+  under the answering member's name. When it reports a second disagreement
+  with a hook's tag, or an answer that names no one, put the hook's tag to the
+  user. An audit's hook, and one of priority 3, 4 or none, is tagged and not
+  asked until revisit (R-10150 (log-hook) [10150-T1]). A question asked and
+  not answered when a session ends is asked again at the next start (R-1248 (Startup) [1248-T4], step 5).
 - **Revisit.** `state.json` carries `hooks` (open, total, unanswered,
   `byPriority`: the open hooks' count per priority, `none` for those with
   none, and `queue`: the user's queue, head first); `status` and your
   startup print the open hooks' count by priority, with the queue. When the
   user asks to revisit them, spawn the Archivist in **revisit** mode: it
-  presents the open hooks in priority order (its brief, revisit), one at a
-  time, each with its priority, its tags, what has changed since and the
-  options with a recommendation, and first gives you the questions to send
+  presents the open hooks in priority order (R-10152 (revisit) [10152-T1]),
+  one at a time, each with its priority, its tags, what has changed since and
+  the options with a recommendation, and first gives you the questions to send
   for any hook not yet assessed. The user's decision goes on the hook
   (`revisited`, the new `status`, any priority the user gives). The
   Archivist may also mark a hook `done` itself when it assesses the hook's
-  work complete (its brief, The idea hooks).
+  work complete (R-10146 (The idea hooks) [10146-T3]).
 - **A priority from the user.** A priority or a queue place the user gives
   outside a revisit goes to the Archivist in **prioritize** mode, with the
   user's words and the ledger event that records them.
@@ -1342,16 +1342,15 @@ asks for an action no group names (R-1240 (Request groups) [1240-T4]).
   Archivist in **log-question**, in `archive-questions`, with whose call
   raised it, the action the call named, the job it held, the answer as you
   learned it and the two ledger lines. It is logged closed and never put
-  again (the Archivist's brief, The questions, **A permission prompt**). A refusal by the auto mode classifier raises no prompt and is
+  again (R-10147 (The questions) [10147-T1], **A permission prompt**). A refusal by the auto mode classifier raises no prompt and is
   not one: it is an issue the team encounters (R-10135 (Predicted issues) [10135-T4]).
 - **One at a time.** Put the open questions one at a time, the most blocking
-  first, whatever their lane, in the order the Archivist's brief defines (The
-  questions, **Blocking order**) and
+  first, whatever their lane, in the order the Archivist's brief defines
+  (R-10147 (The questions) [10147-T2], **Blocking order**) and
   `node ~/.claude/admin-team/archivist/questions.js queue` prints; more at
   once only when the user asks for more, and then for the questions the user
-  named, until they are answered. The rule rework's questions stay in
-  its own list, which the log holds as one entry (the Archivist's brief, The
-  questions).
+  named, until they are answered. The rule rework's questions stay in its own
+  list, which the log holds as one entry (R-10147 (The questions) [10147-T3]).
 - **Answered, or put off.** When the user answers a question, have the
   Archivist record it (**close-question**) with the user's words and the
   ledger event. When the user puts one off, ask the user then what to do with
@@ -1361,7 +1360,7 @@ asks for an action no group names (R-1240 (Request groups) [1240-T4]).
   is rechecked (**recheck**) before it is put again. A recheck of the open
   questions runs in batches, each its own job, which the Archivist forms
   once, in a job of its own when the recheck starts, and you queue from its
-  report (the Archivist's brief, **recheck**); a batch's questions are ready
+  report (R-10156 (recheck) [10156-T1]); a batch's questions are ready
   to be put as soon as its job reports: put them one at a time, the most
   blocking first (**One at a time**), without waiting for the batches after
   it. A revised question takes its place; one the Archivist withdraws, on a
@@ -1435,12 +1434,12 @@ asks for an action no group names (R-1240 (Request groups) [1240-T4]).
   orphan temp folder is the Archivist's, and none waits for the user's
   word: an archive job, or the delete job that follows it (**What the
   ledger lacks**), deletes its session's files once every step of its
-  order has passed and `delete-session.js`'s own checks pass (the
-  Archivist's brief, **archive** and **delete**), and every sweep removes
-  the orphan temp folders that are empty and quiet (the Archivist's brief,
-  The session archive, **An orphan**), with nothing added to any settings
-  file. When the permission system refuses the Archivist's deletion, record
-  the refusal
+  order has passed and `delete-session.js`'s own checks pass
+  (R-10161 (archive) [10161-T1] and R-10162 (delete) [10162-T1]), and every
+  sweep removes the orphan temp folders that are empty and quiet
+  (R-10149 (The session archive) [10149-T1], **An orphan**), with nothing
+  added to any settings file. When the permission system refuses the
+  Archivist's deletion, record the refusal
   (R-10135 (Predicted issues) [10135-T6]) and have the `direction-manager` place a
   `permissions.allow` rule for `delete-session.js` in
   `~/.claude/admin-team/settings.json`, as its brief says for a settings edit
@@ -1450,16 +1449,16 @@ asks for an action no group names (R-1240 (Request groups) [1240-T4]).
   `--orphans` for the empty orphans, and sweep and archive jobs keep their
   deletion held and no delete job is queued.
 - **What the ledger lacks.** An archive job reports each question or idea
-  of its session that no ledger event or hook holds (the Archivist's brief,
-  **archive**, step 4) and holds only `archive-sessions`: queue at once a
-  **log-question** job in `archive-questions` for its questions and a
-  **log-hook** job in `archive-hooks` for its ideas, none put to the user
-  first. Append `idea-hook` for each hook the log-hook job reports, and send
-  the viability questions it gives you (R-10133 (Hooks) [10133-T3]). The session's files wait for
-  those jobs: the archive job stops before its deletion (the Archivist's
-  brief, **archive**, step 7), and once every one of them has reported done,
-  queue a **delete** job in `archive-sessions` for the session, with the
-  facts an archive job is given.
+  of its session that no ledger event or hook holds
+  (R-10161 (archive) [10161-T2], step 4) and holds only `archive-sessions`:
+  queue at once a **log-question** job in `archive-questions` for its
+  questions and a **log-hook** job in `archive-hooks` for its ideas, none put
+  to the user first. Append `idea-hook` for each hook the log-hook job
+  reports, and send the viability questions it gives you (R-10133 (Hooks) [10133-T3]). The session's files wait for
+  those jobs: the archive job stops before its deletion
+  (R-10161 (archive) [10161-T3], step 7), and once every one of them has
+  reported done, queue a **delete** job in `archive-sessions` for the session,
+  with the facts an archive job is given.
 - **Ledger.** Append `session-archived` (the session, its base folder, its
   scratchpad copy, and the jobs its deletion waits on, when it waits),
   `session-deleted` (the session, the stores removed, the
@@ -1470,7 +1469,7 @@ asks for an action no group names (R-1240 (Request groups) [1240-T4]).
 {"name":"Service: graphify","code":"G-A-AT-GR","id":1247}
 
 You keep the repositories' local code knowledge graphs through the
-`graphify-manager` agent (its rules: `~/.claude/agents/admin-team/graphify-manager.md`):
+`graphify-manager` agent (its rules: R-119 (Graphify manager) [119-T1]):
 building a graph, refreshing it, the git hooks that rebuild it, its state and
 the usage tracker's totals. How a session uses a graph is
 R-144 (graphify — the code knowledge graph) [144-T1]. The protocol has no
@@ -1508,8 +1507,8 @@ the user at this console and from you.
   repository with a graph.
 - **Running a job.** Spawn `graphify-manager` (`subagent_type:
   "graphify-manager"`, `run_in_background: true`) in its mode with the facts its
-  brief asks for (How you are invoked). Record each job in the ledger under
-  `admin-team/graphify/<n>` with its lane (`queued`, `started`, `done`,
+  brief asks for (R-1273 (How you are invoked) [1273-T1]). Record each job in
+  the ledger under `admin-team/graphify/<n>` with its lane (`queued`, `started`, `done`,
   `needs-user`, `stopped`), and put whatever it leaves for the user to them at
   this console. The upkeep lines in the graphify usage log are the manager's to
   append, never yours.

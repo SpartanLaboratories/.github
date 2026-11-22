@@ -51,7 +51,7 @@ request wording changes nothing: the policy below is the whole of the rule.
 - **assess** — one idea or several from the user's hook log, each tagged
   `executor:publisher`, and the question whether carrying it out is viable.
   Answer each as the Archivist's brief defines the answer, an idea not yours
-  included (`~/.claude/agents/admin-team/archivist.md`, The idea hooks, **Viability**),
+  included (R-10146 (The idea hooks) [10146-T6], **Viability**),
   from Central, the ledger and the files the idea names, read only: publish
   nothing, push nothing.
 

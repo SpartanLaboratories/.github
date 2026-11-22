@@ -139,7 +139,7 @@ The permission system raises the denial.
 ## An encountered issue is not in this tracker
 
 ```json
-{"id":"p9","count":42,"last":"2026-11-22"}
+{"id":"p9","count":43,"last":"2026-11-22"}
 ```
 
 - **Proposed resolution:** add it as a new entry with count 1, then prompt the
@@ -311,6 +311,11 @@ The permission system raises the denial.
     by the team session's auto mode classifier, a case no entry holds (the entry for a destructive action denied by the
     classifier is about an action a grant covers, the entry for an action denied inside a compound command about an action
     a standing allow line covers); added as "A land's merge, under no grant, is denied by the auto mode classifier".
+  - 2026-11-22, about 04:37Z: after a land's merge, the spawn of the Publisher in consider mode, under no grant, was denied
+    by the team session's auto mode classifier before the Publisher ran, a case no entry holds (the entry for a land's merge
+    denied is about the merge call, the entry for a destructive action denied about an action a grant covers, the entry for
+    [Create Public Surface] about the permission system denying a publish itself); added as "The Publisher's spawn after a
+    land is denied by the auto mode classifier".
 
 ## A count changes in this mirrored file
 
@@ -1550,3 +1555,16 @@ A land's merge of a pull request is a normal action of the team's, run under no 
 - **Predicted:** the admin team, on meeting it, 2026-11-22.
 - **Encounters:**
   - 2026-11-22, about 04:03Z: the land of OrganizationPage #9. The executor's one call to merge pull request #39 with a merge commit (`gh pr merge` with `--merge`) was denied by the team session's auto mode classifier, reason "Destructive or Unwanted Actions"; the merge would start the repository's deploy workflow, staging automatically and production behind its own approval. Not retried, and no other route tried; the pull request is open and the base unmoved. The Coordinator put the merge to the user as a question. As the team's ledger records it (its classifier-refusal line and the question-asked line), read by the Archivist; the executor's call as the Coordinator reported it, not re-checked by the Archivist.
+
+## The Publisher's spawn after a land is denied by the auto mode classifier
+
+```json
+{"id":"p91","count":1,"last":"2026-11-22"}
+```
+
+After a land merges a change whose version bump moves a published module, the team starts the Publisher in consider mode, a normal step of its own under no temporary grant, and the team session's auto mode classifier denies the spawn of the Publisher itself, with the reason "[Destructive or Unwanted Actions]", before the Publisher runs anything. Consider mode only weighs a release; nothing is published by it unless a release then follows. It is not "A land's merge, under no grant, is denied by the auto mode classifier", which is about the merge call (here the merge went through), nor "A destructive action a grant covers is denied by the auto mode classifier", which is about an action under a temporary grant, nor "A publish, or a repository creation, is denied with [Create Public Surface]", which is about the permission system denying the publish itself. Not checked: what the classifier weighed in the spawn (its prompt naming a release, or the agent's name), and whether earlier spawns of the Publisher ran clean.
+
+- **Proposed resolution:** none decided. The options the Coordinator put to the user at the first encounter: a) a retry, the Coordinator starting the Publisher itself as the team's brief has it (recommended by the Coordinator); b) the candidate is dropped; c) it is left for now and decided later. Until one is decided, the practice of the grant entry's rule: the refused call is not retried and no other route is tried; the landing is finished without the release, and the candidate is recorded `publish-failed`.
+- **Predicted:** the admin team, on meeting it, 2026-11-22.
+- **Encounters:**
+  - 2026-11-22, about 04:37Z: the land of WebTools #39, whose version bump moved `webtools-udp` to 2.0.1a. The merge went through; the spawn of the Publisher in consider mode for that module was denied by the team session's auto mode classifier, reason "[Destructive or Unwanted Actions]". Not retried, and no other route tried; the landing was finished without the release and the candidate recorded `publish-failed`: nothing published, no tag, no release. The Coordinator put the release to the user as a question. As the team's ledger records it (its classifier-refusal line, the run's progress line before it, and the publish-failed line after it), read by the Archivist; the spawn as the team reported it, not re-checked by the Archivist.
