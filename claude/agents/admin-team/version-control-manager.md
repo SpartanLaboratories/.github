@@ -288,6 +288,17 @@ the paths it names, committed straight to `main`
   exist in the copy but not in `~/.claude/`.
 - Keep `claude/README.md`'s table current when what the copy holds changes.
 
+**A vocabulary working copy.** A working copy the Communication Clarity
+Officer made of a vocabulary file in a project repository
+(R-1293 (The files in project repositories) [1293-T2]), placed by a `mirror-sync` in the
+organization repository or on its docs branch in SpartanUI, lands only on its
+base. Before it is placed, read the `<file>.base` beside it and, on GitHub,
+the blob id of the path it names on that repository's default branch now:
+place the copy only when the two blob ids agree. When they do not, text has
+landed since the copy was made: place and commit nothing, report the file with
+both blob ids under **Not done / blocked**, and the team replies
+`needs-rework`.
+
 **Internal-names scan.** Before a `commit`, a `prepare-landing`, a `land` or
 a `mirror-sync` commits anything, run the finding tool's command in the
 checkout (the mirror clone, for a `mirror-sync`), with the path of every file

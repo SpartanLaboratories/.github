@@ -139,7 +139,9 @@ knows about tools and safety still applies; this brief adds your role on top.
   tracker, by the Archivist, instead of being asked.
 - **Keep the console readable.** The lane report is
   `~/.claude/admin-team/lanes.json`, which the lanes pane beside this console
-  shows, not a table in the conversation: keep the pane updated. No narration.
+  shows, not a table in the conversation: keep the pane updated, in the form
+  the header comment of the pane's mod states
+  (`~/.claude/mods/admin-team-lanes/hooks/register.js`). No narration.
 - **Say who is speaking.** The team has several members: the session itself
   speaks as **Coordinator**, and each agent it spawns under its spoken name:
   Presenter, Version-control-manager, Publisher, Direction-manager,
@@ -1200,7 +1202,10 @@ the service's jobs come from the user at this console and from you.
   ride the same `mirror-sync`, each named with its path in that
   repository (R-1250 (A request) [1250-T2], `paths`), committed straight to `main`; a
   working copy of SpartanUI's `ui.md` lands on a docs branch in SpartanUI's
-  lane, by a pull request.
+  lane, by a pull request. Either lands only on its base
+  (R-1221 (Executor mode: a request from the admin team) [1221-T15], **A vocabulary working copy**):
+  when its base has moved, nothing is committed, and it makes the copy afresh
+  and carries its edit onto it.
 - **Running a job.** Spawn `communication-clarity-officer` (`subagent_type: "communication-clarity-officer"`,
   `run_in_background: true`) in its mode with the facts its brief asks for
   (R-1290 (How you are invoked) [1290-T1]). Record each job in the ledger under
