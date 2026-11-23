@@ -10,9 +10,11 @@
 // them about to be committed in R-1010 (The checker), and what the fetch script prints, with the
 // search, in R-1011 (The fetch script).
 //
-// Left out: groups of files with no folder of their own (the health files, the repositories, the
-// sub-organizations), whose shape is not settled. Machine-local paths: none is written here; the
-// home folder is asked of the operating system at run time.
+// A level a register declares under a root, and a folder of another repository with a file of a
+// third repository in it, are in R-1001 (Files and folders). Left out: groups of files with no
+// folder of their own (the health files, the repositories), whose shape is not settled.
+// Machine-local paths: none is written here; the home folder is asked of the operating system at
+// run time.
 
 const fs = require('fs');
 const os = require('os');
@@ -1069,6 +1071,8 @@ function checkRegisterShape(reg, where, letters) {
     if (part.main !== ROOT_MAIN[r]) f.push(`${where}: root ${r}'s main file is ${ROOT_MAIN[r]} (Structure.md, \`id\`), the register says ${part.main}`);
     if (part.ownSections !== CORE_SEGMENT) f.push(`${where}: root ${r}'s ownSections is C, the Core segment (Structure.md, \`code\`)`);
     for (const k of ['listed', 'files', 'folders']) if (part[k] !== undefined && !obj(part[k])) f.push(`${where}: root ${r}'s "${k}" needs an object keyed by path`);
+    // the levels the register declares under the root, by their segments: R-1001 (Files and folders)
+    if (part.levels !== undefined && !(Array.isArray(part.levels) && part.levels.every(s => typeof s === 'string'))) f.push(`${where}: root ${r}'s "levels" needs a list of segments (Structure.md, Files and folders)`);
     for (const [p, e] of Object.entries(part.listed || {})) {
       if (!obj(e)) { f.push(`${where}: listed ${p} needs an object`); continue; }
       if (e.id !== null && parseId(e.id)?.tier !== TIER_OF.file) f.push(`${where}: listed ${p} takes a 3-digit id (Structure.md, \`code\`), has ${JSON.stringify(e.id)}`);
@@ -1083,6 +1087,8 @@ function checkRegisterShape(reg, where, letters) {
   for (const [name, repo] of Object.entries((reg.repositories && typeof reg.repositories === 'object') ? reg.repositories : {})) {
     if (repo && repo.url !== undefined && !parseGithubAddress(repo.url)) f.push(`${where}: repositories.${name}.url needs a GitHub repository address`);
     for (const k of ['quotePointers', 'ruleFilesWithQuotes']) if (repo && repo[k] !== undefined && !paths(repo[k])) f.push(`${where}: repositories.${name}.${k} needs a list of paths (Structure.md, Quote pointers)`);
+    // the folders of another repository, each keyed by its path there: R-1001 (Files and folders)
+    if (repo && repo.folders !== undefined && !(obj(repo.folders) && Object.values(repo.folders).every(obj))) f.push(`${where}: repositories.${name}.folders needs an object of path to its entry (Structure.md, Files and folders)`);
   }
   if (reg.notConverted !== undefined && !Array.isArray(reg.notConverted)) f.push(`${where}: "notConverted" needs a list of paths`);
   if (reg.repositories !== undefined && !obj(reg.repositories)) f.push(`${where}: "repositories" needs an object`);
@@ -1144,7 +1150,7 @@ function buildSystem(o) {
     const notConverted = new Set(reg.notConverted || []);
     const coreless = new Set(); // registered files left out with a folder that has no core file
     for (const [letter, part] of Object.entries(reg.roots)) {
-      const root = { letter, place, base: place.base, part, code: letter, level: 1, form: letter === 'G' ? FORM.visible : FORM.comment, children: [] };
+      const root = { letter, place, base: place.base, part, code: letter, level: 1, form: letter === 'G' ? FORM.visible : FORM.comment, children: [], levels: [], repoFolders: [] };
       roots[letter] = root;
       // folders, shallow first, each under its nearest registered ancestor
       const fpaths = Object.keys(part.folders || {}).sort((a, b) => a.split('/').length - b.split('/').length);
@@ -1204,12 +1210,21 @@ function buildSystem(o) {
         const isIndex = path.resolve(entry.abs) === path.resolve(path.dirname(place.registerPath), reg.index);
         if (!isIndex && !files.exists(entry.abs)) findings.push(`${where(entry)}: the listed file does not exist (Structure.md, \`code\`)`);
       }
+      // the levels the register declares under the root: a segment and nothing more, with no
+      // folder, no file and no id; what the register places under one takes its code through it,
+      // R-1001 (Files and folders)
+      for (const seg of part.levels || []) {
+        const lv = { kind: 'level', root, place, rel: `level ${seg}`, segment: seg, parent: root, code: `${letter}-${seg}`, level: 2, children: [] };
+        root.children.push(lv);
+        root.levels.push(lv);
+      }
     }
     // the repositories' addresses, for a full GitHub address in a link: R-1008 (Pointers)
     if (reg.url) addresses.push({ ...parseGithubAddress(reg.url), base: place.base });
     // files in other repositories, R-1010 (The checker): a sibling folder of the policies checkout,
     // or the copy of that repository about to be committed when one is named; never its standing
     // checkout named as that copy
+    const repoPlaces = [];
     for (const [name, repo] of Object.entries(reg.repositories || {})) {
       const folderName = repo.folder || name;
       const overrideName = overrideVariable(folderName);
@@ -1222,11 +1237,72 @@ function buildSystem(o) {
       }
       const co = given ? { path: path.resolve(given), exists: fs.existsSync(given) } : standingCo;
       if (repo.url) addresses.push({ ...parseGithubAddress(repo.url), base: co.path });
+      repoPlaces.push({ name, repo, folderName, overrideName, given, co });
+    }
+    // what a folder or a file of another repository sits under: a registered folder of its root, a
+    // level the register declares under the root, or a folder of another repository, named
+    // `<repository>:<path>`; R-1001 (Files and folders)
+    const underOf = (root, under) => root.folders.find(x => x.rel === under) || root.levels.find(x => x.segment === under)
+      || root.repoFolders.find(x => `${x.repo}:${x.rel}` === under) || null;
+    const inFolder = (fp, dir) => path.posix.dirname(fp) === path.posix.normalize(dir);
+    const coreKeys = new Set(); // the files of other repositories that stand as a folder's core file
+    // the folders of other repositories, each with its core file found by the list, as any
+    // folder's: R-1001 (Files and folders)
+    for (const { name, repo, folderName, overrideName, given, co } of repoPlaces) {
+      for (const [fp, fd] of Object.entries(repo.folders || {})) {
+        const root = roots[fd.root];
+        if (!root) { findings.push(`${place.registerPath}: ${name}:${fp} names root ${fd.root}, which this register does not hold`); continue; }
+        const under = fd.under !== undefined ? underOf(root, fd.under) : null;
+        if (fd.under !== undefined && !under) { findings.push(`${place.registerPath}: ${name}:${fp} sits under ${fd.under}, which is neither a registered folder nor a level of ${fd.root}`); continue; }
+        const parent = under || root;
+        const folder = { kind: 'folder', root, place, repo: name, repoFolder: folderName, copy: !!given, repoUrl: repo.url || null, rel: fp, abs: path.join(co.path, fp), segment: fd.segment, parent, code: `${parent.code}-${fd.segment}`, level: parent.level + 1, children: [] };
+        if (folders.some(x => path.resolve(x.abs) === path.resolve(folder.abs))) findings.push(`${place.registerPath}: folder ${name}:${fp} is registered twice`);
+        parent.children.push(folder);
+        root.repoFolders.push(folder);
+        folders.push(folder);
+        const takeCore = (rel, extra) => {
+          const fe = (repo.files || {})[rel] || {};
+          if (fe.root !== undefined || fe.segment !== undefined) findings.push(`${place.registerPath}: ${name}:${rel} is the core file of ${name}:${fp} and shares its code (Structure.md, Files and folders); it takes no root and no segment of its own`);
+          const core = { kind: 'file', role: 'core', root, place, repo: name, repoFolder: folderName, copy: !!given, repoUrl: repo.url || null, rel, abs: path.join(co.path, rel), folder, code: folder.code, level: folder.level, sections: fe.sections || {}, converted: !notConverted.has(`${name}:${rel}`), registerKey: `${name}:${rel}`, ...extra };
+          folder.core = core;
+          coreKeys.add(`${name}:${rel}`);
+          fileEntries.push(core);
+          return core;
+        };
+        if (!co.exists) {
+          // no checkout to look in: the core file is the file the register gives in the folder with
+          // no segment of its own, and it is not checked
+          const rel = Object.keys(repo.files || {}).find(k => inFolder(k, fp) && (repo.files[k] || {}).segment === undefined);
+          if (rel) notChecked.push({ entry: takeCore(rel, { notChecked: true }), repo: name, folder: folderName, checkout: co.path, variable: overrideName });
+          continue;
+        }
+        if (!files.exists(folder.abs)) { findings.push(`${name}:${fp}: the registered folder does not exist`); continue; }
+        const found = coreFileOf(folder.abs, files);
+        if (!found.file) {
+          findings.push(found.ruleFiles.length > 1
+            ? `${name}:${fp}: the folder has no index file by name (${INDEX_NAMES.join(', ')}) and holds ${found.ruleFiles.length} rule files (${found.ruleFiles.map(p => path.basename(p)).join(', ')}); a folder with more than one rule file needs a core file by name (Structure.md, Files and folders)`
+            : `${name}:${fp}: the folder has no index file (one of ${INDEX_NAMES.join(', ')}) and no rule file to take as its core file (Structure.md, Files and folders)`);
+          continue;
+        }
+        folder.coreBy = found.by;
+        takeCore(toPosix(path.relative(co.path, found.file)), {});
+      }
+    }
+    for (const { name, repo, folderName, overrideName, given, co } of repoPlaces) {
       for (const [fp, fe] of Object.entries(repo.files || {})) {
+        // a folder's core file is read with its folder; a file with no segment in a folder of its
+        // repository whose core file was not found stood as that core file: the folder's finding
+        // covers it
+        if (coreKeys.has(`${name}:${fp}`)) continue;
+        const home = folders.find(x => x.place === place && x.repo === name && inFolder(fp, x.rel));
+        if (home && fe.segment === undefined) {
+          if (home.core) findings.push(`${place.registerPath}: ${name}:${fp} has no segment, and the core file of ${name}:${home.rel} is ${home.core.rel} (Structure.md, Files and folders)`);
+          continue;
+        }
         const root = roots[fe.root];
         if (!root) { findings.push(`${place.registerPath}: ${name}:${fp} names root ${fe.root}, which this register does not hold`); continue; }
-        const under = fe.under ? root.folders.find(x => x.rel === fe.under) : null;
-        if (fe.under && !under) { findings.push(`${place.registerPath}: ${name}:${fp} sits under ${fe.under}, which is not a registered folder of ${fe.root}`); continue; }
+        const under = fe.under ? underOf(root, fe.under) : null;
+        if (fe.under && !under) { findings.push(`${place.registerPath}: ${name}:${fp} sits under ${fe.under}, which is neither a registered folder nor a level of ${fe.root}`); continue; }
         const parent = under || root;
         const entry = { kind: 'file', role: 'file', root, place, repo: name, repoFolder: folderName, copy: !!given, repoUrl: repo.url || null, rel: fp, abs: path.join(co.path, fp), segment: fe.segment, parent, code: `${parent.code}-${fe.segment}`, level: parent.level + 1, sections: fe.sections || {}, converted: !notConverted.has(`${name}:${fp}`), registerKey: `${name}:${fp}` };
         parent.children.push(entry);
@@ -1266,11 +1342,13 @@ function buildSystem(o) {
     findings.push(...checkSiblingSegments(second, 2), ...checkCoreReserved(second));
     const own = Object.entries(root.main.sections).map(([h, s]) => ({ segment: s, what: `${root.main.rel} section "${h}"` }));
     findings.push(...checkSiblingSegments(own, 3));
-    for (const folder of root.folders) {
-      const sibs = folder.children.map(c => ({ segment: c.segment, what: `${folder.rel}: ${c.rel}` }));
-      if (folder.core) for (const [h, s] of Object.entries(folder.core.sections)) sibs.push({ segment: s, what: `${folder.core.rel} section "${h}"` });
+    for (const folder of [...root.folders, ...root.repoFolders]) {
+      const sibs = folder.children.map(c => ({ segment: c.segment, what: `${where(folder)}: ${c.rel}` }));
+      if (folder.core) for (const [h, s] of Object.entries(folder.core.sections)) sibs.push({ segment: s, what: `${where(folder.core)} section "${h}"` });
       findings.push(...checkSiblingSegments(sibs, folder.level + 1));
     }
+    // what the register places under a level shares its letters: R-1007 (`code`)
+    for (const lv of root.levels) findings.push(...checkSiblingSegments(lv.children.map(c => ({ segment: c.segment, what: `${lv.rel}: ${where(c)}` })), lv.level + 1));
     for (const e of fileEntries.filter(x => x.root === root && x.role === 'file')) {
       findings.push(...checkSiblingSegments(Object.entries(e.sections).map(([h, s]) => ({ segment: s, what: `${where(e)} section "${h}"` })), e.level + 1));
     }

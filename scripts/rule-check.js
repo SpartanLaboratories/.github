@@ -224,7 +224,9 @@ function check(ctx) {
     const abs = toFolder ? target.folder.abs : entry.abs;
     let href;
     if (ABSOLUTE.test(ptr.href || '') || (entry.repo || null) !== (e.repo || null)) {
-      href = `${entry.repo ? entry.repoUrl : spdPlace.register.url}${toFolder ? `${target.folder.rel}/` : entry.rel}`;
+      // a folder at its repository's root, `.`, is reached at the repository's address itself
+      const folderPath = toFolder && path.posix.normalize(target.folder.rel) !== '.' ? `${target.folder.rel}/` : '';
+      href = `${entry.repo ? entry.repoUrl : spdPlace.register.url}${toFolder ? folderPath : entry.rel}`;
     } else {
       href = `${L.toPosix(path.relative(path.dirname(e.abs), abs))}${toFolder ? '/' : ''}` || path.basename(abs);
       if (anchor && path.resolve(path.dirname(e.abs), href) === path.resolve(e.abs)) href = '';
@@ -541,7 +543,7 @@ function check(ctx) {
     const l = sys.listed.find(x => path.resolve(x.abs) === k);
     if (l) return { what: l.rel, converted: true, root: l.root.letter };
     const f = sys.folders.find(x => path.resolve(x.abs) === k.replace(/[\\/]+$/, ''));
-    if (f) return { what: `${f.rel}/`, converted: f.core ? f.core.converted : true, root: f.root.letter };
+    if (f) return { what: `${f.repo ? `${f.repo}:` : ''}${f.rel}/`, converted: f.core ? f.core.converted : true, root: f.root.letter };
     return null;
   };
   const convertedReads = sys.fileEntries.filter(e => e.read && e.converted);
@@ -842,6 +844,9 @@ function renderIndex(sys, place, indexAbs, table) {
   const walk = (node, depth) => {
     for (const c of node.children) {
       if (c.kind === 'folder') { fileBlock(c.core, depth); walk(c, depth + 1); }
+      // a level has no id and no line: what sits under it is listed at its depth, R-1001 (Files
+      // and folders)
+      else if (c.kind === 'level') walk(c, depth);
       else if (c.kind === 'listed') { if (c.item && c.id !== null) entryLine(c.item, depth, c.abs, null); }
       else fileBlock(c, depth);
     }

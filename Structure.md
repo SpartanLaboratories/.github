@@ -39,7 +39,8 @@ finding. Every folder that holds rule files is counted, and its core file holds 
 line; the folder's id addresses the folder and its core file alike, and the core file has no id of
 its own. A folder's core file is the first of these it holds:
 
-1. one of the four main files, `Structure.md`, `CLAUDE.md`, `POLICY.md` and `DESIGN.md`;
+1. a file named as one of the four main files, `Structure.md`, `CLAUDE.md`, `POLICY.md` or
+   `DESIGN.md`;
 2. `README.md`;
 3. `GUIDANCE.md`;
 4. `RULES.md`;
@@ -63,6 +64,12 @@ takes a 3-digit file id, having had none as the core file; its sections and rule
 their codes gaining the file's own segment; the folder's 2-digit id passes to the new core file.
 Each pointer at the folder is checked as at a split ([R-1002 (Sections)](#sections "1002-T1")): it still fits
 the folder, or it is repointed at the first file and takes a new id.
+
+A registered folder may be a folder of another repository, and a file of a third repository may be
+a file in it: the register places each under its root. The register may also declare a level under
+a root: a segment and nothing more, with no folder, no file, no JSON line and no id. A level is no
+item of the rule system, and nothing points at it; what the register places under it carries its
+segment in its code, and the index and the fetch script show the level only there.
 
 ## Sections
 <!-- {"name":"Sections","code":"S-C-SE","id":1002} -->
@@ -183,7 +190,7 @@ section's other rules only. A splinter's code is its parent's plus `-<n>`. A poi
 no letter: its code is its file's code with its id, e.g. `G-1041-P1`.
 
 The four main files put their own sections under one reserved segment, C for Core, at their
-root's second level: `S-C-…`, `P-C-…`, `D-C-…`, `G-C-…`. No folder or file takes C there. A
+root's second level: `S-C-…`, `P-C-…`, `D-C-…`, `G-C-…`. No folder, file or level takes C there. A
 folder's index file puts its sections beside the folder's other files, sharing their letters.
 
 A script or a generated index has no line of its own: its register lists it with its code and a
