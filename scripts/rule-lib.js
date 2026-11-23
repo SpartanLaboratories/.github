@@ -1090,7 +1090,6 @@ function checkRegisterShape(reg, where, letters) {
     // the folders of another repository, each keyed by its path there: R-1001 (Files and folders)
     if (repo && repo.folders !== undefined && !(obj(repo.folders) && Object.values(repo.folders).every(obj))) f.push(`${where}: repositories.${name}.folders needs an object of path to its entry (Structure.md, Files and folders)`);
   }
-  if (reg.notConverted !== undefined && !Array.isArray(reg.notConverted)) f.push(`${where}: "notConverted" needs a list of paths`);
   if (reg.repositories !== undefined && !obj(reg.repositories)) f.push(`${where}: "repositories" needs an object`);
   if (!obj(reg.ids) || !obj(reg.ids.marks) || !Array.isArray(reg.ids.retired)) f.push(`${where}: "ids" needs "marks" (per tier) and "retired" (a list)`);
   else {
@@ -1147,8 +1146,6 @@ function buildSystem(o) {
 
   for (const place of places) {
     const reg = place.register;
-    const notConverted = new Set(reg.notConverted || []);
-    const coreless = new Set(); // registered files left out with a folder that has no core file
     for (const [letter, part] of Object.entries(reg.roots)) {
       const root = { letter, place, base: place.base, part, code: letter, level: 1, form: letter === 'G' ? FORM.visible : FORM.comment, children: [], levels: [], repoFolders: [] };
       roots[letter] = root;
@@ -1166,7 +1163,7 @@ function buildSystem(o) {
       }
       myFolders.sort((a, b) => a.order - b.order);
       root.folders = myFolders;
-      const mainEntry = { kind: 'file', role: 'main', root, place, rel: part.main, abs: path.join(place.base, part.main), code: letter, level: 1, sections: ((part.files || {})[part.main] || {}).sections || {}, converted: !notConverted.has(part.main), registerKey: part.main };
+      const mainEntry = { kind: 'file', role: 'main', root, place, rel: part.main, abs: path.join(place.base, part.main), code: letter, level: 1, sections: ((part.files || {})[part.main] || {}).sections || {} };
       fileEntries.push(mainEntry);
       root.main = mainEntry;
       // each folder's core file, by the list: R-1001 (Files and folders)
@@ -1183,7 +1180,7 @@ function buildSystem(o) {
         const rel = toPosix(path.relative(place.base, idx));
         const entry = (part.files || {})[rel] || {};
         if (entry.segment !== undefined) findings.push(`${place.registerPath}: ${rel} is the core file of ${folder.rel} and shares its code (Structure.md, Files and folders); it takes no segment of its own`);
-        const core = { kind: 'file', role: 'core', root, place, rel, abs: idx, folder, code: folder.code, level: folder.level, sections: entry.sections || {}, converted: !notConverted.has(rel), registerKey: rel };
+        const core = { kind: 'file', role: 'core', root, place, rel, abs: idx, folder, code: folder.code, level: folder.level, sections: entry.sections || {} };
         folder.core = core;
         fileEntries.push(core);
       }
@@ -1195,9 +1192,9 @@ function buildSystem(o) {
         }
         // a file with no segment in a folder whose core file was not found stood as that core file:
         // the folder's finding covers it
-        if (inCoreless && fe.segment === undefined) { coreless.add(fp); continue; }
+        if (inCoreless && fe.segment === undefined) continue;
         const parent = nearest(myFolders, fp) || root;
-        const entry = { kind: 'file', role: 'file', root, place, rel: fp, abs: path.join(place.base, fp), segment: fe.segment, parent, code: `${parent.code}-${fe.segment}`, level: parent.level + 1, sections: fe.sections || {}, converted: !notConverted.has(fp), registerKey: fp };
+        const entry = { kind: 'file', role: 'file', root, place, rel: fp, abs: path.join(place.base, fp), segment: fe.segment, parent, code: `${parent.code}-${fe.segment}`, level: parent.level + 1, sections: fe.sections || {} };
         parent.children.push(entry);
         fileEntries.push(entry);
       }
@@ -1263,7 +1260,7 @@ function buildSystem(o) {
         const takeCore = (rel, extra) => {
           const fe = (repo.files || {})[rel] || {};
           if (fe.root !== undefined || fe.segment !== undefined) findings.push(`${place.registerPath}: ${name}:${rel} is the core file of ${name}:${fp} and shares its code (Structure.md, Files and folders); it takes no root and no segment of its own`);
-          const core = { kind: 'file', role: 'core', root, place, repo: name, repoFolder: folderName, copy: !!given, repoUrl: repo.url || null, rel, abs: path.join(co.path, rel), folder, code: folder.code, level: folder.level, sections: fe.sections || {}, converted: !notConverted.has(`${name}:${rel}`), registerKey: `${name}:${rel}`, ...extra };
+          const core = { kind: 'file', role: 'core', root, place, repo: name, repoFolder: folderName, copy: !!given, repoUrl: repo.url || null, rel, abs: path.join(co.path, rel), folder, code: folder.code, level: folder.level, sections: fe.sections || {}, ...extra };
           folder.core = core;
           coreKeys.add(`${name}:${rel}`);
           fileEntries.push(core);
@@ -1304,7 +1301,7 @@ function buildSystem(o) {
         const under = fe.under ? underOf(root, fe.under) : null;
         if (fe.under && !under) { findings.push(`${place.registerPath}: ${name}:${fp} sits under ${fe.under}, which is neither a registered folder nor a level of ${fe.root}`); continue; }
         const parent = under || root;
-        const entry = { kind: 'file', role: 'file', root, place, repo: name, repoFolder: folderName, copy: !!given, repoUrl: repo.url || null, rel: fp, abs: path.join(co.path, fp), segment: fe.segment, parent, code: `${parent.code}-${fe.segment}`, level: parent.level + 1, sections: fe.sections || {}, converted: !notConverted.has(`${name}:${fp}`), registerKey: `${name}:${fp}` };
+        const entry = { kind: 'file', role: 'file', root, place, repo: name, repoFolder: folderName, copy: !!given, repoUrl: repo.url || null, rel: fp, abs: path.join(co.path, fp), segment: fe.segment, parent, code: `${parent.code}-${fe.segment}`, level: parent.level + 1, sections: fe.sections || {} };
         parent.children.push(entry);
         if (!co.exists) { entry.notChecked = true; notChecked.push({ entry, repo: name, folder: folderName, checkout: co.path, variable: overrideName }); }
         fileEntries.push(entry);
@@ -1321,12 +1318,9 @@ function buildSystem(o) {
         for (const f of entry.read.findings) findings.push(`${name}:${qp}:${f.replace(/^line /, '')}`);
       }
     }
-    // after every root of the place and its other repositories, so a file of any of them is known
-    for (const nc of notConverted) {
-      const ncDir = toPosix(path.dirname(nc));
-      if (coreless.has(nc) || folders.some(fd => fd.place === place && fd.core === undefined && fd.rel === ncDir)) continue;
-      if (!fileEntries.some(e => e.place === place && e.registerKey === nc)) findings.push(`${place.registerPath}: notConverted names ${nc}, which is not a registered file`);
-    }
+    // a register lists no file awaiting its conversion any more: a leftover list is a finding, and
+    // every registered file is read whole all the same
+    if (reg.notConverted !== undefined) findings.push(`${place.registerPath}: "notConverted" is no longer read: every registered file is read whole, its sections carrying their lines (Structure.md, Sections); take the key out`);
   }
   for (const k of Object.keys(copies)) if (!usedCopies.has(k)) findings.push(`--copy ${k}=${copies[k]}: no register gives a repository the folder name ${k} (Structure.md, The checker)`);
   // G's public copy, under `claude/` in the organization repository: a full address into it, or a
@@ -1388,7 +1382,6 @@ function buildSystem(o) {
       titleItem.id = title.json.id;
       addItem(titleItem);
     } else findings.push(`${where(e)}:${title.line}: the # title has no JSON line (Structure.md, Files and folders)`);
-    if (!e.converted) continue;
     const classes = classifySections(read);
     e.classes = classes;
     for (const c of classes) {

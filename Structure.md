@@ -240,14 +240,13 @@ list; its id is not retired, and the next part given at its target is the one ab
 the list as `--write` found it. It repoints a pointer at an id retired with a replacement to the
 replacement, under a part of that id.
 
-In a converted rule file the checker reports a Markdown link to a file inside the system, whether
+In a rule file the checker reports a Markdown link to a file inside the system, whether
 relative or written as the full address the register gives for that file's repository, and a quoted
-section reference: a heading of a converted file, quoted on a line that names that file. A link to
+section reference: a heading of a rule file, quoted on a line that names that file. A link to
 a file in G's public copy, under `claude/` in this repository, is a link to that file of G, whether
 it is written as the file's full address or as a relative link. The checker does not report a path
-in code formatting, the link that wraps a pointer on these pages, or a reference to a file not yet
-converted, except on these pages, where every link into G is reported: the link goes, or the file
-is named in code formatting.
+in code formatting or the link that wraps a pointer on these pages. On these pages every link into
+G is reported: the link goes, or the file is named in code formatting.
 
 ## Quote pointers
 <!-- {"name":"Quote pointers","code":"S-C-QP","id":1123} -->

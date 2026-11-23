@@ -535,19 +535,19 @@ function check(ctx) {
     } else if (e.root.letter !== 'G' && t.entry.root.letter === 'G') findings.push(`${it.where}: a pointer rule from ${e.root.letter} into G; nothing in S, P or D points into G (Structure.md, Pointers)`);
   }
 
-  // ---- by-file references in a converted rule file, relative or by a full address: R-1008 (Pointers)
+  // ---- by-file references in a rule file, relative or by a full address: R-1008 (Pointers)
   const systemFile = (abs) => {
     const k = path.resolve(abs);
     const e = sys.byAbs.get(k);
-    if (e) return { what: e.rel, converted: e.converted, entry: e, root: e.root.letter };
+    if (e) return { what: e.rel, entry: e, root: e.root.letter };
     const l = sys.listed.find(x => path.resolve(x.abs) === k);
-    if (l) return { what: l.rel, converted: true, root: l.root.letter };
+    if (l) return { what: l.rel, root: l.root.letter };
     const f = sys.folders.find(x => path.resolve(x.abs) === k.replace(/[\\/]+$/, ''));
-    if (f) return { what: `${f.repo ? `${f.repo}:` : ''}${f.rel}/`, converted: f.core ? f.core.converted : true, root: f.root.letter };
+    if (f) return { what: `${f.repo ? `${f.repo}:` : ''}${f.rel}/`, root: f.root.letter };
     return null;
   };
-  const convertedReads = sys.fileEntries.filter(e => e.read && e.converted);
-  for (const e of convertedReads) {
+  const ruleReads = sys.fileEntries.filter(e => e.read);
+  for (const e of ruleReads) {
     for (const ln of L.findLinks(e.read)) {
       if (ln.href.startsWith('/')) continue;
       if (/^[a-z][a-z0-9+.-]*:/i.test(ln.href)) {
@@ -557,9 +557,9 @@ function check(ctx) {
         const target = abs && systemFile(abs);
         if (!target) continue;
         const byAddress = target.root === 'G' ? 'by the full address of its public copy' : 'by its full address';
-        // nothing in S, P or D points into G, in any form, whether the file is converted or not
+        // nothing in S, P or D points into G, in any form
         if (target.root === 'G' && e.root.letter !== 'G') findings.push(`${sys.where(e)}:${ln.line}: a link into G, ${byAddress}, to ${target.what}; nothing in S, P or D points into G: remove the link or name the file in code formatting (Structure.md, Pointers)`);
-        else if (target.converted) findings.push(`${sys.where(e)}:${ln.line}: a by-file link, ${byAddress}, to ${target.entry && target.entry.repo ? `${target.entry.repo}:` : ''}${target.what}, which is inside the rule system; point at it by id (Structure.md, Pointers)`);
+        else findings.push(`${sys.where(e)}:${ln.line}: a by-file link, ${byAddress}, to ${target.entry && target.entry.repo ? `${target.entry.repo}:` : ''}${target.what}, which is inside the rule system; point at it by id (Structure.md, Pointers)`);
         continue;
       }
       const hash = ln.href.indexOf('#');
@@ -567,7 +567,7 @@ function check(ctx) {
       let target;
       let viaCopy = false;
       try {
-        if (!filePart) target = { what: `${e.rel} (this file)`, converted: true, root: e.root.letter };
+        if (!filePart) target = { what: `${e.rel} (this file)`, root: e.root.letter };
         else {
           const abs = path.resolve(path.dirname(e.abs), decodeURI(filePart));
           // a relative link into G's public copy, under `claude/` in the organization repository,
@@ -578,12 +578,12 @@ function check(ctx) {
         }
       } catch (err) { target = null; }
       if (!target) continue;
-      // nothing in S, P or D points into G, in any form, whether the file is converted or not
+      // nothing in S, P or D points into G, in any form
       if (target.root === 'G' && e.root.letter !== 'G') findings.push(`${sys.where(e)}:${ln.line}: a link into G, ${viaCopy ? 'by a relative link into its public copy' : 'by a relative link'}, to ${target.what}; nothing in S, P or D points into G: remove the link or name the file in code formatting (Structure.md, Pointers)`);
-      else if (target.converted) findings.push(`${sys.where(e)}:${ln.line}: a by-file link to ${target.what}, which is inside the rule system; point at it by id (Structure.md, Pointers)`);
+      else findings.push(`${sys.where(e)}:${ln.line}: a by-file link to ${target.what}, which is inside the rule system; point at it by id (Structure.md, Pointers)`);
     }
     for (const q of L.findQuoted(e.read)) {
-      for (const x of convertedReads) {
+      for (const x of ruleReads) {
         const names = [x.rel, path.basename(x.rel)];
         if (!names.some(n => q.lineText.includes(n))) continue;
         if (x.read.items.some(i => i.level >= 2 && i.heading === q.quoted)) findings.push(`${sys.where(e)}:${q.line}: a quoted section reference, "${q.quoted}" of ${x.rel}, which is inside the rule system; point at it by id (Structure.md, Pointers)`);
@@ -593,7 +593,7 @@ function check(ctx) {
 
   // ---- where a quote stands: in a rule file only as the body of a pointer rule; R-1123 (Quote
   // pointers)
-  for (const e of convertedReads) {
+  for (const e of ruleReads) {
     for (const q of e.read.quotes) {
       const h = L.holderOf(e, sys.items, q.open + 1);
       if (!h || h.kind !== 'pointer') findings.push(`${sys.where(e)}:${q.open + 1}: a quote in a rule file stands only as the body of a pointer rule (Structure.md, Quote pointers)`);
@@ -767,7 +767,7 @@ function setListedMark(text, rel, field, value) {
 
 /**
  * Sets a register's list of the rule files that hold a quote pointer, keeping the file's layout,
- * R-1123 (Quote pointers): `"ruleFilesWithQuotes"` at the top level, after `"notConverted"`, for
+ * R-1123 (Quote pointers): `"ruleFilesWithQuotes"` at the top level, before `"ids"`, for
  * the register's own roots, or in a repository's entry for that repository's files; its value
  * replaced where it stands, else the key added.
  * @param {string|null} repo the repository's name in `"repositories"`, null for the top level
@@ -779,9 +779,9 @@ function setQuoteList(text, repo, list) {
   let next;
   if (repo === null) {
     const has = /^ {2}"ruleFilesWithQuotes"\s*:\s*\[[^\]]*\]/m;
-    const after = /^( {2}"notConverted"\s*:\s*\[[^\]]*\])(,?)$/m;
+    const before = /^( {2}"ids"\s*:)/m;
     if (has.test(t)) next = t.replace(has, `  "ruleFilesWithQuotes": ${value}`);
-    else if (after.test(t)) next = t.replace(after, (all, line, comma) => `${line},\n  "ruleFilesWithQuotes": ${value}${comma}`);
+    else if (before.test(t)) next = t.replace(before, (all, line) => `  "ruleFilesWithQuotes": ${value},\n${line}`);
     else { const close = t.lastIndexOf('\n}'); next = `${t.slice(0, close)},\n  "ruleFilesWithQuotes": ${value}${t.slice(close)}`; }
   } else {
     const key = t.indexOf(`${JSON.stringify(repo)}:`, t.indexOf('"repositories"'));
@@ -823,7 +823,7 @@ function renderIndex(sys, place, indexAbs, table) {
   const fileBlock = (e, depth) => {
     if (!e || !e.titleItem || e.titleItem.id === undefined) return;
     entryLine(e.titleItem, depth, e.abs, null);
-    if (!e.converted || !e.classes) return;
+    if (!e.classes) return;
     const kids = (parentKey) => [...sys.items.values()].filter(x => x.kind === 'splinter' && x.parentKey === parentKey && x.entry === e);
     const emitSplinters = (key, d) => { for (const s of kids(key)) { entryLine(s, d, e.abs, s.item.anchor); emitSplinters(L.idKey(s.id), d + 1); } };
     for (const c of e.classes) {
@@ -949,7 +949,7 @@ function renumber(ctx, planPath) {
   const order = [G.main, ...G.folders.map(f => f.core).filter(Boolean), ...files3];
   const deferred = [];
   for (const e of order) {
-    if (!e.read || !e.converted) continue;
+    if (!e.read) continue;
     const its = e.read.items;
     for (let k = 0; k < its.length; k++) {
       const it = its[k];
