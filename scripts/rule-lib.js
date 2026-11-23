@@ -623,9 +623,18 @@ function idOrder(a, b) {
 }
 
 /**
+ * Whether a list's entry is an own id retired on its list, `{ "by": <the id that replaced it, or
+ * null> }`, rather than one in use, held by its holder: R-1008 (Pointers).
+ */
+function isRetiredEntry(h) {
+  return !!h && typeof h === 'object' && !Array.isArray(h);
+}
+
+/**
  * Checks the shape of a register's pointer lists, R-1008 (Pointers): `"pointers"`, an object of
  * target id to its list, `{ "<own id>": <holder> }`; an own id is `<target>-T<n>` held by the id
- * of the item that holds the pointer, or a pointer rule at the target, held by its own id.
+ * of the item that holds the pointer, or a pointer rule at the target, held by its own id. An own
+ * id retired on its list is held by `{ "by": <the id that replaced it, or null> }`.
  * @param {object} reg the parsed register
  * @param {string} where its path, for the findings
  * @returns {string[]} findings
@@ -642,6 +651,13 @@ function checkPointerLists(reg, where) {
       const o = parseOwnId(own);
       const p = parseId(own);
       const rule = !!p && p.kind === 'pointer' && p.parent === t;
+      // an own id retired on its list: R-1008 (Pointers)
+      if (isRetiredEntry(h)) {
+        const by = h.by;
+        if (!rule && !(o && o.target === t)) f.push(`${where}: pointers.${t}: "${own}" is neither ${t}-T<n> nor a pointer rule at ${t} (Structure.md, Pointers)`);
+        else if (Object.keys(h).join() !== 'by' || !(by === null || ((typeof by === 'string' || Number.isInteger(by)) && (parseId(by) || parseOwnId(by))))) f.push(`${where}: pointers.${t}.${own}: a retired entry reads { "by": <the id that replaced it, or null> }, found ${JSON.stringify(h)}`);
+        continue;
+      }
       // a quote part is a -Q pointer rule's id, held by itself, or a quote pointer file's
       // reference, held by its repository and path: R-1123 (Quote pointers)
       if (rule && p.quote && isFileHolder(h)) continue;
@@ -654,8 +670,10 @@ function checkPointerLists(reg, where) {
 
 /**
  * The register's `"pointers"` block as the checker writes it, R-1008 (Pointers): one line per
- * target in the record's order, its entries in the same order, wrapped before 100 characters.
- * @param {Object<string,Object<string,(number|string)>>} lists target id to { own id: holder }
+ * target in the record's order, its entries in the same order, wrapped before 100 characters; an
+ * own id retired on its list as `{ "by": <id or null> }`.
+ * @param {Object<string,Object<string,(number|string|{by:(number|string|null)})>>} lists target id
+ *   to { own id: holder, or the retired entry }
  */
 function renderPointerLists(lists) {
   const keys = Object.keys(lists).filter(k => Object.keys(lists[k]).length).sort(idOrder);
@@ -667,7 +685,9 @@ function renderPointerLists(lists) {
     let line = `    "${k}": {`;
     owns.forEach((o, j) => {
       const h = lists[k][o];
-      const piece = `${JSON.stringify(o)}: ${JSON.stringify(/^\d+$/.test(String(h)) ? Number(h) : String(h))}${j === owns.length - 1 ? ` }${end}` : ','}`;
+      const id = (v) => JSON.stringify(/^\d+$/.test(String(v)) ? Number(v) : String(v));
+      const value = isRetiredEntry(h) ? `{ "by": ${h.by === null ? 'null' : id(h.by)} }` : id(h);
+      const piece = `${JSON.stringify(o)}: ${value}${j === owns.length - 1 ? ` }${end}` : ','}`;
       if (line.length + 1 + piece.length > 100) { out.push(line); line = `      ${piece}`; }
       else line += ` ${piece}`;
     });
@@ -1660,7 +1680,7 @@ module.exports = {
   checkRecord, checkPartMarks, findPointers, findLinks, findQuoted, expectedName, linkMatches,
   parseOwnId, idWrittenAt, holderOf, idOrder, checkPointerLists, renderPointerLists, withPointerLists,
   MARKS, QUOTE_OPEN, QUOTE_CLOSE, parseQuotePart, isFileHolder, fullAddress, quoteBlock, quoteOf, quoteSource,
-  quoteSourceOutside, quoteParts,
+  quoteSourceOutside, quoteParts, isRetiredEntry,
   readVariable, readStoredUserValue, POLICIES_VARIABLE, overrideVariable, siblingCheckout, claudeRoot,
   INDEX_NAMES, indexFileOf, countsForLastStep, coreFileOf, parseGithubAddress, githubTarget, G_COPY, gCopyTarget,
   Files, checkRegisterShape, buildSystem, describe, toPosix,

@@ -235,10 +235,11 @@ link from its target. A pointer that carries no id, or an id not on the list of 
 names, is new: `--write` records it, writing the next part at it and listing it, when it holds its
 target's name, and its link where it has one, as they are now, and otherwise it is a finding. Of two
 pointers that carry one id, the one in the item the list names keeps it and the other is new; where
-that does not tell them apart, both are findings. `--write` takes a pointer that is gone off its
-list; its id is not retired, and the next part given at its target is the one above the highest on
-the list as `--write` found it. It repoints a pointer at an id retired with a replacement to the
-replacement, under a part of that id.
+that does not tell them apart, both are findings. `--write` retires the id of a pointer that is
+gone, on its target's list, and of a pointer repointed at another target, with its new id beside
+it; a retired pointer id is never given again, and the next part given at a target is the one
+above the highest on its list, retired ids included. It repoints a pointer at an id retired with a
+replacement to the replacement, under a part of that id.
 
 In a rule file the checker reports a Markdown link to a file inside the system, whether
 relative or written as the full address the register gives for that file's repository, and a quoted

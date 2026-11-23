@@ -27,8 +27,9 @@
 //   node rule-check.js --claude <path>      read G from there (by default the Claude
 //                                           Code configuration in the home folder, else the
 //                                           checkout's claude/ copy)
-//   node rule-check.js --pointers-at <id>   list every pointer at an id with its own id, and check
-//                                           nothing
+//   node rule-check.js --pointers-at <id>   list every pointer at an id with its own id, and the
+//                                           ids retired on its list with what replaced them;
+//                                           check nothing
 //   node rule-check.js --renumber <plan>    the one-time renumbering: give G's items
 //                                           their tiered ids, rewrite the pointers at old ids and
 //                                           write the old-to-new table into G's index; with
@@ -323,20 +324,27 @@ function check(ctx) {
   }
 
   // ---- the pointer ids and lists: R-1008 (Pointers). A pointer is correct when its own id is on
-  // its target's list; one that carries no id, or an id not on the list of the target its text
-  // names, is new, and is recorded only when it holds its target's name and link as they are now.
-  // Of two carriers of one id, the one in the item the list names keeps it. A pointer that is gone
-  // leaves its list, its id not retired; the next part is the one above the highest on the list.
-  const oldLists = new Map(); // target -> Map(own id -> holder id)
+  // its target's list; one that carries no id, an id not on the list of the target its text names,
+  // or an id retired there, is new, and is recorded only when it holds its target's name and link
+  // as they are now. Of two carriers of one id, the one in the item the list names keeps it. A
+  // pointer that is gone, or repointed at another target, has its id retired on its list, with its
+  // new id beside it; a retired id is never given again: the next part is the one above the
+  // highest on the list, retired ids included.
+  const oldLists = new Map(); // target -> Map(own id -> holder id), the ids in use
+  const oldRetired = new Map(); // target -> Map(own id -> the id that replaced it, or null)
   const listedIn = new Map(); // target -> the place whose register held its list
+  const byKey = (by) => (by === null || by === undefined ? null : L.idKey(by));
   for (const place of sys.places) {
     const shape = L.checkPointerLists(place.register, place.registerPath);
     findings.push(...shape);
     if (shape.length) continue;
     for (const [t, list] of Object.entries(place.register.pointers || {})) {
-      if (!oldLists.has(t)) oldLists.set(t, new Map());
+      if (!oldLists.has(t)) { oldLists.set(t, new Map()); oldRetired.set(t, new Map()); }
       listedIn.set(t, place);
-      for (const [own, h] of Object.entries(list)) oldLists.get(t).set(own, L.idKey(h));
+      for (const [own, h] of Object.entries(list)) {
+        if (L.isRetiredEntry(h)) oldRetired.get(t).set(own, byKey(h.by));
+        else oldLists.get(t).set(own, L.idKey(h));
+      }
     }
   }
   const holderNow = (h) => follow(h) || h;
@@ -348,6 +356,8 @@ function check(ctx) {
   const say = (t, s) => { if (!listNotes.has(t)) listNotes.set(t, []); listNotes.get(t).push(s); };
   const pointerEdits = [];
   const pc = { kept: 0, followed: 0, moved: 0, recorded: 0, repointed: 0, gone: 0 };
+  const gone = []; // [target, own id, holder]: the ids that leave use, retired below
+  const replacedBy = new Map(); // `${target} ${own id}` -> the own id its pointer took at another target
   const byTarget = new Map();
   for (const rec of listable) {
     const t = L.idKey(rec.target.id);
@@ -370,9 +380,12 @@ function check(ctx) {
   const quoteRuleParts = (t) => [...sys.items.keys(), ...retired.keys()].map(L.parseQuotePart).filter(q => q && q.target === t).map(q => q.part);
   for (const [tid, recs] of byTarget) {
     const list = oldLists.get(tid) || new Map();
+    const retiredHere = oldRetired.get(tid) || new Map();
     const kept = new Set();
-    let next = 1 + Math.max(0, ...[...list.keys()].map(L.parseOwnId).filter(o => o && o.target === tid).map(o => o.part));
-    let nextQ = 1 + Math.max(0, quoteMarkOf(tid), ...quoteRuleParts(tid), ...[...list.keys()].map(L.parseQuotePart).filter(q => q && q.target === tid).map(q => q.part));
+    // the next part is above the highest on the list, the ids retired there included
+    const onList = [...list.keys(), ...retiredHere.keys()];
+    let next = 1 + Math.max(0, ...onList.map(L.parseOwnId).filter(o => o && o.target === tid).map(o => o.part));
+    let nextQ = 1 + Math.max(0, quoteMarkOf(tid), ...quoteRuleParts(tid), ...onList.map(L.parseQuotePart).filter(q => q && q.target === tid).map(q => q.part));
     const fresh = [];
     const carriers = new Map();
     for (const rec of recs) {
@@ -431,10 +444,14 @@ function check(ctx) {
       const h = L.idKey(rec.holder.id);
       put(tid, own, h);
       say(tid, `${own} recorded in ${named(h)}`);
+      // the own id it carried, in use on another target's list, is retired there with this one
+      // beside it
+      const was = rec.own && !rec.copyOf ? (rec.ref ? L.parseQuotePart(rec.own) : L.parseOwnId(rec.own)) : null;
+      if (was && was.target !== tid && (oldLists.get(was.target) || new Map()).has(rec.own) && !replacedBy.has(`${was.target} ${rec.own}`)) replacedBy.set(`${was.target} ${rec.own}`, own);
       let what;
       if (rec.repointedFrom) { what = `pointer R-${rec.repointedFrom} is at a retired id; R-${tid} replaced it: repointed as ${own}`; pc.repointed += 1; }
       else {
-        what = rec.copyOf ? `a copy of ${rec.copyOf}: recorded as ${own}` : rec.own ? `R-${tid} (${name}) carries ${rec.own}, not on R-${tid}'s list: recorded as ${own}` : `R-${tid} (${name}) is new: recorded as ${own}`;
+        what = rec.copyOf ? `a copy of ${rec.copyOf}: recorded as ${own}` : rec.own ? `R-${tid} (${name}) carries ${rec.own}, ${retiredHere.has(rec.own) ? 'retired on' : 'not on'} R-${tid}'s list: recorded as ${own}` : `R-${tid} (${name}) is new: recorded as ${own}`;
         pc.recorded += 1;
       }
       pointerEdits.push({ rec, tid, own, what });
@@ -442,17 +459,28 @@ function check(ctx) {
     for (const [own, h] of list) {
       if (kept.has(own) || (newLists.get(tid) && newLists.get(tid).has(own))) continue;
       if (unread(tid, h)) { put(tid, own, h); continue; }
-      say(tid, `${own} (in ${named(h)}) gone: taken off, not retired`);
-      pc.gone += 1;
+      gone.push([tid, own, h]);
     }
   }
   for (const [t, list] of oldLists) {
     if (byTarget.has(t)) continue;
     for (const [own, h] of list) {
       if (unread(t, h)) { put(t, own, h); continue; }
-      say(t, `${own} (in ${named(h)}) gone: taken off, not retired`);
-      pc.gone += 1;
+      gone.push([t, own, h]);
     }
+  }
+  // an id that leaves use is retired on its list: a pointer rule's with what replaced it in the id
+  // list, R-1006 (Pointer rules); a pointer's repointed at another target with its new id; any
+  // other with null. An id retired stays retired, and is never given again.
+  const replacement = (own, by) => (retired.has(own) ? byKey(retired.get(own)) : by);
+  for (const [t, own, h] of gone) {
+    const by = replacement(own, replacedBy.get(`${t} ${own}`) || null);
+    put(t, own, { by });
+    say(t, `${own} (in ${named(h)}) ${by === null ? 'gone: retired' : `retired, ${by} beside it`}`);
+    pc.gone += 1;
+  }
+  for (const [t, m] of oldRetired) {
+    for (const [own, by] of m) if (!newLists.has(t) || !newLists.get(t).has(own)) put(t, own, { by: replacement(own, by) });
   }
   for (const { rec, tid, own, what } of pointerEdits) {
     changes.push({ entry: rec.e, kind: 'pointer', what: `${rec.at}: ${what}`, spans: pointerSpans(rec, tid, own, linkNow) });
@@ -464,7 +492,7 @@ function check(ctx) {
     const want = {};
     for (const [t, m] of newLists) if (listPlace(t) === place) want[t] = Object.fromEntries(m);
     const had = {};
-    for (const [t, list] of Object.entries(place.register.pointers || {})) had[t] = Object.fromEntries(Object.entries(list).map(([k, v]) => [k, L.idKey(v)]));
+    for (const [t, list] of Object.entries(place.register.pointers || {})) had[t] = Object.fromEntries(Object.entries(list).map(([k, v]) => [k, L.isRetiredEntry(v) ? { by: byKey(v.by) } : L.idKey(v)]));
     const flat = (l) => JSON.stringify(Object.keys(l || {}).sort(L.idOrder).map(k => [k, l[k]]));
     const differ = [...new Set([...Object.keys(want), ...Object.keys(had)])].filter(t => flat(want[t]) !== flat(had[t])).sort(L.idOrder);
     for (const t of differ) changes.push({ registerOf: place, kind: 'pointer list', what: `${place.registerPath}: the list of R-${t}: ${(listNotes.get(t) || ['rewritten']).join('; ')}`, lists: want });
@@ -679,7 +707,7 @@ function check(ctx) {
   if (ctx.write) applyChanges(files, changes.filter(c => c.go));
   const counts = { files: sys.fileEntries.filter(e => e.read).length, items: sys.items.size, changes: changes.filter(c => c.go).length };
   const pointerChanges = changes.filter(c => c.go && (c.kind === 'pointer' || c.kind === 'pointer list')).map(c => c.what);
-  return { findings, notes, pending, stop: false, sys, counts, allPointers, pointerCounts: pc, pointerChanges, oldLists };
+  return { findings, notes, pending, stop: false, sys, counts, allPointers, pointerCounts: pc, pointerChanges, oldLists, oldRetired };
 }
 
 /**
@@ -875,6 +903,7 @@ function listPointersAt(ctx, id) {
   // each pointer in the text with the own id it carries, and whether its target's list holds it:
   // R-1008 (Pointers)
   const list = (r.oldLists && r.oldLists.get(key)) || new Map();
+  const retiredList = (r.oldRetired && r.oldRetired.get(key)) || new Map();
   const seen = new Set();
   for (const { ptr, at, pub, isRule, holder, ref } of r.allPointers || []) {
     if (ptr.id !== key) continue;
@@ -883,13 +912,14 @@ function listPointersAt(ctx, id) {
     const own = pub ? ptr.title : ptr.tag;
     const carried = own !== null && (ref ? L.parseQuotePart(own) : L.parseOwnId(own)) ? own : null;
     if (carried) seen.add(carried);
-    rows.push(`${at}: R-${ptr.id} (${ptr.name}), ${ref ? 'the reference of a quote pointer file, ' : ''}own id ${carried ? `${carried}${list.has(carried) ? '' : ', not on its list'}` : 'none'}`);
+    rows.push(`${at}: R-${ptr.id} (${ptr.name}), ${ref ? 'the reference of a quote pointer file, ' : ''}own id ${carried ? `${carried}${list.has(carried) ? '' : retiredList.has(carried) ? ', retired on its list' : ', not on its list'}` : 'none'}`);
   }
   for (const [own, h] of list) if (!seen.has(own) && h !== own) rows.push(`${own}: on the list, in ${L.isFileHolder(h) ? h : `R-${h}`}, and no pointer carries it`);
+  for (const [own, by] of retiredList) rows.push(`${own}: retired on the list, ${by === null ? 'nothing replaced it' : `${by} replaced it`}`);
   const target = r.sys.items.get(key);
   console.log(target ? `R-${key} (${target.heading}): ${L.describe(target)}` : `R-${key}: not in use`);
   for (const row of rows) console.log(`  ${row}`);
-  console.log(`${rows.filter(x => !/: on the list, in .*, and no pointer carries it$/.test(x)).length} pointer(s) at R-${key}`);
+  console.log(`${rows.filter(x => !/: on the list, in .*, and no pointer carries it$|: retired on the list, /.test(x)).length} pointer(s) at R-${key}`);
   for (const n of r.notes) console.log(n);
   return target ? 0 : 1;
 }
@@ -1158,7 +1188,7 @@ function main(argv, deps = {}) {
     const pc = r.pointerCounts;
     if (r.pointerChanges.length <= 12) for (const w of r.pointerChanges) console.log(`pointer: ${w}`);
     else console.log(`pointer: ${r.pointerChanges.length} change(s)`);
-    if (r.pointerChanges.length) console.log(`pointers: ${pc.kept} kept (${pc.followed} brought up to date, ${pc.moved} moved), ${pc.recorded} recorded, ${pc.repointed} repointed, ${pc.gone} taken off`);
+    if (r.pointerChanges.length) console.log(`pointers: ${pc.kept} kept (${pc.followed} brought up to date, ${pc.moved} moved), ${pc.recorded} recorded, ${pc.repointed} repointed, ${pc.gone} retired`);
     for (const p of changed) console.log(`wrote ${p}`);
   }
   console.log(`OK: ${r.counts.files} file(s), ${r.counts.items} id(s)${r.notes.length ? `, ${r.notes.length} not checked` : ''}`);
