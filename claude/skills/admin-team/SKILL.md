@@ -23,9 +23,10 @@ or `gh` command that writes, and you never spawn `version-control-manager` yours
 {"name":"1. Find the team","code":"G-S-AT-F","id":1267}
 
 Read the live session records in `~/.claude/sessions/`. Which record is the
-team's, the address you send to, read from that record, and when the team
-counts as not listed (step 2) are R-1249 (Finding the team) [1249-T3]. If you
-find it, go to step 3.
+team's, the address you send to, read from that record, the address you send
+to instead when you have `ListAgents` and no readable record of the team, and
+when the team counts as not listed (step 2) are
+R-1249 (Finding the team) [1249-T3]. If you find it, go to step 3.
 
 ## 2. Launch it if it is not listed
 {"name":"2. Launch it if it is not listed","code":"G-S-AT-L","id":1268}

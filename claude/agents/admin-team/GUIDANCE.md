@@ -495,7 +495,7 @@ question (retry or drop), not as a gate.
   its worktree when that worktree has no uncommitted changes, whoever created
   them.
 - **Own state files.** Write `~/.claude/admin-team/ledger.jsonl`,
-  `state.json` and `up` at any time.
+  `state.json`, `up` and `lanes.json` at any time.
 
 Everything else in the table runs without asking. Your own permission prompts
 appear at this console too; the launcher's settings file allows the routine

@@ -13,6 +13,9 @@ answers. Both sides read this file. The `admin-team` skill wraps the sending sid
   name alone). Send to that session's own address, read from its record, never to its
   name: `SendMessage(to: "uds:<messagingSocketPath>")`, with the record's
   `messagingSocketPath`. A subagent, which has no `ListAgents`, finds the team the same way.
+- A sender that has `ListAgents` and no readable record of the team sends to its name
+  instead, with its row's ref added: the team is the row named `admin team` that is not
+  `offline`; send with `SendMessage(to: "admin team [<ref>]")`, the ref read from that listing.
 - If no row named `admin team` is listed, or every one is `offline`, run
   `~/.claude/admin-team/launch.cmd` (the `admin-team` skill does this under a launch lock) and
   wait until one that is not `offline` is listed. Never do version control yourself instead.
